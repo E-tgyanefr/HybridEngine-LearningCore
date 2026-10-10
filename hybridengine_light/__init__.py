@@ -18,6 +18,12 @@ from .stage import Stage, color_of
 from .explain import explain, friendly, run_safely
 from .coach import Coach, 诊断
 
-__version__ = "0.1.0"
+# ⚠ 版本号要与 GitHub Release 的 tag 对应 —— 实测踩到：
+#   我发 Release 时自己编了 v1.0.0~v1.0.3，而这里写的是 0.1.0，
+#   **两者不一致**（而且 1.0.0 暗示"已稳定发布"，与项目实际状态不符）。
+#   版本号是**唯一来源**：改这里 + 打同名 tag，不要各写各的。
+# 独立于引擎版本：引擎（专业版）是 0.5.0（见 HybridEngine/CMakeLists.txt），
+#   轻量版是**自己一条线**，不跟着走。
+__version__ = "0.1.3"
 __all__ = ["Stage", "color_of", "explain", "friendly", "run_safely",
            "Coach", "诊断", "__version__"]
