@@ -140,24 +140,12 @@ print("  => 共 %d 个文件；%s" % (tot, "核对通过" if 好 else "有缺失
 if not 好:
     sys.exit(1)
 
-# ── 5 搬到发布位置（`引擎\发布\`）────────────────────────────────────
-#   ⚠ 用"建到临时区再整体替换"而不是直接把 --distpath 指过去：
-#     PyInstaller 的 --noconfirm 会**整个删掉 distpath**，
-#     里面有 zip 和说明的话会被一起删。
-print("  5 搬到发布位置...")
-os.makedirs(发布, exist_ok=True)
-已存在 = os.path.isdir(发布子)
-if 已存在:
-    # 只删成品目录本身，不碰同级的 zip / 说明
-    shutil.rmtree(发布子, ignore_errors=True)
-shutil.move(OUTDIR, 发布子)
-print("     %s  %s" % (发布子, "（替换了旧的一份）" if 已存在 else "（新建）"))
-
-# 顺手把 zip 也做出来（与 GitHub Release 上传的是同一份）
-# ⚠ zip 名**带版本号**，而版本号从代码里读（`__version__` 是单一真值）——
-#   实测踩到：原来固定叫 `HybridEngine-light-win64.zip`，
-#   于是发布目录里躺着两个同名内容（一个带版本号、一个不带），
-#   **分不清哪个是当前版**。版本号只写在一处，名字就跟着它走。
+# ── 5 打包 zip（⚠ 必须在**搬走之前**做）──────────────────────────────
+#   ⚠ 这里曾经留过一段旧的"搬到发布位置"，导致顺序变成
+#     「先搬空 dist ⇒ 再打包 ⇒ FileNotFoundError」。
+#     **是我 edit 时只替换了后半段。** 教训：改流程代码后要**通读一遍顺序**，
+#     不能只看"新加的那段对不对"。
+print("  5 打包 zip…（⚠ 必须在**搬走之前**做，见下）")
 版本 = "0.0.0"
 try:
     import re as _re
@@ -169,16 +157,65 @@ except Exception as _e:
     print("     ⚠ 读不到 __version__（%s），zip 名用 0.0.0" % _e)
 
 zip路径 = os.path.join(发布, "%s-v%s-win64.zip" % (APP, 版本))
-已有 = [f for f in os.listdir(发布) if f.startswith(APP + "-v") and f.endswith("-win64.zip")]
-for f in 已有:
-    # 旧版本的 zip 是历史留档，**不删**（GitHub 上那份也是历史）；
-    #   但同版本号的旧文件要替换，避免"同名两份内容不同"。
-    if f == os.path.basename(zip路径):
-        os.remove(os.path.join(发布, f))
-shutil.make_archive(zip路径[:-4], "zip", 发布, APP)
+os.makedirs(发布, exist_ok=True)
+if os.path.isfile(zip路径):
+    os.remove(zip路径)
+# ⚠⚠ 这里踩过一个大坑，写在最显眼处：
+#   原来写成 make_archive(root_dir=发布, base_dir=APP) ——
+#   而 `发布\HybridEngine-light` 就是**成品本身** ⇒ 等于把自己再包一层，
+#   zip 里成了 `HybridEngine-light/HybridEngine-light/_internal/...`。
+#   更糟的是下一轮构建时 `shutil.move(OUTDIR, 发布子)` 发现目标目录已存在，
+#   就把**新产物移进了那个嵌套目录里**，外层只剩空壳（13 个文件的 _internal）
+#   ⇒ **exe 起不来**（缺 base_library.zip / encodings）。
+#
+#   ⇒ 从 **PyInstaller 的 dist 目录**打包：它天然就是
+#     `dist\HybridEngine-light\...`，包出来第一层正是 `HybridEngine-light/`。
+#   ⇒ 而且必须在**搬走之前**打 —— 搬走之后 dist 就没了。
+shutil.make_archive(zip路径[:-4], "zip", DIST, APP)
 print("     %s  (%.1fMB)  版本 %s" % (zip路径, os.path.getsize(zip路径) / 1024 / 1024, 版本))
 
-# 清理临时区（_build\dist 与 work 都是可再生的中间物）
+# ── 6 搬到发布位置（`引擎\发布\`）────────────────────────────────────
+#   ⚠ 用"建到临时区再整体替换"而不是直接把 --distpath 指过去：
+#     PyInstaller 的 --noconfirm 会**整个删掉 distpath**，
+#     里面有 zip 和说明的话会被一起删。
+print("  6 搬到发布位置…")
+已存在 = os.path.isdir(发布子)
+if 已存在:
+    # ⚠ 必须**整个删掉**再搬：`shutil.move` 在目标已存在时会**移进去**，
+    #   于是成品变成"目录套目录"，外层只剩空壳 —— 实测就是这么坏的。
+    shutil.rmtree(发布子, ignore_errors=True)
+shutil.move(OUTDIR, 发布子)
+print("     %s  %s" % (发布子, "（替换了旧的一份）" if 已存在 else "（新建）"))
+
+# ── 7 自检：产物**真的能跑**吗 ────────────────────────────────────────
+#   ⚠⚠ 这一步是这次翻车的直接补丁。
+#     我上一轮改完脚本后，只看了"文件数 1055→1071"就以为成功 ——
+#     **没有真跑一次**。而实际上 exe 已经起不来了（缺 Python 运行时），
+#     是用户双击"没反应"才暴露的。
+#     ⇒ **判据必须验证"能不能跑"，不是"文件数对不对"。**
+print("  7 自检：真跑一次…")
+必查 = [os.path.join(发布子, "_internal", "base_library.zip"),
+        os.path.join(发布子, "_internal", "python3" + "12.dll"),
+        os.path.join(发布子, APP + ".exe")]
+缺 = [os.path.basename(p) for p in 必查 if not os.path.exists(p)]
+if 缺:
+    print("     ✗ 缺关键运行时文件：%s" % "、".join(缺))
+    print("       ⇒ 这个产物**起不来**，不要发布。")
+    sys.exit(1)
+r = subprocess.run([os.path.join(发布子, APP + ".exe"), "__诊断__"],
+                   capture_output=True, cwd=发布子, timeout=120)
+出 = (r.stdout + r.stderr).decode("utf-8", "replace")
+if r.returncode != 0 or "frozen      = True" not in 出:
+    print("     ✗ 自检失败（退出码 %s）：" % r.returncode)
+    for line in 出.splitlines()[:12]:
+        print("        " + line)
+    sys.exit(1)
+for line in 出.splitlines():
+    if line.strip().startswith(("frozen", "内容根", "lessons 数", "Tk 版本")):
+        print("       " + line.strip())
+print("     ✓ 自检通过（exe 真的能跑）")
+
+# 清理临时区（dist 与 work 都是可再生的中间物）
 shutil.rmtree(DIST, ignore_errors=True)
 shutil.rmtree(WORK, ignore_errors=True)
 print("     已清理 _build 中间物")

@@ -522,4 +522,50 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_exam(_root(), argv[1:])
     if cmd in ("帮助", "help", "-h", "--help"):
         return _cmd_list()
+    if cmd == "__诊断__":
+        # ⚠ 隐蔽开关：在**打包产物里**跑一段自检，把结果印出来。
+        #   为什么需要它：打包后的问题（缺模块、编码、路径）在源码里复现不出来，
+        #   而 GUI 又把输出吃掉了 —— 没有这个开关就只能靠猜。
+        #   实测踩到：双击后"没反应"，进程却一直活着，无法判断卡在哪一步。
+        return _诊断()
     return _cmd_show(cmd)
+
+
+def _诊断() -> int:
+    """打印打包产物里的关键状态。给排查用，不是给学员的功能。"""
+    print(f"  frozen      = {getattr(sys, 'frozen', False)}")
+    print(f"  executable  = {getattr(sys, 'executable', '?')}")
+    print(f"  _MEIPASS    = {getattr(sys, '_MEIPASS', '（无）')}")
+    print(f"  sys.argv    = {sys.argv!r}")
+    print(f"  stdout 可写 = {sys.stdout is not None}")
+    print(f"  encoding    = {getattr(sys.stdout, 'encoding', '?')}")
+    print(f"  PROMPT 环境 = {'有' if os.environ.get('PROMPT') else '无'}")
+    print(f"  CLI 变量    = {'有' if os.environ.get('HYBRIDENGINE_LIGHT_CLI') else '无'}")
+    try:
+        print(f"  内容根      = {_root()}")
+        print(f"  内容根存在  = {_root().is_dir()}")
+        print(f"  lessons 数  = {len(_lessons())}")
+    except Exception as e:
+        print(f"  内容根出错  = {type(e).__name__}: {e}")
+    # tkinter 能不能用（GUI 的前置条件）
+    for 步 in ("import tkinter", "tkinter.Tk()", "destroy"):
+        try:
+            if 步 == "import tkinter":
+                import tkinter  # noqa: F401
+            elif 步 == "tkinter.Tk()":
+                import tkinter as _tk
+                _r = _tk.Tk()
+                print(f"  Tk 版本     = {_r.tk.call('info', 'patchlevel')}")
+            else:
+                _r.destroy()
+            print(f"  tkinter {步:16s} OK")
+        except Exception as e:
+            print(f"  tkinter {步:16s} ✗ {type(e).__name__}: {e}")
+    try:
+        from . import learnmodel as _M
+        for 键 in _M.轨道:
+            print(f"  发现 {键:9s} = {len(_M.发现(键))} 课")
+    except Exception as e:
+        print(f"  发现课程出错 = {type(e).__name__}: {e}")
+    sys.stdout.flush()
+    return 0

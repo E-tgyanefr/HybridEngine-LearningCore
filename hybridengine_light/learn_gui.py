@@ -42,6 +42,7 @@ from tkinter import font as tkfont
 from tkinter import messagebox, ttk
 
 from . import learnmodel as M
+from . import anim as A
 
 # ── 配色（深色，护眼；也少些"白板刺眼") ─────────────────────────────────
 背景 = "#1e1f22"
@@ -84,6 +85,7 @@ class 界面(tk.Tk):
         self.protocol("WM_DELETE_WINDOW", self._关闭时问)
         self.after(80, self._收任务)
         self._填课程树()
+        self._开场动画()
 
     # ══════════════════════ 样式与布局 ══════════════════════
     def _建样式(self):
@@ -159,6 +161,17 @@ class 界面(tk.Tk):
         self.页.pack(fill="both", expand=True)
         self.正文 = self._加文本页("这一课要做什么")
         self.结果 = self._加文本页("运行结果 / 检查报告")
+        # ── 结果徽标：检查完在结果页顶部**弹**一个 ✓ / ✗ ──
+        # ⚠ 用动画而不是一行文字：检查结果是学员最关心的反馈，
+        #   一闪而过的文字容易被忽略；弹出来的徽标抢注意力，
+        #   而"弹"这个动作本身暗示"有新消息"。
+        # ⚠ 画布要挂在**结果页那个 Frame** 上（`self.结果.master`）——
+        #   直接 pack 进 Notebook 是无效的（Notebook 只认自己的 tab）。
+        条 = tk.Canvas(self.结果.master, height=34, bg=编辑底,
+                      highlightthickness=0, bd=0)
+        条.pack(fill="x", side="top", before=self.结果)
+        self.判定画布 = 条
+        self.结果徽标 = A.结果徽标(条, 22, 17)
 
         # 底栏按钮
         底 = tk.Frame(self, bg=面板, height=46)
@@ -173,7 +186,74 @@ class 界面(tk.Tk):
                       cursor="hand2").pack(side="left", padx=(8, 0), pady=9)
         self.状态 = tk.Label(底, text="就绪", bg=面板, fg=暗文字,
                            font=("Segoe UI", 9), anchor="e")
-        self.状态.pack(side="right", fill="x", expand=True, padx=12)
+        self.状态.pack(side="right", fill="x", expand=True, padx=(0, 12))
+        # ── 忙碌指示：转圈圈，而不是一句死文字 ──
+        # ⚠ `dotnet run` 第一次编译要十几秒。纯文字学员会以为卡死；
+        #   转圈是**通用**的"还在干活"信号。
+        self.忙碌画布 = tk.Canvas(底, width=22, height=22, bg=面板,
+                                highlightthickness=0, bd=0)
+        self.忙碌画布.pack(side="right", padx=(0, 4))
+        self.旋转 = A.旋转弧(self.忙碌画布, 11, 11, r=8)
+
+    # ══════════════════════ 启动动画 ══════════════════════
+    def _开场动画(self, 总毫秒: int = 1100):
+        """把名字"弹"出来，再淡出 —— 让启动有个"开了"的感觉。
+
+        ⚠ 三条约束（都是"别让动效变成负担"）：
+          · **可跳过**：点一下 / 按任意键就立刻结束
+          · **够短**：1.1 秒。再长就是从"有质感"变成"烦"
+          · **不阻塞**：动画结束才建主界面，但中途可中断
+        """
+        self.遮罩 = tk.Frame(self, bg=背景)
+        self.遮罩.place(relx=0, rely=0, relwidth=1, relheight=1)
+        画 = tk.Canvas(self.遮罩, bg=背景, highlightthickness=0, bd=0)
+        画.pack(fill="both", expand=True)
+        self._开场完成 = False
+
+        def 收尾(*_):
+            if self._开场完成:
+                return
+            self._开场完成 = True
+            self.遮罩.destroy()
+
+        self.bind("<Button-1>", 收尾, add="+")
+        self.bind("<Key>", 收尾, add="+")
+
+        def 帧(t: float):
+            if self._开场完成:
+                return
+            宽, 高 = self.winfo_width(), self.winfo_height()
+            if 宽 < 50:
+                宽, 高 = 1180, 720
+            画.delete("all")
+            p = min(1.0, t / 620)
+            # 标题：从 0.6 倍"弹"到 1 倍
+            s = A.缩放值(p, 0.6, 1.0, A.回弹)
+            字号 = max(8, int(30 * s))
+            画.create_text(宽 // 2, 高 // 2 - 16, text="HybridEngine-light",
+                           fill=文字, font=("Segoe UI", 字号, "bold"))
+            # 副标题：晚 180ms 淡入（透明度靠灰度逼近）
+            q = A.缩放值(min(1.0, max(0.0, (t - 180) / 500)), 0.0, 1.0)
+            if q > 0.02:
+                灰 = int(0x2b + (0xd6 - 0x2b) * q)
+                画.create_text(宽 // 2, 高 // 2 + 22,
+                               text="学编程，从第一行代码看到画面",
+                               fill=f"#{灰:02x}{灰:02x}{灰:02x}",
+                               font=("Segoe UI", 11))
+            # 底部进度条
+            w = 180
+            x0 = 宽 // 2 - w // 2
+            y0 = 高 // 2 + 62
+            画.create_rectangle(x0, y0, x0 + w, y0 + 3, fill=高亮, outline="")
+            画.create_rectangle(x0, y0, x0 + int(w * min(1.0, t / 总毫秒)), y0 + 3,
+                                fill=强调, outline="")
+            if t >= 总毫秒:
+                收尾()
+        自 = A.动效(self)
+        self._开场动效 = 自
+        自.跑(16, 帧)
+        # 保险：万一动画没跑到末尾（窗口没尺寸等），也要收场
+        self.after(总毫秒 + 400, 收尾)
 
     def _加文本页(self, 标题: str) -> tk.Text:
         框 = tk.Frame(self.页, bg=编辑底)
@@ -352,6 +432,7 @@ class 界面(tk.Tk):
             return
         self._忙 = True
         self.状态.configure(text=提示)
+        self.旋转.开始()                      # ← 转起来，别让学员以为卡死
         self.configure(cursor="watch")
 
         def 跑():
@@ -369,11 +450,33 @@ class 界面(tk.Tk):
                 self._设文本(self.结果, 文)
                 self.页.select(1)
                 self._忙 = False
+                self.旋转.停()                # ← 停了再弹结果
                 self.configure(cursor="")
                 self.状态.configure(text="完成")
+                self._弹结果徽标(文)
         except queue.Empty:
             pass
         self.after(80, self._收任务)
+
+    #: 报告里出现这些字样 ⇒ 判为"没过"（用于结果徽标）
+    失败字样 = ("✗", "没能通过", "编译失败", "出错", "Error", "Traceback",
+              "没有找到", "应该", "失败")
+
+    def _弹结果徽标(self, 文: str):
+        """在结果页顶部弹一个 ✓ / ✗ —— 让"过没过"一眼看到。
+
+        ⚠ 只在**看起来像检查报告**时才弹：
+          单纯"看参考答案"或"运行输出"不该被判成成功/失败
+          （学员只是看看，不是考试）。判据保守取"报告里有没有 ✓/✗"。
+        """
+        if self.判定画布 is None:
+            return
+        有勾 = "✓" in 文
+        有叉 = "✗" in 文
+        if not (有勾 or 有叉):
+            return                           # 不是检查报告，不弹
+        成功 = 有勾 and not 有叉
+        self.结果徽标.显示(成功, "全过" if 成功 else "还要改")
 
     def _关闭时问(self):
         if self.脏 and not messagebox.askyesno("还没保存", "有改动没保存，确定退出吗？"):
