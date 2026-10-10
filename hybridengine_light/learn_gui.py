@@ -86,6 +86,9 @@ class 界面(tk.Tk):
         self.after(80, self._收任务)
         self._填课程树()
         self._开场动画()
+        # ⚠ 开场动画一结束就去后台载入编译型课程 —— 让"界面出现"
+        #   与"课程数完"分开，界面不必等那 6 秒。
+        self.after(1200, self._后台载入编译型)
 
     # ══════════════════════ 样式与布局 ══════════════════════
     def _建样式(self):
@@ -280,17 +283,77 @@ class 界面(tk.Tk):
 
     # ══════════════════════ 课程树 ══════════════════════
     def _填课程树(self):
+        """**先只填即时轨道**，编译型四条线放后台加载。
+
+        ⚠⚠ 这里是启动慢的真凶（实测）：
+
+            发现 python/games/ai/嵌入式/树莓派    0.00 秒
+            发现 csharp / cpp / java / c          各 ~1.5 秒（跑 dotnet run）
+            构造整个界面（含课程树）              6.48 秒
+
+        而**命令行模式只要 0.09 秒** —— 因为 CLI 不预扫全部课程。
+
+        ⇒ 界面必须**先出现**（几百毫秒），编译型那几条在后台陆续补上。
+          学员最需要的是"点开就能用"，不是"启动时把所有课都数一遍"。
+        """
         self.树.delete(*self.树.get_children())
         self._树到课 = {}
-        for 键, (显示, 开箱, 说明) in M.轨道.items():
-            cs = M.发现(键)
-            if not cs:
-                continue
+        self._待填父节点 = {}
+        for 键 in M.即时轨道:
+            self._插轨道(键)
+        # 编译型：先占位，再后台加载
+        for 键 in M.编译型轨道:
+            显示, 开箱, 说明 = M.轨道[键]
+            父 = self.树.insert("", "end", text=f"  {显示}（{说明}）· 载入中…")
+            self._待填父节点[键] = 父
+
+    def _插轨道(self, 键: str, 父: str | None = None) -> int:
+        """把一条课程线插进树，返回插了几课。"""
+        显示, 开箱, 说明 = M.轨道[键]
+        cs = M.发现(键)
+        if not cs:
+            return 0
+        if 父 is None:
             标 = 显示 if 开箱 else f"{显示}（{说明}）"
             父 = self.树.insert("", "end", text=f"  {标}", open=(键 == "python"))
-            for k in cs:
-                子 = self.树.insert(父, "end", text=f"    {k.显示()}")
-                self._树到课[子] = k
+        else:
+            self.树.item(父, text=f"  {显示}（{说明}）")
+        for k in cs:
+            子 = self.树.insert(父, "end", text=f"    {k.显示()}")
+            self._树到课[子] = k
+        return len(cs)
+
+    def _后台载入编译型(self):
+        """在后台线程里逐条发现编译型课程，发现一条就填一条。
+
+        ⚠ 全程**不碰 Tk**：后台线程只算数据，结果丢进队列；
+          真正动控件的是主线程的 `_收任务`。
+          （Tkinter 的控件调用必须在主线程 —— 踩过 `main thread is not in main loop`。）
+        """
+        self.旋转.开始()
+        self.状态.configure(text="正在载入编译型课程（C# / C++ / Java / C）…")
+
+        def 跑():
+            for 键 in M.编译型轨道:
+                try:
+                    n = len(M.发现(键))
+                    self._任务队列.put(("课程线", 键, n))
+                except Exception as e:
+                    self._任务队列.put(("课程线", 键, f"载入失败：{type(e).__name__}"))
+            self._任务队列.put(("课程线完毕", None, None))
+        threading.Thread(target=跑, daemon=True).start()
+
+    def _收课程线(self, 键: str, 结果) -> None:
+        """主线程：把后台发现的课程线填进树。"""
+        父 = self._待填父节点.pop(键, None)
+        if 父 is None:
+            return
+        if isinstance(结果, int):
+            n = self._插轨道(键, 父)
+            if n == 0:
+                self.树.item(父, text=f"  {M.轨道[键][0]}（没有课程）")
+        else:
+            self.树.item(父, text=f"  {M.轨道[键][0]}（{结果}）")
 
     def _选课(self, _e=None):
         sel = self.树.selection()
@@ -465,7 +528,17 @@ class 界面(tk.Tk):
     def _收任务(self):
         try:
             while True:
-                文 = self._任务队列.get_nowait()
+                项 = self._任务队列.get_nowait()
+                # ⚠ 队列里现在有两种消息：普通结果（字符串）与课程线通知（元组）。
+                #   不区分的话，课程线通知会被当成"检查报告"塞进结果页。
+                if isinstance(项, tuple) and 项 and 项[0] == "课程线":
+                    self._收课程线(项[1], 项[2])
+                    continue
+                if isinstance(项, tuple) and 项 and 项[0] == "课程线完毕":
+                    self.旋转.停()
+                    self.状态.configure(text="就绪")
+                    continue
+                文 = 项
                 self._设文本(self.结果, 文)
                 self.页.select(1)
                 self._忙 = False

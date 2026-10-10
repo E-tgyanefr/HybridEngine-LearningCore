@@ -104,20 +104,61 @@ def _第一行标题(p: Path) -> str:
 
 # ── 发现课程 ─────────────────────────────────────────────────────────────
 
+#: 发现结果缓存（同一次运行内）。
+#  ⚠ 为什么需要：编译型那四条线每条要跑一次 `dotnet run`（~1.5 秒），
+#    而界面会在"选课""刷新"等场合反复问同一条线。
+#    实测：不缓存的话启动一次要 6.4 秒。
+_发现缓存: dict[str, list[课]] = {}
+#: 缓存对应的**内容根**。
+#  ⚠⚠ 实测踩到：缓存只按"轨道名"存，而内容根是会变的
+#    （测试用临时目录、打包后指向 exe 旁边）。
+#    ⇒ 换了根之后缓存仍返回**上一个根**的课，
+#      而那个目录可能已被删除 ⇒ `FileNotFoundError`。
+#    **缓存必须和它依赖的输入绑定** —— 否则它就不是缓存，是"记错了"。
+_缓存根: str | None = None
+
+#: 编译型轨道 —— 要跑 `dotnet run`，**慢**
+编译型轨道 = ("csharp", "cpp", "java", "c")
+#: 即时轨道 —— 纯读文件，实测 0.00 秒
+即时轨道 = ("python", "games", "ai", "embedded", "raspi")
+
+
+def 清缓存() -> None:
+    global _缓存根
+    _发现缓存.clear()
+    _缓存根 = None
+
+
+def _缓存可用() -> bool:
+    """当前根是否与缓存一致；不一致就清空重来。"""
+    global _缓存根
+    现在 = str(项目根())
+    if _缓存根 != 现在:
+        _发现缓存.clear()
+        _缓存根 = 现在
+        return False
+    return True
+
+
 def 发现(轨道键: str) -> list[课]:
     """列出某条课程线的所有课。找不到就返回空列表（**不抛异常**）。"""
+    新鲜 = _缓存可用()
+    if 新鲜 and 轨道键 in _发现缓存:
+        return _发现缓存[轨道键]
     root = 项目根()
     if 轨道键 == "python":
         from . import run as R
         出 = []
         for p in R._lessons():
             出.append(课("python", p.stem[:2], R._title_of(p), p, R._答题路径(p)))
-        return 出
-    if 轨道键 in ("ai", "embedded", "raspi", "games"):
-        return _发现Python系(轨道键, root)
-    if 轨道键 in ("csharp", "cpp", "java", "c"):
-        return _发现编译型(轨道键, root)
-    return []
+    elif 轨道键 in ("ai", "embedded", "raspi", "games"):
+        出 = _发现Python系(轨道键, root)
+    elif 轨道键 in 编译型轨道:
+        出 = _发现编译型(轨道键, root)
+    else:
+        出 = []
+    _发现缓存[轨道键] = 出
+    return 出
 
 
 def _发现Python系(轨道键: str, root: Path) -> list[课]:

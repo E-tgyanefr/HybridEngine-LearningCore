@@ -117,6 +117,7 @@ def _cmd_list() -> int:
     print(f"  看某一课：   {命令名()} 01")
     print(f"  检查答案：   {命令名()} 检查 01")
     print(f"  写代码：     {命令名()} 编辑 01        （内置编辑器，不用另开记事本）")
+    print(f"  引擎：       {命令名()} 引擎             （Python 游戏引擎 + 样例游戏）")
     print(f"  看参考答案： {命令名()} 答案 01")
     print(f"  小游戏：     {命令名()} 游戏")
     print(f"  嵌入式：     {命令名()} 嵌入式      （单片机模拟器，不需要真板子）")
@@ -517,6 +518,9 @@ def main(argv: list[str] | None = None) -> int:
     if cmd in ("AI", "ai"):
         from .aicourse import cmd_ai
         return cmd_ai(_root(), argv[1:])
+    if cmd in ("引擎", "engine"):
+        from .cmd_engine import cmd_引擎
+        return cmd_引擎(_root(), argv[1:])
     if cmd in ("考试", "exam"):
         from .cmd_exam import cmd_exam
         return cmd_exam(_root(), argv[1:])
