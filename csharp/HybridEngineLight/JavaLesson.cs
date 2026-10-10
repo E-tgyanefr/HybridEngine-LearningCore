@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 /// <summary>一次学生 Java 代码的运行结果。</summary>
 public sealed class JavaRun

@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using HybridEngine-light;
+using HybridEngineLight;
 
 internal static class Tests
 {

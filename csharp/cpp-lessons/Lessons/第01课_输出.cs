@@ -12,7 +12,7 @@
 // 那样就学不到"变量"是什么。所以有一条检查专门验证这一点。
 
 using System.Linq;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("01", "第 01 课：输出 —— 让程序开口说话",

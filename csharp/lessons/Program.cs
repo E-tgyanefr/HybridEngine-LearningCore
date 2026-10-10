@@ -4,7 +4,7 @@
 
 using System;
 using System.Collections.Generic;
-using HybridEngine-light;
+using HybridEngineLight;
 
 internal static class Demo
 {

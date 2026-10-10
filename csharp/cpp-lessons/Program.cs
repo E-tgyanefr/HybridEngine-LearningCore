@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using HybridEngine-light;
+using HybridEngineLight;
 
 namespace HybridEngineLight.CppLessons;
 

@@ -30,7 +30,7 @@
 
 using System.Linq;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("04", "第 04 课：循环",

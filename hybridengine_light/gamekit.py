@@ -23,6 +23,7 @@
 """
 
 from __future__ import annotations
+from ._paths import 内容根
 
 import random
 
@@ -119,9 +120,10 @@ def 模板(游戏名: str = "接方块") -> str:
 """
 
 import os
+
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, str(内容根()))
 
 from hybridengine_light import Stage
 from hybridengine_light.gamekit import 碰撞, 夹住

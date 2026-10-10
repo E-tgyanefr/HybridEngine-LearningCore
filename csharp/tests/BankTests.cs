@@ -18,7 +18,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 
 internal static class BankTests
 {

@@ -32,7 +32,7 @@
 //   所有报错识别只匹配 ASCII 片段 —— g++ 会把中文标识符转义成 \U000053cc。
 
 using System.Collections.Generic;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("07", "第 07 课：字符串 —— 'A' 和 \"A\" 不是一回事",

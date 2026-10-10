@@ -50,6 +50,7 @@ code 题的判定方式是**真的执行学生的函数**并跑测试用例 —�
 """
 
 from __future__ import annotations
+from ._paths import 内容根
 
 import importlib.util
 import json
@@ -59,6 +60,7 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
+
 
 __all__ = ["Question", "BANK", "load_banks", "Exam", "Progress", "normalize"]
 
@@ -117,7 +119,7 @@ def load_banks(root: Path | None = None) -> tuple[list[Question], list[ExamMeta]
     文件本身出错就让异常冒出来 —— 那是我们自己的 bug，不该藏起来
     （题库语法错的时候，学生看到"题库加载失败"比看到一堆题更糟）。
     """
-    d = (root or Path(__file__).resolve().parent.parent) / "exams"
+    d = (root or 内容根()) / "exams"
     if not d.is_dir():
         return [], []
     out: list[Question] = []

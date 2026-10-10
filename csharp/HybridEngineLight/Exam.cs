@@ -25,7 +25,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 /// <summary>一道题。题库是纯数据（见 exams/ 下的 .cs 文件）。</summary>
 public sealed class Question

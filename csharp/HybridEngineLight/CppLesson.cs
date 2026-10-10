@@ -28,7 +28,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 /// <summary>一次学生代码的运行结果（编译 + 执行）。</summary>
 public sealed class CppRun

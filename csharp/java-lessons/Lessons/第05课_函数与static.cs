@@ -49,7 +49,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.JavaLessons;
 
 [Java课程("05", "第 05 课：函数与 static —— 把计算打包，想用几次用几次",

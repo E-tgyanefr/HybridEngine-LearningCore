@@ -6,8 +6,8 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <AssemblyName>HybridEngine-light</AssemblyName>
-    <RootNamespace>HybridEngine-light</RootNamespace>
+    <AssemblyName>HybridEngineLight</AssemblyName>
+    <RootNamespace>HybridEngineLight</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 </Project>

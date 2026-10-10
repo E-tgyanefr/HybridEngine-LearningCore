@@ -36,7 +36,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.JavaLessons;
 
 [Java课程("03", "第 03 课：条件判断",

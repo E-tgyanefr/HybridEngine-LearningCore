@@ -32,7 +32,7 @@
 //   所以只匹配 ASCII 报错片段（cannot bind / invalid conversion）。
 
 using System.Collections.Generic;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("08", "第 08 课：指针与引用 —— 改了参数，外面会不会变",

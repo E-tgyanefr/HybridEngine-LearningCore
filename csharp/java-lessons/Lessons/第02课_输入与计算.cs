@@ -50,7 +50,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.JavaLessons;
 
 [Java课程("02", "第 02 课：输入与计算",

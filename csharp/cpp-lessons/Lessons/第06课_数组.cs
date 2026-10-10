@@ -26,7 +26,7 @@
 //   所以下面只匹配 ASCII 的报错片段（cannot convert / was not declared 等）。
 
 using System.Collections.Generic;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("06", "第 06 课：数组与向量 —— 一排格子和会变长的格子",

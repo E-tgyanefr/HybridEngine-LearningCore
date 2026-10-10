@@ -24,7 +24,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public sealed class CppResult
 {

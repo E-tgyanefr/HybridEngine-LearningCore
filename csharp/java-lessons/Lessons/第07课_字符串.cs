@@ -40,7 +40,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.JavaLessons;
 
 [Java课程("07", "第 07 课：字符串 —— 内容比较必须用 equals",

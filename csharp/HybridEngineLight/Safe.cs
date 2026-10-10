@@ -14,7 +14,7 @@
 
 using System;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public static class Safe
 {

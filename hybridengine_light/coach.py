@@ -31,6 +31,8 @@
 
 from __future__ import annotations
 
+from ._paths import 内容根
+
 import re
 
 __all__ = ["Coach", "诊断"]
@@ -327,8 +329,9 @@ class Coach:
     def 查(self, 课号: str) -> str:
         """针对某一课给一点提示 —— 但不给答案。"""
         from pathlib import Path
+
         if self.课程目录 is None:
-            self.课程目录 = Path(__file__).resolve().parent.parent / "lessons"
+            self.课程目录 = (内容根() / "lessons")
         d = Path(self.课程目录)
         if not d.is_dir():
             return "找不到课程目录。"

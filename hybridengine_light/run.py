@@ -20,6 +20,21 @@ import sys
 import sys
 from pathlib import Path
 
+from ._paths import 内容根
+
+
+def 命令名() -> str:
+    """用法提示里该显示的命令 —— 打包成 exe 与 `python -m` 用法**不同**。
+
+    ⚠ 不区分的话：exe 用户照着提示打 `python -m hybridengine_light`
+      会失败（他们机器上可能根本没 Python），而提示文字是新手唯一的线索。
+    """
+    import sys as _sys
+    if getattr(_sys, "frozen", False):
+        import os as _os
+        return _os.path.basename(_sys.executable)      # 例如 HybridEngine-light.exe
+    return "python -m hybridengine_light"
+
 
 def _确保输出编码():
     """把输出流设成 UTF-8，并让编码错误降级成替换字符。
@@ -66,7 +81,19 @@ GAMES_DIR = "games"
 
 def _root() -> Path:
     """项目根目录（本包所在目录的上一级）。"""
-    return Path(__file__).resolve().parent.parent
+    return 内容根()
+
+
+def _答题路径(课: Path) -> Path:
+    """该课的答题文件路径（与「检查」用的是**同一个**真值）。
+
+    ⚠ 必须共用：如果「编辑」打开的文件和「检查」读的文件不是同一个，
+      学员会写到一个文件、检查另一个文件 —— 而那表现为"我明明写了却说过不了"，
+      是最难查、最打击人的一类问题。
+    """
+    if _needs_multiple_files(课):
+        return _root() / ANSWERS_DIR / 课.stem / "main.py"
+    return _root() / ANSWERS_DIR / 课.name
 
 
 def _lessons() -> list[Path]:
@@ -98,15 +125,16 @@ def _cmd_list() -> int:
         title = _title_of(p)
         print(f"  {p.stem[:2]}   {title}")
     print()
-    print("  看某一课：   python -m hybridengine_light 01")
-    print("  检查答案：   python -m hybridengine_light 检查 01")
-    print("  看参考答案： python -m hybridengine_light 答案 01")
-    print("  小游戏：     python -m hybridengine_light 游戏")
-    print("  嵌入式：     python -m hybridengine_light 嵌入式      （单片机模拟器，不需要真板子）")
-    print("  树莓派：     python -m hybridengine_light 树莓派      （树莓派模拟器，不需要真板子）")
-    print("  AI 入门：    python -m hybridengine_light AI          （零依赖，算法全部自己实现）")
-    print("  考试：       python -m hybridengine_light 考试        （随机抽题，即时判分）")
-    print("               python -m hybridengine_light 考试 --成绩  （历史与弱项）")
+    print(f"  看某一课：   {命令名()} 01")
+    print(f"  检查答案：   {命令名()} 检查 01")
+    print(f"  写代码：     {命令名()} 编辑 01        （内置编辑器，不用另开记事本）")
+    print(f"  看参考答案： {命令名()} 答案 01")
+    print(f"  小游戏：     {命令名()} 游戏")
+    print(f"  嵌入式：     {命令名()} 嵌入式      （单片机模拟器，不需要真板子）")
+    print(f"  树莓派：     {命令名()} 树莓派      （树莓派模拟器，不需要真板子）")
+    print(f"  AI 入门：    {命令名()} AI          （零依赖，算法全部自己实现）")
+    print(f"  考试：       {命令名()} 考试        （随机抽题，即时判分）")
+    print(f"               {命令名()} 考试 --成绩  （历史与弱项）")
     print()
     return 0
 
@@ -126,7 +154,7 @@ def _title_of(p: Path) -> str:
 def _cmd_show(idf: str) -> int:
     p = _find(idf)
     if p is None:
-        print(f"\n  没有找到「{idf}」这一课。用 `python -m hybridengine_light` 看列表。\n")
+        print(f"\n  没有找到「{idf}」这一课。用 `{命令名()}` 看列表。\n")
         return 1
     print()
     print(p.read_text(encoding="utf-8"))
@@ -162,6 +190,25 @@ def _cmd_answer(idf: str) -> int:
     return 1
 
 
+def _cmd_edit(idf: str) -> int:
+    """内置编辑器打开该课的答题文件（不存在就先建模板）。"""
+    p = _find(idf)
+    if p is None:
+        print(f"\n  没有找到「{idf}」这一课。用 `{命令名()}` 看列表。\n")
+        return 1
+    文件 = _答题路径(p)
+    if not 文件.exists():
+        # ⚠ 先建模板再打开 —— 否则学员面对一个空文件，而"空白"是最劝退的起点
+        if _needs_multiple_files(p):
+            _make_multi_stub(p, 文件.parent)
+        else:
+            文件.parent.mkdir(parents=True, exist_ok=True)
+            文件.write_text(_stub_for(p), encoding="utf-8")
+        print(f"\n  已建好答题模板：{文件}")
+    from .editor import 编辑
+    return 编辑(str(文件))
+
+
 def _cmd_check(idf: str) -> int:
     """检查答案：加载课程里的 CHECK_*，对学生写的答案跑一遍。"""
     from .check import load_module, run_checks, report
@@ -169,7 +216,7 @@ def _cmd_check(idf: str) -> int:
 
     p = _find(idf)
     if p is None:
-        print(f"\n  没有找到「{idf}」这一课。用 `python -m hybridengine_light` 看列表。\n")
+        print(f"\n  没有找到「{idf}」这一课。用 `{命令名()}` 看列表。\n")
         return 1
 
     answer = _load_answer(p, idf)
@@ -253,9 +300,18 @@ def _load_answer(p: Path, idf: str) -> object | None:
         print()
         print("─" * 56)
         print(f"  给你建好了答题文件：{file_form}")
-        print("  打开它，按里面的说明写代码，然后再跑一次这条命令。")
         print("─" * 56)
         print()
+        # ⚠ 第一次建模板时**直接问要不要打开** —— 少一步，而且新手常常
+        #   不知道"用什么打开"。但只在**交互终端**里问：脚本/测试里问会把流程卡住。
+        if sys.stdin.isatty() and sys.stdout.isatty():
+            try:
+                ans = input("  现在打开内置编辑器写吗？[Y/n] ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                ans = "n"
+            if ans in ("", "y", "yes", "是"):
+                from .editor import 编辑
+                return 编辑(str(file_form)) or None
     return None
 
 
@@ -284,7 +340,7 @@ def _make_multi_stub(lesson: Path, d: Path):
         '  2. 写一个函数 周长(长, 宽)，返回 2×(长+宽)\n'
         '  3. 写一个函数 是正方形(长, 宽)，长宽相等返回 True，否则 False\n'
         '  4. 写一个常量 单位 = "平方米"\n\n'
-        '写完运行：  python -m hybridengine_light 检查 02\n'
+        f'写完运行：  {命令名()} 检查 02\n'
         '"""\n\n'
         '# 在这个文件里写你的函数。\n'
         '# 提示：模块里不需要写 input / print —— 那些是主程序的事。\n\n\n'
@@ -306,7 +362,7 @@ def _make_multi_stub(lesson: Path, d: Path):
         '  2. 写一个函数 描述(长, 宽)，返回一句话，例如：\n'
         '       10 × 5 的面积是 50 平方米，周长是 30\n'
         '     格式要完全一致（用 mytools 里的函数算，别自己重写）\n\n'
-        '写完运行：  python -m hybridengine_light 检查 02\n'
+        f'写完运行：  {命令名()} 检查 02\n'
         '"""\n\n'
         '# ① 在这里 import 你的模块。提示：import mytools\n\n\n'
         'def 描述(长, 宽):\n'
@@ -322,8 +378,8 @@ def _stub_for(lesson: Path) -> str:
     lines = [
         f'"""第 {lesson.stem[:2]} 课的答案 —— 在这里写你的代码。',
         "",
-        "改完运行：  python -m hybridengine_light 检查 " + lesson.stem[:2],
-        "卡住了：    python -m hybridengine_light 答案 " + lesson.stem[:2] + "   （先自己试过再看）",
+        f"改完运行：  {命令名()} 检查 " + lesson.stem[:2],
+        f"卡住了：    {命令名()} 答案 " + lesson.stem[:2] + "   （先自己试过再看）",
         '"""',
         "",
     ]
@@ -373,6 +429,8 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_check(argv[1]) if len(argv) > 1 else _cmd_list()
     if cmd in ("答案", "answer"):
         return _cmd_answer(argv[1]) if len(argv) > 1 else _cmd_list()
+    if cmd in ("编辑", "edit"):
+        return _cmd_edit(argv[1]) if len(argv) > 1 else _cmd_list()
     if cmd in ("游戏", "games"):
         return _cmd_games()
     if cmd in ("树莓派", "raspi"):

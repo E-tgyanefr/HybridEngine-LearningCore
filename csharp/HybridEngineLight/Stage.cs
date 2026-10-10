@@ -24,7 +24,7 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 /// <summary>画布上的一条绘图指令。与显示无关，便于测试。</summary>
 public abstract record Shape;

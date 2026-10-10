@@ -65,6 +65,7 @@ HybridEngine-light 的核心本来就是控制层：
 """
 
 from __future__ import annotations
+from ._paths import 内容根
 
 import contextlib
 import importlib.util
@@ -76,6 +77,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+
 
 __all__ = ["main", "run_stdio", "COMMANDS", "命令表", "协议版本"]
 
@@ -219,7 +221,7 @@ def _写行(行: str) -> None:
 
 def 项目根() -> Path:
     """HybridEngine-light 项目根 = 本包所在目录的上一级。"""
-    return Path(__file__).resolve().parent.parent
+    return 内容根()
 
 
 # 课程线表 —— **按实测的目录结构写**，不是按文档写。

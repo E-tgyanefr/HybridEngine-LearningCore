@@ -40,7 +40,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.JavaLessons;
 
 [Java课程("08", "第 08 课：类与对象 —— 自己造一种东西",

@@ -11,6 +11,6 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\HybridEngine-light\HybridEngineLight.csproj" />
+    <ProjectReference Include="..\HybridEngineLight\HybridEngineLight.csproj" />
   </ItemGroup>
 </Project>

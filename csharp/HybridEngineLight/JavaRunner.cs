@@ -96,7 +96,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public sealed class JavaResult
 {

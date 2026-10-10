@@ -39,7 +39,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public static class ExplainJava
 {

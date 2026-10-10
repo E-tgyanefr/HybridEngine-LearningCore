@@ -28,7 +28,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public static class BankLoader
 {

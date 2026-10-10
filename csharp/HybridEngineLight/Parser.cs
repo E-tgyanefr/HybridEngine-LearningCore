@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public static class Parser
 {

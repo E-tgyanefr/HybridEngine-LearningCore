@@ -24,7 +24,7 @@
 
 using System.Linq;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("03", "第 03 课：条件判断",

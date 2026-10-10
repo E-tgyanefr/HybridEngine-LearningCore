@@ -31,3 +31,9 @@ csharp/demo3d/
 *.tmp
 Replay/
 PlayerData/
+
+# ⚠ 打包产物（PyInstaller 的 dist/work + zip）—— **不该进仓**：
+#   里面含 11.7MB 的 zip 与上千个运行时文件，而它们全部可由
+#   `python _build/build_exe.py` 重新生成。
+#   （实测踩到：`git add -A` 一次性把它们提交了，1119 个文件 / +15 万行。）
+_build/

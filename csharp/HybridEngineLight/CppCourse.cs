@@ -22,7 +22,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 /// <summary>一个 C++ 课程的定义（标题、要求、答题模板）。</summary>
 public sealed class CourseDef

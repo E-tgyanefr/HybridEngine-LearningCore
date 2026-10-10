@@ -27,7 +27,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace HybridEngine-light;
+namespace HybridEngineLight;
 
 public static class Explain
 {

@@ -29,7 +29,7 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("02", "第 02 课：输入与计算",

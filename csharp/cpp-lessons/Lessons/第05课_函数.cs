@@ -26,7 +26,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.CppLessons;
 
 [课程("05", "第 05 课：函数 —— 把计算打包，想用几次用几次",

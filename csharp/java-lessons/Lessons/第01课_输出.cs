@@ -18,7 +18,7 @@
 // 外部方法看不见 —— 我第一版就是想用探针访问，行不通（和 C++ 那边踩的是同一个坑）。
 
 using System.Linq;
-using HybridEngine-light;
+using HybridEngineLight;
 using HybridEngineLight.JavaLessons;
 
 [Java课程("01", "第 01 课：输出与变量 —— 让程序开口说话",
