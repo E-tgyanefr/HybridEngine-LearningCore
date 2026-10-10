@@ -369,7 +369,26 @@ class 界面(tk.Tk):
         if self.代码.edit_modified():
             self.脏 = True
             self.代码.edit_modified(False)
-            self.状态.configure(text="有未保存的改动")
+            # ⚠ 只有**真的和盘上不一样**才覆盖状态栏。
+            #   实测踩到：`点保存()` 先设了「已保存：xxx」，紧接着 Text 的
+            #   `<<Modified>>` 事件把它盖成「有未保存的改动」——
+            #   学员看到的是「我刚按了保存，它却说没保存」。
+            #   （程序化 `insert` 也会触发这个事件，所以不能只靠"谁后触发"。）
+            if self._与盘上不同():
+                self.状态.configure(text="有未保存的改动")
+
+    def _与盘上不同(self) -> bool:
+        """编辑器内容与磁盘上的答案文件是否不一致（用于状态栏措辞）。"""
+        if self.当前课 is None:
+            return False
+        try:
+            文件 = M._答案文件(self.当前课)
+            if not 文件.is_file():
+                return True
+            盘上 = 文件.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return True
+        return self.代码.get("1.0", "end-1c").rstrip("\n") != 盘上.rstrip("\n")
 
     # ══════════════════════ 动作 ══════════════════════
     def _要课(self) -> M.课 | None:
@@ -458,24 +477,29 @@ class 界面(tk.Tk):
             pass
         self.after(80, self._收任务)
 
-    #: 报告里出现这些字样 ⇒ 判为"没过"（用于结果徽标）
-    失败字样 = ("✗", "没能通过", "编译失败", "出错", "Error", "Traceback",
-              "没有找到", "应该", "失败")
+    #: 报告/输出里表示"通过"的符号
+    #  ⚠ 实测踩到：我只写了 `✓`，而课程报告实际用 **`√`**（另一处用 `✅`）
+    #    ⇒ 徽标永远不弹。**判据符号要和实际产出一致**，
+    #      不能凭"我记得是哪个勾"。
+    通过符号 = ("√", "✓", "✔", "✅", "通过")
+    #: 表示"没过"的符号
+    不通过符号 = ("✗", "✕", "✘", "❌", "×", "没能通过", "编译失败")
 
     def _弹结果徽标(self, 文: str):
         """在结果页顶部弹一个 ✓ / ✗ —— 让"过没过"一眼看到。
 
         ⚠ 只在**看起来像检查报告**时才弹：
           单纯"看参考答案"或"运行输出"不该被判成成功/失败
-          （学员只是看看，不是考试）。判据保守取"报告里有没有 ✓/✗"。
+          （学员只是看看，不是考试）。
+          判据取"报告里有没有通过/不通过的符号"。
         """
         if self.判定画布 is None:
             return
-        有勾 = "✓" in 文
-        有叉 = "✗" in 文
-        if not (有勾 or 有叉):
+        有过 = any(s in 文 for s in self.通过符号)
+        有否 = any(s in 文 for s in self.不通过符号)
+        if not (有过 or 有否):
             return                           # 不是检查报告，不弹
-        成功 = 有勾 and not 有叉
+        成功 = 有过 and not 有否
         self.结果徽标.显示(成功, "全过" if 成功 else "还要改")
 
     def _关闭时问(self):

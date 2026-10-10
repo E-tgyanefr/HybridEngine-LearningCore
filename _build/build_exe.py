@@ -45,23 +45,17 @@ OUTDIR = os.path.join(DIST, APP)
 内容 = ["lessons", "games", "embedded", "raspi", "ai", "exams", "csharp", "docs"]
 
 入口 = os.path.join(BUILD, "entry.py")
-io.open(入口, "w", encoding="utf-8", newline="").write(
-    '"""打包入口 —— 与 `python -m hybridengine_light` 等价。\n'
-    '\n'
-    '⚠ 先设 `HYBRIDENGINE_LIGHT_ROOT` 指向 **exe 旁边**（不是 `_internal/`）——\n'
-    '  这样学员的课程目录、答题文件都在看得见的地方。\n'
-    '"""\n'
-    'import os\n'
-    'import sys\n'
-    '\n'
-    'if getattr(sys, "frozen", False):\n'
-    '    _base = os.path.dirname(os.path.abspath(sys.executable))\n'
-    '    os.environ.setdefault("HYBRIDENGINE_LIGHT_ROOT", _base)\n'
-    '\n'
-    'from hybridengine_light.run import main\n'
-    '\n'
-    'if __name__ == "__main__":\n'
-    '    sys.exit(main())\n')
+# ⚠ 入口**从受版本控制的模板复制**，不在脚本里拼字符串。
+#   原来拼字符串有两个后果，都实测踩到了：
+#     · 想给它加兜底错误处理，一改就被下次构建覆盖
+#     · 它不是仓库文件，`git log` 里没有历史 ——
+#       而出事时它恰恰是"程序能不能起来"的那个入口
+模板 = os.path.join(BUILD, "entry_template.py")
+if not os.path.isfile(模板):
+    print("  ✗ 找不到入口模板：%s" % 模板)
+    sys.exit(1)
+shutil.copyfile(模板, 入口)
+print("  0 入口已由模板生成（entry_template.py → entry.py）")
 
 shutil.rmtree(DIST, ignore_errors=True)
 shutil.rmtree(WORK, ignore_errors=True)
@@ -202,8 +196,19 @@ if 缺:
     print("     ✗ 缺关键运行时文件：%s" % "、".join(缺))
     print("       ⇒ 这个产物**起不来**，不要发布。")
     sys.exit(1)
+# ⚠⚠ 自检必须跑**命令行模式**（`HYBRIDENGINE_LIGHT_CLI=1`）。
+#
+#   我第一版没设这个变量，于是自检启动的 exe **开了 GUI —— 而 GUI 不会退出**。
+#   那个进程锁着自己的 `libffi-8.dll` 和 `HybridEngine-light.exe`，
+#   于是**下一轮构建的 `shutil.rmtree(发布子)` 失败**（WinError 5 拒绝访问），
+#   产物只搬了一半 ⇒ **exe 起不来**。
+#
+#   ⇒ 我的自检机制**自己造成**了"双击没反应"。这一条是那次翻车的直接补丁：
+#     自检进程必须**跑完就退**，绝对不能留下一个活着的窗口进程。
+自检环境 = {**os.environ, "HYBRIDENGINE_LIGHT_CLI": "1"}
+自检环境.pop("PROMPT", None)
 r = subprocess.run([os.path.join(发布子, APP + ".exe"), "__诊断__"],
-                   capture_output=True, cwd=发布子, timeout=120)
+                   capture_output=True, cwd=发布子, timeout=120, env=自检环境)
 出 = (r.stdout + r.stderr).decode("utf-8", "replace")
 if r.returncode != 0 or "frozen      = True" not in 出:
     print("     ✗ 自检失败（退出码 %s）：" % r.returncode)
@@ -213,7 +218,22 @@ if r.returncode != 0 or "frozen      = True" not in 出:
 for line in 出.splitlines():
     if line.strip().startswith(("frozen", "内容根", "lessons 数", "Tk 版本")):
         print("       " + line.strip())
-print("     ✓ 自检通过（exe 真的能跑）")
+print("     ✓ 自检通过（exe 真的能跑，且进程已退出）")
+
+# ⚠ 再确认一次：自检**没有留下活着的进程**。
+#   留一个就会锁住产物，害得下一轮构建搬一半 —— 正是上一轮的事故。
+try:
+    import subprocess as _sp
+    q = _sp.run(["tasklist", "/FI", "IMAGENAME eq " + APP + ".exe"],
+                capture_output=True, timeout=30)
+    qs = (q.stdout + q.stderr).decode("utf-8", "replace")
+    if APP + ".exe" in qs and "没有运行的任务" not in qs and "No tasks are running" not in qs:
+        print("     ✗ 自检留下了活着的进程（会锁住产物，害得下轮构建搬一半）")
+        print("       请先结束它：taskkill /IM %s.exe /F" % APP)
+        sys.exit(1)
+    print("     ✓ 确认没有残留进程")
+except Exception:
+    pass            # 查不到就算了，不因为查不到而挡住构建
 
 # 清理临时区（dist 与 work 都是可再生的中间物）
 shutil.rmtree(DIST, ignore_errors=True)

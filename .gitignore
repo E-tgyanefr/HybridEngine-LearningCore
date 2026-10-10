@@ -48,3 +48,7 @@ _build/work/
 _build/build/
 _build/*.spec
 _build/entry.py
+# but entry_template.py MUST be tracked -- it is the SOURCE of the entry point:
+# the entry used to be a string built inside the build script (uneditable,
+# no git history). The template is the real file now.
+!_build/entry_template.py
