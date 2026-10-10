@@ -37,6 +37,7 @@
 """
 
 from __future__ import annotations
+from ._paths import 命令名
 
 import importlib.util
 import sys
@@ -103,9 +104,9 @@ def _列课程(root: Path) -> int:
     for p in ls:
         print(f"  {p.stem[:2]}   {_标题(p)}")
     print()
-    print("  看某一课：   python -m hybridengine_light AI 01")
-    print("  检查答案：   python -m hybridengine_light AI 检查 01")
-    print("  参考答案：   python -m hybridengine_light AI 答案 01")
+    print(f"  看某一课：   {命令名()} AI 01")
+    print(f"  检查答案：   {命令名()} AI 检查 01")
+    print(f"  参考答案：   {命令名()} AI 答案 01")
     print()
     print("  ⚠ 这套课**一个第三方库都不用** —— 不需要 numpy / sklearn / torch。")
     print("    所有算法都用 Python 的 list 和 for 循环从零写出来。")

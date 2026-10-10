@@ -27,6 +27,7 @@
 """
 
 from __future__ import annotations
+from ._paths import 命令名
 
 import importlib.util
 import sys
@@ -83,9 +84,9 @@ def _列课程(root: Path) -> int:
     for p in ls:
         print(f"  {p.stem[:2]}   {_标题(p)}")
     print()
-    print("  看某一课：   python -m hybridengine_light 嵌入式 01")
-    print("  检查答案：   python -m hybridengine_light 嵌入式 检查 01")
-    print("  参考答案：   python -m hybridengine_light 嵌入式 答案 01")
+    print(f"  看某一课：   {命令名()} 嵌入式 01")
+    print(f"  检查答案：   {命令名()} 嵌入式 检查 01")
+    print(f"  参考答案：   {命令名()} 嵌入式 答案 01")
     print()
     print("  ⚠ 这套课程用**模拟器**跑 —— 不需要真的买板子。")
     print("    模拟器能验证程序逻辑，但**验证不了电路**（限流电阻、接线、正负极）。")

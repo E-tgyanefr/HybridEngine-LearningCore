@@ -20,20 +20,9 @@ import sys
 import sys
 from pathlib import Path
 
-from ._paths import 内容根
+from ._paths import 内容根, 命令名
 
 
-def 命令名() -> str:
-    """用法提示里该显示的命令 —— 打包成 exe 与 `python -m` 用法**不同**。
-
-    ⚠ 不区分的话：exe 用户照着提示打 `python -m hybridengine_light`
-      会失败（他们机器上可能根本没 Python），而提示文字是新手唯一的线索。
-    """
-    import sys as _sys
-    if getattr(_sys, "frozen", False):
-        import os as _os
-        return _os.path.basename(_sys.executable)      # 例如 HybridEngine-light.exe
-    return "python -m hybridengine_light"
 
 
 def _确保输出编码():
@@ -115,7 +104,7 @@ def _cmd_list() -> int:
     ls = _lessons()
     print()
     print("════════════════════════════════════════════════════════")
-    print("  hybridengine_light 课程")
+    print("  HybridEngine-light 课程")
     print("════════════════════════════════════════════════════════")
     if not ls:
         print("  （还没有课程）")

@@ -15,6 +15,7 @@
 """
 
 from __future__ import annotations
+from ._paths import 命令名
 
 import random
 import sys
@@ -140,7 +141,7 @@ def _list_bank(bank) -> int:
         kind_s = "  ".join(f"{k}×{v}" for k, v in sorted(kinds.items()))
         print(f"  {t:<12} {len(qs):>3} 题    {kind_s}")
     print()
-    print("  只考某个主题： python -m hybridengine_light 考试 --主题 循环")
+    print(f"  只考某个主题： {命令名()} 考试 --主题 循环")
     print()
     return 0
 
@@ -151,7 +152,7 @@ def _show_scores(progress: Progress, bank) -> int:
     print("  成绩历史")
     print("═" * 56)
     if not progress.attempts:
-        print("  还没有考过。先来一场：python -m hybridengine_light 考试")
+        print(f"  还没有考过。先来一场：{命令名()} 考试")
         print()
         return 0
 
