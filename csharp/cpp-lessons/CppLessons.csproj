@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- C++ 课程：课程定义（.cs，装检查逻辑）+ 学生作业（.cpp，装学生代码）。 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>LearnCode.CppLessons</AssemblyName>
+    <RootNamespace>LearnCode.CppLessons</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LearnCode\LearnCode.csproj" />
+  </ItemGroup>
+</Project>

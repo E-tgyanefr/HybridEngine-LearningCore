@@ -1,0 +1,27 @@
+﻿# ⚠ 发布前排除项（每一条都写了理由，不要随手删）
+
+# ① .NET 构建产物 —— 里面记着**开发者机器的绝对路径**
+#    （实测：`csharp/**/obj/*.FileListAbsolute.txt` 含 217 处 `D:\Users\etgya\...`）
+#    ⇒ 公开仓不该带这些
+bin/
+obj/
+
+# ② Python 缓存
+__pycache__/
+*.py[cod]
+
+# ③ 学生答题处 —— 由课程**首次运行时生成模板**（见 README「answers/」一节）
+#    ⇒ 不应随仓发布，否则新用户会以为里面已有答案
+*-answers/
+
+# ④ ⚠⚠ **专业版的内容**：`csharp/demo3d` 通过 csproj 链接
+#    `HybridEngine\build-ninja-release\src\bind\hybridengine.dll`，
+#    且 `Program.cs` 通篇 `[DllImport("hybridengine.dll")]`。
+#    轻量版仓**不应**包含专业版内核或其消费者。
+csharp/demo3d/
+
+# ⑤ 运行期产物
+*.log
+*.tmp
+Replay/
+PlayerData/

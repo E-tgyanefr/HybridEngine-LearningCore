@@ -1,0 +1,56 @@
+MIT License
+
+Copyright (c) 2025-2026 QDR-team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## 为什么教学项目用 MIT（选择理由，不是模板话）
+
+这个包是**教学材料**。教学材料最需要的是**被用起来**：
+
+- 老师要能把它放进课堂、改例题、加自己的课 —— MIT 允许
+- 学生要能把自己的解答、改写、二次创作发出去 —— MIT 允许
+- 别人要能 fork 成另一种语言/另一个方向的课程 —— MIT 允许
+
+⚠ **版权声明必须保留**（上面那段 `Copyright ...`）—— 这是 MIT 唯一的实质要求，
+  也是"别人用了但你仍然被记为作者"的机制。
+
+## 范围（Scope）
+
+本许可覆盖**本仓库内**的全部内容：课程（`lessons/` `ai/` `embedded/` `raspi/`
+`cpp-*` `java-*`）、检查器与考试系统（`learncode/`）、C# 运行器（`csharp/`）、
+测试、工具与文档。
+
+**不含**：`*-answers/` 目录（学生答题处，由课程首次运行时生成模板，不随仓发布）；
+`csharp/demo3d/`（它链接 HybridEngine 专业版的引擎 DLL，不属于本项目）。
+
+## 第三方（Third-party）
+
+本仓库**不随附任何第三方素材**。课程依赖的运行时都是**系统/标准**组件：
+
+| 依赖 | 用途 | 授权 |
+|---|---|---|
+| Python 3.8+ 标准库 | 课程与检查器 | PSF License |
+| .NET 8（BCL） | C# 课程的编译与运行 | MIT |
+| 系统 C/C++ 编译器 | `cpp-*` / `java-*` 线 | 各自编译器许可 |
+
+⚠ 课程里若含**考题文本**，均为本项目自撰；若你发现任何疑似第三方来源的内容，
+请开 issue，我们会替换或标注来源。

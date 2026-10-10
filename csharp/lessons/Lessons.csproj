@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 演示课：怎么画画 + 报错怎么说人话。零依赖，直接 dotnet run。 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>LearnCode.Lessons</AssemblyName>
+    <RootNamespace>LearnCode.Lessons</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\LearnCode\LearnCode.csproj" />
+  </ItemGroup>
+</Project>

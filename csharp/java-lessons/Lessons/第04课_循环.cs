@@ -1,0 +1,548 @@
+// 第 04 课：循环 —— 让程序重复做事，并且重复得**正好**
+//
+// ══ 这一课要教什么 ══
+// 循环是"程序能干活"的开始：求和、计数、查找都要靠它。
+// 但循环的错法和前面的都不一样 —— 它**不报错、也不崩**，
+// 只是把结果算错一点点，而那一点点很难看出来：
+//
+//   差一错误（off-by-one）：for (int i = 1; i < n; i++) 少跑一次。
+//     算 1..10 的和，它给你 45，看上去像个正常答案。
+//   写反方向的差一：for (int i = 0; i <= 次数; i++) 多跑一次，
+//     重复 3 遍变成 4 遍 —— 同样一声不吭。
+//
+// 还有一个**好消息**要讲清楚（这一课专门有一条检查讲它）：
+//   Java 里"累加变量没给初值"是**编译错误**，不是"碰巧算对"。
+//       C++：int 和; 里面是内存里的残留值，程序照跑，可能碰巧算出正确答案
+//             （C++ 组为此专门做了未初始化警告拦截）。
+//       Java：直接报「可能尚未初始化变量和」，程序根本编译不出来。
+//   Java 用一条编译错误，把这类"结果时对时错"的 bug 从学生身上拿走了 ——
+//   这一点值得让学生知道，所以第 9 条检查**不抓错**，只把这件事说清楚。
+//
+// ══ 检查设计说明（给维护者）══
+// 核心检查点是第 7 条（差了那一次）：用 n = 0 / n = 1 这种极端输入，
+// 把"少跑一次"和"多跑一次"两个方向都逼出来，并给出具体是哪一种。
+//   · i < n   → 求和(1) 得 0（正确答案是 1）
+//   · i <= n  → 重复("*", 1) 得 "[**]"（正确答案是 "[*]"）
+// 只测一个大数看不出病根（比如 求和(5) 得 10，只能说"差了 5"），
+// 所以第 2/3/7 条的用例里都放了 0 和 1。
+//
+// 第 8 条是**有意**的"练到了没有"检查：for / while / do-while / break /
+// continue / 增强 for 都能互相替代（结果一样），但这一课的题目就是要练这六样。
+//
+// ⚠ 这一课的方法必须写 static：检查是把学生的代码放进 class Main 里、
+//   从 main 里调用它们（JavaCheck.默认骨架）。非 static 的方法在静态上下文里
+//   调不到，会编译不过 —— 第 05 课会专门讲 static，这里先用着。
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using LearnCode;
+using LearnCode.JavaLessons;
+
+[Java课程("04", "第 04 课：循环",
+    "1. static int 求和(int n)：1+2+…+n，n<=0 返回 0。用 for\n" +
+    "2. static String 重复(String 文字, int 次数)：把文字重复 次数 遍，次数<=0 返回空字符串。用 for\n" +
+    "3. static int 数位数(int n)：n 有几位数字（0 算 1 位），n>=0。必须用 do-while\n" +
+    "4. static int 最小因数(int n)：n 的最小因数（>=2）；n<2 返回 -1；找不到（质数）返回 n。用 while，找到后用 break\n" +
+    "5. static int 偶数个数(int[] 数字)：数组里偶数的个数。用增强 for，用 continue 跳过奇数")]
+public static class 第04课
+{
+    public static string 模板 => """
+// 第 04 课：循环
+//
+// 要做：写五个**方法**（不用写 main，检查时会自动调用它们）
+// ⚠ 五个都要写 static，而且只要方法，不要写 class、不要写 import
+//
+//   1. static int 求和(int n)                ← 用 **for**
+//        1 + 2 + ... + n
+//        n <= 0 时返回 0
+//
+//   2. static String 重复(String 文字, int 次数)   ← 用 **for**
+//        例如 重复("*", 3) 得到 "***"
+//        次数 <= 0 时返回**空字符串** ""（不是 null，也不是 "null"）
+//
+//   3. static int 数位数(int n)              ← 必须用 **do-while**
+//        n 有几位数字：0 → 1      7 → 1      10 → 2      12345 → 5
+//        n 保证 >= 0
+//      ⚠ 0 也要数出 1 位 —— 想想为什么这一题**非 do-while 不可**：
+//        while (剩 > 0) 这种写法在 n = 0 时一次都不跑，会给出 0 位。
+//
+//   4. static int 最小因数(int n)             ← 用 **while**，找到后用 **break** 跳出
+//        n 的最小因数（能整除 n、并且 >= 2 的最小的数）
+//          9 → 3      10 → 2      4 → 2      49 → 7
+//        n < 2 时返回 -1
+//        找不到因数（说明 n 是质数）就返回 n 本身：  7 → 7
+//
+//   5. static int 偶数个数(int[] 数字)        ← 用**增强 for**，用 **continue** 跳过奇数
+//        数组里有几个偶数：偶数个数(new int[]{1, 2, 3, 4}) → 2
+//        空数组 → 0
+//
+// 三个必须知道的点：
+//
+//   · 差一错误（off-by-one）：循环到底跑几次，要一个一个数清楚。
+//          for (int i = 1; i <= n; i++)   // 1..n：n = 1 时跑 1 次
+//          for (int i = 0; i <  次数; i++) // 从 0 数起的 n 次：次数 = 1 时跑 1 次
+//     写循环时先问自己两句：
+//          n = 1 时，该跑几次？    n = 0 时，该不该跑？
+//     ⚠ 把 <= 写成 <（少跑一次）、或者把 < 写成 <=（多跑一次），
+//        Java 都不会报错 —— 结果只是差一点点，最难查。
+//
+//   · 累加变量必须给初值：  int 和 = 0;
+//     ✅ 好消息：Java 里忘了给初值是**编译错误**（会报「可能尚未初始化变量和」），
+//        程序根本跑不起来 —— 编译器替你把这类 bug 挡在门外了。
+//        C++ 就不一样：那边 int 和; 装的是内存里的残留值，程序照跑，
+//        这次碰巧算出正确答案，下次就不是了。**Java 在这件事上更安全。**
+//
+//   · 三种循环的分工：
+//          for        次数已知（从 1 走到 n）—— 最常用
+//          while      以条件为主（不知道要跑几次）
+//          do-while   **至少执行一次**（先做一遍再看条件）
+//          for (int x : 数组)   把数组里的元素一个一个拿出来（增强 for）
+//     break    立刻跳出整个循环
+//     continue 跳过这一轮的剩余部分，直接进入下一轮
+//     ⚠ 用 continue 时，别忘了让循环变量往前走，否则会**死循环**。
+//
+// 写完后运行：dotnet run --project csharp/java-lessons 检查 04
+
+// ── 在下面写你的代码 ──
+// 提示：只需要写方法。形如：
+//
+//   static int 求和(int n) {
+//       int 和 = 0;                        // ← 初值不能少
+//       for (int i = 1; i <= n; i++) {     // ← 是 <= n，不是 < n
+//           和 += i;
+//       }
+//       return 和;
+//   }
+
+""";
+
+    public static string 参考答案 => """
+static int 求和(int n) {
+    int 和 = 0;                      // ← 累加变量必须有初值
+    for (int i = 1; i <= n; i++) {   // ← 是 <= n，不是 < n（n = 1 时要跑一次）
+        和 += i;
+    }
+    return 和;
+}
+
+static String 重复(String 文字, int 次数) {
+    String 结果 = "";
+    for (int i = 0; i < 次数; i++) {   // ← 这一次是从 0 数起，所以用 < 次数
+        结果 += 文字;
+    }
+    return 结果;
+}
+
+static int 数位数(int n) {
+    int 位 = 0;
+    int 剩 = n;
+    do {                     // ← 先做一遍再看条件：n = 0 也要数出 1 位
+        位++;
+        剩 /= 10;
+    } while (剩 > 0);
+    return 位;
+}
+
+static int 最小因数(int n) {
+    if (n < 2) {
+        return -1;
+    }
+    int 结果 = n;                    // n 是质数的话，答案就是它自己
+    int 试 = 2;
+    while (试 < n) {
+        if (n % 试 == 0) {
+            结果 = 试;
+            break;                   // 找到最小的就跳出，不用再找了
+        }
+        试++;
+    }
+    return 结果;
+}
+
+static int 偶数个数(int[] 数字) {
+    int 个数 = 0;
+    for (int x : 数字) {          // 增强 for：把元素一个一个拿出来
+        if (x % 2 != 0) {
+            continue;             // 奇数跳过，不计数
+        }
+        个数++;
+    }
+    return 个数;
+}
+""";
+
+    // ══════════════════ 检查 ══════════════════
+
+    [Java检查说明("五个方法都写好了吗（名字、参数类型、返回类型、static 要对上）")]
+    public static JavaCheckResult 检查_五个方法都在(string 代码)
+    {
+        string 调用点 =
+            "        System.out.println(求和(5));\n" +
+            "        System.out.println(重复(\"*\", 3));\n" +
+            "        System.out.println(数位数(10));\n" +
+            "        System.out.println(最小因数(9));\n" +
+            "        System.out.println(偶数个数(new int[]{1, 2, 3, 4}));\n";
+
+        var run = JavaCheck.编译并运行(代码, null, 调用点);
+        if (run.Raw.CompileFailed) return 骨架编译失败说明(代码, run);
+
+        if (run.Raw.Error != null)
+            return JavaCheckResult.不过("方法调用了，但程序没能跑完：\n      " + 缩进(run.Raw.Error));
+
+        return JavaCheckResult.过("五个方法都能正常调用");
+    }
+
+    [Java检查说明("求和：1 到 n 的和对不对（差一错误在这里最藏不住）")]
+    public static JavaCheckResult 检查_求和(string 代码)
+    {
+        // n = 0 和 n = 1 是故意放的：
+        //   n = 0 时，i < n 和 i <= n 都不跑，看不出问题；
+        //   n = 1 时，正确答案是 1，i < n 会给出 0 —— 少跑一次立刻现形。
+        return JavaCheck.逐个用例(代码,
+            new JavaCheck.用例("求和(0)（一个都不加）", "求和(0)", "0"),
+            new JavaCheck.用例("求和(1)（只加 1）", "求和(1)", "1"),
+            new JavaCheck.用例("求和(2)", "求和(2)", "3"),
+            new JavaCheck.用例("求和(3)", "求和(3)", "6"),
+            new JavaCheck.用例("求和(5)", "求和(5)", "15"),
+            new JavaCheck.用例("求和(10)", "求和(10)", "55"),
+            new JavaCheck.用例("求和(-3)（负数，直接返回 0）", "求和(-3)", "0"));
+    }
+
+    [Java检查说明("重复：重复的次数对不对（0 次和 1 次是照妖镜）")]
+    public static JavaCheckResult 检查_重复(string 代码)
+    {
+        // ⚠ 这里用 "[…]" 把结果包起来，是有原因的：
+        //   重复("*", 0) 的正确结果是**空字符串**，而空字符串打印出来是空行 ——
+        //   空行在收集输出时会被丢掉，比对就没法做了。
+        //   包上括号，空结果变成 "[]"，既能比对，也一眼看得出"一个都没有"。
+        return JavaCheck.逐个用例(代码,
+            new JavaCheck.用例("重复(\"*\", 0)（一次都不重复）", 括("重复(\"*\", 0)"), "[]"),
+            new JavaCheck.用例("重复(\"*\", 1)（正好一次）", 括("重复(\"*\", 1)"), "[*]"),
+            new JavaCheck.用例("重复(\"*\", 2)", 括("重复(\"*\", 2)"), "[**]"),
+            new JavaCheck.用例("重复(\"ab\", 3)", 括("重复(\"ab\", 3)"), "[ababab]"),
+            new JavaCheck.用例("重复(\"x\", 5)", 括("重复(\"x\", 5)"), "[xxxxx]"),
+            new JavaCheck.用例("重复(\"*\", -2)（负数，返回空）", 括("重复(\"*\", -2)"), "[]"));
+    }
+
+    [Java检查说明("数位数：do-while 用得对不对（0 应该数出 1 位）")]
+    public static JavaCheckResult 检查_数位数(string 代码)
+    {
+        // 数位数(0) 是这一题的照妖镜：
+        //   用 while (剩 > 0) 写的，n = 0 时一次都不跑 → 给出 0（错）
+        //   用 do-while 写的，先做一遍 → 给出 1（对）
+        return JavaCheck.逐个用例(代码,
+            new JavaCheck.用例("数位数(0)（0 也是 1 位数）", "数位数(0)", "1"),
+            new JavaCheck.用例("数位数(7)", "数位数(7)", "1"),
+            new JavaCheck.用例("数位数(10)", "数位数(10)", "2"),
+            new JavaCheck.用例("数位数(99)", "数位数(99)", "2"),
+            new JavaCheck.用例("数位数(100)", "数位数(100)", "3"),
+            new JavaCheck.用例("数位数(12345)", "数位数(12345)", "5"));
+    }
+
+    [Java检查说明("最小因数：while + break 用得对不对（质数和 n<2 都要照顾到）")]
+    public static JavaCheckResult 检查_最小因数(string 代码)
+    {
+        return JavaCheck.逐个用例(代码,
+            new JavaCheck.用例("最小因数(0)（小于 2）", "最小因数(0)", "-1"),
+            new JavaCheck.用例("最小因数(1)（小于 2）", "最小因数(1)", "-1"),
+            new JavaCheck.用例("最小因数(-5)（小于 2）", "最小因数(-5)", "-1"),
+            new JavaCheck.用例("最小因数(2)（最小的质数）", "最小因数(2)", "2"),
+            new JavaCheck.用例("最小因数(4)", "最小因数(4)", "2"),
+            new JavaCheck.用例("最小因数(10)", "最小因数(10)", "2"),
+            new JavaCheck.用例("最小因数(9)", "最小因数(9)", "3"),
+            new JavaCheck.用例("最小因数(49)", "最小因数(49)", "7"),
+            new JavaCheck.用例("最小因数(7)（质数，返回自己）", "最小因数(7)", "7"));
+    }
+
+    [Java检查说明("偶数个数：增强 for + continue 用得对不对（空数组别崩）")]
+    public static JavaCheckResult 检查_偶数个数(string 代码)
+    {
+        return JavaCheck.逐个用例(代码,
+            new JavaCheck.用例("偶数个数({})（空数组）", "偶数个数(new int[]{})", "0"),
+            new JavaCheck.用例("偶数个数({1})", "偶数个数(new int[]{1})", "0"),
+            new JavaCheck.用例("偶数个数({2})", "偶数个数(new int[]{2})", "1"),
+            new JavaCheck.用例("偶数个数({1, 2, 3, 4})", "偶数个数(new int[]{1, 2, 3, 4})", "2"),
+            new JavaCheck.用例("偶数个数({2, 4, 6})", "偶数个数(new int[]{2, 4, 6})", "3"),
+            new JavaCheck.用例("偶数个数({1, 3, 5, 7})", "偶数个数(new int[]{1, 3, 5, 7})", "0"));
+    }
+
+    [Java检查说明("差了那一次：循环到底跑了几遍（少跑一次？多跑一次？）")]
+    public static JavaCheckResult 检查_差了那一次(string 代码)
+    {
+        // ⚠ 这一条是本课的核心检查点。
+        //
+        // 差一错误有两个方向，而且**都不报错**：
+        //   ① for (int i = 1; i < n; i++)     少跑一次 → 求和(1) 得 0（应该是 1）
+        //   ② for (int i = 0; i <= 次数; i++)  多跑一次 → 重复("*", 1) 得 "[**]"
+        // 这一条把 n = 0 / n = 1 摆在一起跑，就是为了让这两种现形，
+        // 并且说清楚**是哪一种**（第 2/3 条只说"用例不对"，这一条说"你差了哪一次"）。
+        string 调用点 =
+            "        System.out.println(\"求和(0)=\" + 求和(0));\n" +
+            "        System.out.println(\"求和(1)=\" + 求和(1));\n" +
+            "        System.out.println(\"求和(2)=\" + 求和(2));\n" +
+            "        System.out.println(\"重复0=[\" + 重复(\"*\", 0) + \"]\");\n" +
+            "        System.out.println(\"重复1=[\" + 重复(\"*\", 1) + \"]\");\n" +
+            "        System.out.println(\"重复2=[\" + 重复(\"ab\", 2) + \"]\");\n";
+
+        var run = JavaCheck.编译并运行(代码, null, 调用点);
+        if (run.Raw.CompileFailed) return 骨架编译失败说明(代码, run);
+        if (run.Raw.Error != null)
+            return JavaCheckResult.不过("方法调用了，但程序没能跑完：\n      " + 缩进(run.Raw.Error));
+
+        string 求0 = 取值(run, "求和(0)=");
+        string 求1 = 取值(run, "求和(1)=");
+        string 求2 = 取值(run, "求和(2)=");
+        string 重0 = 取值(run, "重复0=");
+        string 重1 = 取值(run, "重复1=");
+        string 重2 = 取值(run, "重复2=");
+
+        if (求1.Length == 0 || 重1.Length == 0)
+            return JavaCheckResult.不过(
+                "求和() 和 重复() 都要**返回**结果（不是打印）。\n" +
+                "      这一课的方法要写成：\n" +
+                "          static int 求和(int n) { ... return 和; }\n" +
+                "          static String 重复(String 文字, int 次数) { ... return 结果; }\n" +
+                $"      实际拿到的是：\n          {缩进(空则(run.全部输出))}");
+
+        if (求0 == "0" && 求1 == "1" && 重0 == "[]" && 重1 == "[*]" && 重2 == "[abab]")
+            return JavaCheckResult.过(
+                "边界都对：n=0 时一次都不跑、n=1 时正好跑一次、n=2 时跑两次");
+
+        // ── 少跑一次（i < n 型）──
+        if (求1 != "1")
+            return JavaCheckResult.不过(
+                $"求和(1) 应该是 1，你的方法是 {求1}；求和(2) 应该是 3，你的是 {求2}。\n" +
+                "      这就是**差一错误**：循环**少跑了最后一次**。\n" +
+                "      你大概写成了：\n" +
+                "          for (int i = 1; i < n; i++)     // ← < 的话，i = n 那一轮不跑\n" +
+                "      拿 n = 1 试一遍就明白了：i 从 1 开始，1 < 1 不成立 → 一次都不跑 → 和 = 0。\n" +
+                "      但正确答案是 1（1 到 1 的和就是 1）。\n" +
+                "      改法：\n" +
+                "          for (int i = 1; i <= n; i++)    // ← 换成 <=，最后一轮才跑得到\n" +
+                "      记住这条规律：**循环变量从 1 数到 n（含 n），条件就写 <= n**；\n" +
+                "      从 0 数起、一共数 n 个，条件才写 < n。两种都对，但别混。\n" +
+                "      顺便看一个对照：求和(0) 你给的是 " + 求0 + "（这个是对的 —— 一个都不加就是 0），\n" +
+                "      所以问题不在「要不要跑」，而在「最后一次跑没跑到」。");
+
+        // ── 多跑一次（i <= 次数 型）──
+        if (重1 != "[*]")
+            return JavaCheckResult.不过(
+                $"重复(\"*\", 1) 应该得到 [*]（一个星号），你的方法是 {重1}。\n" +
+                "      这就是**差一错误**：循环**多跑了一次**。\n" +
+                "      你大概写成了：\n" +
+                "          for (int i = 0; i <= 次数; i++)   // ← i 从 0 数起，<= 会多跑一轮\n" +
+                "      数一遍就明白了：i = 0、1 两轮 → 贴了两个星号。\n" +
+                "      改法：\n" +
+                "          for (int i = 0; i < 次数; i++)    // ← 从 0 数起要用 <\n" +
+                "      记住这条规律：**从 0 数起、一共数 n 个，条件写 < n**。\n" +
+                "      （对照着记：从 1 数到 n，才写 <= n。）\n" +
+                "      顺便看：重复(\"*\", 0) 你给的是 " + 重0 + "（这个是对的 —— 一次都不重复就是空），\n" +
+                "      所以多出来的那一次只在正数时出现。");
+
+        return JavaCheckResult.不过(
+            "循环的边界还有问题。对照这三组：\n" +
+            "          求和(0)  应该 0     你的是 " + 求0 + "\n" +
+            "          求和(1)  应该 1     你的是 " + 求1 + "\n" +
+            "          求和(2)  应该 3     你的是 " + 求2 + "\n" +
+            "          重复(\"*\", 0)  应该 []       你的是 " + 重0 + "\n" +
+            "          重复(\"*\", 1)  应该 [*]      你的是 " + 重1 + "\n" +
+            "          重复(\"ab\", 2) 应该 [abab]   你的是 " + 重2 + "\n" +
+            "      循环写完后，一定拿 **n = 0 和 n = 1** 各走一遍（在心里走也行）：\n" +
+            "        · n = 0 时该不该跑？\n" +
+            "        · n = 1 时该跑几次？\n" +
+            "      这两个问题答对了，差一错误就躲开了。");
+    }
+
+    [Java检查说明("for / while / do-while / break / continue / 增强 for 都亲手写了吗")]
+    public static JavaCheckResult 检查_循环关键字都练到了(string 代码)
+    {
+        // 为什么用"看源码"：这六样互相替代也能得到同样的结果
+        // （比如 数位数 用 while 加个特判也能写对），但这一课的题目就是要练它们。
+        // 这是**有意**的一条"练到了没有"的检查 —— 题目里已经写明了分工。
+        // 先把注释去掉，免得注释里的 while 把检查骗过去。
+        //
+        // ⚠ do-while 里也含一个 while，所以查"独立的 while"之前要先把
+        //   do { ... } while (...); 整块抠掉 —— 否则光写个 do-while 就能冒充两样。
+        string 净 = 去掉注释(代码);
+        string 去掉do = Regex.Replace(净, @"\bdo\s*\{.*?\}\s*while\s*\([^)]*\)\s*;", " ",
+                                      RegexOptions.Singleline);
+
+        var 缺 = new List<string>();
+        if (!Regex.IsMatch(净, @"\bfor\s*\(")) 缺.Add("for（求和、重复要用）");
+        if (!Regex.IsMatch(去掉do, @"\bwhile\s*\(")) 缺.Add("while（最小因数要用）");
+        if (!Regex.IsMatch(净, @"\bdo\s*\{")) 缺.Add("do-while（数位数要用 —— 0 也要数出 1 位）");
+        if (!Regex.IsMatch(净, @"\bfor\s*\(\s*\w+\s+\w+\s*:"))
+            缺.Add("增强 for：for (int x : 数字)（偶数个数要用）");
+        if (!Regex.IsMatch(净, @"\bbreak\b")) 缺.Add("break（最小因数找到后要跳出循环）");
+        if (!Regex.IsMatch(净, @"\bcontinue\b")) 缺.Add("continue（偶数个数里跳过奇数）");
+
+        if (缺.Count == 0)
+            return JavaCheckResult.过("for、while、do-while、增强 for、break、continue 都用上了");
+
+        return JavaCheckResult.不过(
+            "这一课要求这六样都亲手写一遍，你的代码里还缺：\n" +
+            string.Join("", 缺.Select(x => "        · " + x + "\n")) +
+            "      题目里的分工是这样：\n" +
+            "          求和      用 for            （次数已知：1 走到 n）\n" +
+            "          重复      用 for            （从 0 数起，一共 次数 个）\n" +
+            "          数位数    用 do-while       （**至少执行一次**：0 也是 1 位数）\n" +
+            "          最小因数  用 while + break  （找到最小的就跳出，不再往下找）\n" +
+            "          偶数个数  用增强 for + continue（奇数跳过，不计数）\n" +
+            "      如果你用了别的写法，结果可能是对的 —— 但这一课就是要练这六样。\n" +
+            "      顺便记住它的区别：\n" +
+            "          break    → 整个循环到此为止\n" +
+            "          continue → 只跳过这一轮剩下的部分，下一轮照跑\n" +
+            "          while    → 先看条件，可能一次都不跑\n" +
+            "          do-while → 先做一遍，再看条件，**至少跑一次**\n" +
+            "      ⚠ 用 continue 时最容易踩的坑：忘了让循环变量往前走 → 死循环。");
+    }
+
+    [Java检查说明("累加变量没给初值会怎样（Java 直接编译报错 —— 这是好消息）")]
+    public static JavaCheckResult 检查_未初始化的变量(string 代码)
+    {
+        // ⚠ 这一条**不是抓错**，是讲一件事：Java 和 C++ 在这里不一样。
+        //
+        //   C++：int 和; 里面是内存里的残留值，程序照跑 ——
+        //        这次可能碰巧是 0，"算对了"，下次就不是（C++ 组为此专门做了
+        //        未初始化警告拦截）。
+        //   Java：**直接编译报错**，程序根本出不来 —— 学生拿不到一个错误的结果。
+        //
+        // 为什么不"凭印象"写这句话：这是课程对学生的一个**承诺**，
+        // 得先在本机跑一遍验证。本机实测（openjdk 25.0.3）：
+        //     错误: 可能尚未初始化变量和
+        // 所以这一条真的去编译一段"没给初值"的代码，看它是不是真被拦住。
+        const string 演示 = """
+public class Main {
+    public static void main(String[] args) {
+        int 和;
+        for (int i = 1; i <= 5; i++) 和 += i;
+        System.out.println(和);
+    }
+}
+""";
+        var run = JavaCheck.直接运行(演示);
+
+        if (run.Raw.CompileFailed)
+        {
+            string 信息 = run.编译信息;
+            if (信息.Contains("尚未初始化") || 信息.Contains("might not have been initialized"))
+                return JavaCheckResult.过(
+                    "顺便记住一件事（这一条不是挑错）：**Java 帮你把「忘了给初值」这个坑填了**。\n" +
+                    "      本课真去编译了一段 `int 和;` 然后累加的代码，javac 直接拒绝：\n" +
+                    "          " + 缩进(前几行(信息)) + "\n" +
+                    "      也就是说：累加变量只要没写 `= 0`，程序**根本编译不出来** ——\n" +
+                    "      你不可能像在 C++ 里那样「碰巧算对一次，下次又错了」。\n" +
+                    "      C++ 那边 int 和; 装的是内存里的残留值，程序照跑，没人拦你。\n" +
+                    "      **Java 在这件事上比 C++ 安全**，这是它值得夸的地方。\n" +
+                    "      所以：int 和 = 0;   int 积 = 1;   声明的时候就写清楚初值。");
+        }
+
+        return JavaCheckResult.过(
+            "（这一条是讲知识，不是挑错）Java 的局部变量必须先赋初值才能使用，\n" +
+            "      忘了给初值是**编译错误**：javac 会报「可能尚未初始化变量和」。\n" +
+            "      对比 C++：那边 int 和; 装的是内存里的残留值，程序照跑，\n" +
+            "      这次可能碰巧算对，下次就不是了 —— Java 用一条编译错误把这类 bug 拿走了。\n" +
+            "      （本机这次没有复现出那条报错，JDK 版本不同的缘故，结论不变。）");
+    }
+
+    // ══════════════════ 工具 ══════════════════
+
+    /// <summary>
+    /// 把表达式包进方括号：`重复("*", 0)` → `"[" + 重复("*", 0) + "]"`。
+    ///
+    /// 为什么要包：空字符串打印出来是**空行**，而 JavaRunner 收集输出时会丢掉空行
+    /// （它只保留非空行），比对的"行数"就对不上了。包上括号，空结果变成 "[]"，
+    /// 既能比对，也一眼看得出"一个都没有"。
+    /// </summary>
+    private static string 括(string 表达式) => "\"[\" + " + 表达式 + " + \"]\"";
+
+    /// <summary>从「前缀=值」那一行里取出值。</summary>
+    private static string 取值(JavaRun run, string 前缀)
+    {
+        foreach (var 行 in run.行)
+        {
+            string t = 行.Trim();
+            if (t.StartsWith(前缀, System.StringComparison.Ordinal))
+                return t.Substring(前缀.Length).Trim();
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// 编译失败时的说明 —— 先认几条这一课特别容易撞上的 Java 错。
+    ///
+    /// 这几条都是本机 javac 25.0.3 实测过的原文：
+    ///     无法从静态上下文中引用非静态 方法 求和(int)     ← 忘了 static
+    ///     可能尚未初始化变量和                            ← 累加变量没给初值
+    ///     非法的类型开始                                  ← import 写进了 class 里面
+    ///     （缺 return、找不到符号这些交给 ExplainJava 统一讲）
+    /// </summary>
+    private static JavaCheckResult 骨架编译失败说明(string 代码, JavaRun run)
+    {
+        string 信息 = run.编译信息;
+
+        if (信息.Contains("无法从静态上下文") || 信息.Contains("cannot be referenced from a static context"))
+            return JavaCheckResult.不过(
+                "编译没过：**方法忘了写 static**。\n" +
+                "      检查的时候，你的方法是被放进 class Main 里、从 main 里调用的：\n" +
+                "          public class Main {\n" +
+                "              static int 求和(int n) { ... }        // ← 你的方法\n" +
+                "              public static void main(String[] args) {\n" +
+                "                  System.out.println(求和(5));       // ← 从这里调用\n" +
+                "              }\n" +
+                "          }\n" +
+                "      main 是 static 的，它**只能直接调用 static 的方法** ——\n" +
+                "      不写 static 的方法属于「对象」，得先 new 一个对象出来才能用。\n" +
+                "      改法（这一课先用第一种，第 05 课专门讲 static）：\n" +
+                "          static int 求和(int n) { ... }        // ← 加上 static\n" +
+                "      编译器原文：\n" + 缩进(前几行(信息)));
+
+        if (信息.Contains("尚未初始化") || 信息.Contains("might not have been initialized"))
+            return JavaCheckResult.不过(
+                "编译没过：有个变量**没给初值**就用了。\n" +
+                "      这一课里几乎总是累加变量：\n" +
+                "          int 和;                       // ← 声明了，没给值\n" +
+                "          for (int i = 1; i <= n; i++) 和 += i;\n" +
+                "      ✅ 这里必须说一句：**这是 Java 的优点，不是刁难** ——\n" +
+                "         C++ 里同样的写法能编译能运行，因为未初始化的局部变量里装的是\n" +
+                "         内存里的残留值：这次碰巧是 0，你的累加就「算对了」，\n" +
+                "         换个编译器、换个运行顺序它又变成别的数 —— 那是最难查的 bug。\n" +
+                "         Java 直接不让你编译，等于把这类 bug 从你身上拿走了。\n" +
+                "      改法：声明的时候就给初值。\n" +
+                "          int 和 = 0;      // ← 累加（+=）用 0\n" +
+                "          int 积 = 1;      // ← 累乘（*=）用 1\n" +
+                "      编译器原文：\n" + 缩进(前几行(信息)));
+
+        if (信息.Contains("非法的类型开始") || 信息.Contains("illegal start of type"))
+            return JavaCheckResult.不过(
+                "编译没过：代码里有 import（或者 class）写在了**方法外面**。\n" +
+                "      这一课只需要写五个**方法**，不要写 import、也不写 class ——\n" +
+                "      检查的时候会把它套进 class Main 里：\n" +
+                "          public class Main {\n" +
+                "              // ↓ 你的代码放在这里，所以 import 放到这儿是不合法的\n" +
+                "              static int 求和(int n) { ... }\n" +
+                "          }\n" +
+                "      import 只能出现在文件最上面（class 外面）。这一课用不到 import。");
+
+        return JavaCheck.编译失败说明(run);
+    }
+
+    /// <summary>去掉注释 —— 免得注释里的 while / break 被当成代码。</summary>
+    private static string 去掉注释(string 代码)
+    {
+        string s = Regex.Replace(代码, @"/\*.*?\*/", " ", RegexOptions.Singleline);
+        return Regex.Replace(s, @"//[^\n]*", " ");
+    }
+
+    private static string 空则(string s) => s.Trim().Length == 0 ? "（没有任何输出）" : s.Trim();
+
+    private static string 前几行(string s)
+    {
+        var 行 = s.Replace("\r\n", "\n").Split('\n')
+                   .Where(l => l.Trim().Length > 0).Take(4).ToList();
+        return 行.Count > 0 ? string.Join("\n", 行) : "（编译器没有输出）";
+    }
+
+    private static string 缩进(string s) => s.Trim().Replace("\n", "\n      ");
+}

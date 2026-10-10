@@ -1,0 +1,370 @@
+// 第 05 课：函数 —— 把一段计算打包起来，反复使用
+//
+// ══ 这一课要教什么 ══
+// 函数是「给一段计算起个名字」。有了它，同一个计算不用抄第二遍，
+// 而且一段代码能**对不同输入给出不同结果** —— 这正是「会不会写函数」的标准。
+//
+// 这一课真正的门槛不是语法，而是必须交代清楚的两件事：
+//   · 返回类型 —— 这个函数交出什么？（int 交出整数，void 什么都不交）
+//   · 参数类型 —— 这个函数要什么？（int n 表示要一个整数）
+// Python 里写 def 双倍(n): 就够了，C++ 必须写成 int 双倍(int n) { ... }。
+//
+// ══ 检查设计说明（给维护者）══
+// 核心检查点：**同一个函数对不同输入必须给出不同结果**。
+// 学生有两种"看起来做对了"的偷懒办法：
+//   ① int 双倍(int n) { return 6; }        —— 永远返回同一个值
+//   ② int 双倍(int n) { cout << n * 2; }   —— 不 return，改成在函数里打印
+// 防法：
+//   ① 用**多组输入**打掉（任何一组对不上就不通过）；另外还有一条检查专门看
+//      「四组输入是不是得到了同一个答案」—— 那是写死的典型特征，提示写得最直白。
+//   ② 用「把函数调用当成值来用」打掉：void 函数塞不进 std::cout，编译必然失败。
+//      反过来就能判断出「你的函数根本没交出值」。
+//
+// ⚠ 给维护者：g++ 在诊断信息里会把中文标识符转义成 \U000053cc 这种样子
+//   （实测：error: '\U000053cc\U0000500d' was not declared in this scope）。
+//   所以下面所有检查都**只匹配 ASCII 的报错片段**，绝不拿中文函数名去 Contains。
+
+using System.Collections.Generic;
+using System.Linq;
+using LearnCode;
+using LearnCode.CppLessons;
+
+[课程("05", "第 05 课：函数 —— 把计算打包，想用几次用几次",
+    "1. 写 int 双倍(int n)，返回 n 的两倍\n" +
+    "2. 写 int 最大值(int a, int b)，返回较大的那个\n" +
+    "3. 写 void 打印星星(int n)，打印 n 个星号（不换行）；n 为 0 时什么都不打印")]
+public static class 第05课
+{
+    public static string 模板 => """
+// 第 05 课：函数 —— 把计算打包，想用几次用几次
+//
+// 要做（只写函数，**不用写 main、不用写 #include** —— 课程会替你补上）：
+//   1. int 双倍(int n)          返回 n 的两倍
+//   2. int 最大值(int a, int b)  返回较大的那个
+//   3. void 打印星星(int n)      打印 n 个星号，不换行；n 为 0 时什么都不打印
+//
+// 一个函数长这样，四个部分缺一不可：
+//
+//     返回类型  函数名 (参数类型 参数名) {
+//         函数体
+//         return 结果;          ← 有返回类型的函数，最后要把结果交出来
+//     }
+//
+//     例如：
+//         int 双倍(int n) {
+//             return n * 2;
+//         }
+//
+// ⚠ 这就是 C++ 和 Python 最直接的区别：
+//      Python:   def 双倍(n):  return n * 2        ← 不写类型
+//      C++:      int 双倍(int n) { return n * 2; }  ← 返回类型、参数类型都必须写
+//
+//   而且要注意：**漏写返回类型，g++ 不会报错**（它会默默当成 int）。
+//   编译器不提醒，就得靠你自己记住 —— 写出来才是对的。
+//
+// ⚠ 不要在函数里用 std::cout 代替 return：
+//      int 双倍(int n) { std::cout << n * 2; }    ✗ 函数什么都没交出来
+//      int 双倍(int n) { return n * 2; }          ✓ 这样才对
+//   cout 是打给人看的，return 才是交给调用者的。
+//
+// 写完后运行：dotnet run --project csharp/cpp-lessons 检查 05
+
+// ── 在下面写你的代码 ──
+
+""";
+
+    public static string 参考答案 => """
+// 参考答案 —— 三个函数
+
+// 1. 双倍：有参数、有返回值
+int 双倍(int n) {
+    return n * 2;              // return 把结果交给调用它的人
+}
+
+// 2. 最大值：两个参数，用 if 比一下
+int 最大值(int a, int b) {
+    if (a > b) {
+        return a;              // a 大就交 a
+    }
+    return b;                  // 走到这里说明 a 没比 b 大
+}
+
+// 3. 打印星星：void —— 只做事，不交出值
+//    所以它没有 return（也不需要），最后也不用写 return;
+void 打印星星(int n) {
+    for (int i = 0; i < n; i++) {
+        std::cout << "*";
+    }
+}
+""";
+
+    // ══════════════════ 检查 ══════════════════
+
+    [检查说明("双倍：4 组不同的输入都要算对")]
+    public static CheckResult 检查_双倍(string 代码)
+    {
+        // 一个用例写死输出、蒙对就过；一组用例蒙不过去。
+        var 结果 = CppCheck.逐个用例(代码,
+            new CppCheck.用例("双倍(3)", "双倍(3)", "6"),
+            new CppCheck.用例("双倍(10)", "双倍(10)", "20"),
+            new CppCheck.用例("双倍(0)", "双倍(0)", "0"),
+            new CppCheck.用例("双倍(-4)", "双倍(-4)", "-8"));
+        if (结果.Ok) return 结果;
+
+        // 「声明了 int 却没写 return」这种代码**能编译**（只有一句 warning），
+        // 然后在运行时直接崩 —— 不说清楚的话，学生看到的就是"程序崩溃了"。
+        // 只在已经失败时才多花一次编译去确认，正常答案不会为它多等一秒。
+        if (结果.Detail.Contains("崩溃"))
+        {
+            string 提示 = 没有return说明(代码);
+            if (提示 != null) return CheckResult.不过(提示);
+        }
+        return 结果;
+    }
+
+    [检查说明("最大值：两个数的大小关系反过来也要对")]
+    public static CheckResult 检查_最大值(string 代码)
+    {
+        return CppCheck.逐个用例(代码,
+            new CppCheck.用例("最大值(3, 7)", "最大值(3, 7)", "7"),
+            new CppCheck.用例("最大值(7, 3)", "最大值(7, 3)", "7"),
+            new CppCheck.用例("最大值(5, 5)", "最大值(5, 5)", "5"),
+            new CppCheck.用例("最大值(-2, -9)", "最大值(-2, -9)", "-2"));
+    }
+
+    [检查说明("同一个函数对不同输入要给出不同结果（不是永远返回同一个答案）")]
+    public static CheckResult 检查_不是永远返回同一个值(string 代码)
+    {
+        // ⚠ 这一条是本课的核心检查点。
+        //
+        // 四种输入 → 四个必须互不相同的答案：2、4、6、8。
+        // 如果四个答案一模一样，基本只有一个解释：函数没有用参数算。
+        // 这种写法能蒙对单个用例（比如恰好测了 双倍(3)），但蒙不过四组。
+        const string 调用点 = """
+std::cout << 双倍(1) << "\n";
+std::cout << 双倍(2) << "\n";
+std::cout << 双倍(3) << "\n";
+std::cout << 双倍(4) << "\n";
+""";
+        var run = CppCheck.编译并运行(代码, null, 调用点);
+        if (!run.编译通过)
+        {
+            if (run.编译信息.Contains("no return statement")) return CheckResult.不过(缺返回提示);
+            string 提示 = 函数不存在说明(run, "双倍");
+            return 提示 != null ? CheckResult.不过(提示) : CppCheck.编译失败说明(run);
+        }
+
+        var 答案 = run.行.Select(l => l.Trim()).ToList();
+        if (答案.Count < 4)
+            return CheckResult.不过(
+                "「双倍」应该交出 4 个结果，但程序只给出了 " + 答案.Count + " 个。\n" +
+                "      常见原因：函数没有 return（那它就没交出值），或者程序中途崩了。\n" +
+                "      检查一下函数体最后有没有：\n" +
+                "          return n * 2;");
+
+        var 四个 = 答案.GetRange(0, 4);
+        if (四个.Distinct().Count() == 1)
+            return CheckResult.不过(
+                "输入 1、2、3、4，得到的却是**同一个答案**：" + 四个[0] + "\n" +
+                "      这正是「函数没有真的用参数算」的典型特征 —— 它多半返回了一个固定值。\n" +
+                "      比如：\n" +
+                "          int 双倍(int n) { return 6; }        ✗ 6 是写死的，跟 n 没关系\n" +
+                "      参数 n 就是「这一次的输入」，要拿它去算：\n" +
+                "          int 双倍(int n) { return n * 2; }    ✓\n" +
+                "      顺便记住：判断函数写对没有，就是**换几组输入多试几次** ——\n" +
+                "                一个用例对了不代表函数对了。");
+
+        if (四个.SequenceEqual(new[] { "2", "4", "6", "8" }))
+            return CheckResult.过("双倍(1/2/3/4) 分别得到 2、4、6、8 —— 函数真的在用参数算");
+
+        return CheckResult.不过(
+            "四组输入的答案是 " + string.Join("、", 四个) + "，应该是 2、4、6、8。\n" +
+            "      对得上号的说明函数在算；对不上号的那几组，检查一下算式：\n" +
+            "          int 双倍(int n) { return n * 2; }");
+    }
+
+    [检查说明("函数要用 return 把结果交出来，而不是自己在函数里打印")]
+    public static CheckResult 检查_用return交出结果(string 代码)
+    {
+        // 怎么分辨「return 了」和「只是在函数里打印了」：
+        //   把调用**当成一个值**来用（塞进 std::cout），能编译说明它交出了值；
+        //   void 函数塞不进 cout，会编译失败 —— 于是失败反而成了证据。
+        const string 当值用 = """
+std::cout << 双倍(4) << "\n";
+""";
+        const string 当语句用 = """
+双倍(4);
+""";
+        var 当值 = CppCheck.编译并运行(代码, null, 当值用);
+
+        if (当值.编译信息.Contains("no return statement"))
+            return CheckResult.不过(缺返回提示);
+
+        if (!当值.编译通过)
+        {
+            var 当语句 = CppCheck.编译并运行(代码, null, 当语句用);
+            if (!当语句.编译通过)
+            {
+                string 提示 = 函数不存在说明(当语句, "双倍");
+                return 提示 != null ? CheckResult.不过(提示) : CppCheck.编译失败说明(当语句);
+            }
+
+            return CheckResult.不过(
+                "「双倍」能被调用，但**交不出值** —— 写 std::cout << 双倍(4) 时编译器直接拒绝了：\n" +
+                "          error: no match for 'operator<<' ... and 'void'\n" +
+                "      两种常见情况：\n" +
+                "        ① 返回类型写成了 void：\n" +
+                "             void 双倍(int n) { ... }        ✗ 改成 int\n" +
+                "        ② 返回类型是 int，但函数体里忘了 return（改成在函数里 cout 了）\n" +
+                "      正确的写法只有一条路 —— return：\n" +
+                "          int 双倍(int n) { return n * 2; }\n" +
+                "      顺便记住：函数里打印 ≠ 函数返回值。打印是给人看的，return 是给调用者用的。");
+        }
+
+        var 行 = 当值.行.Select(l => l.Trim()).ToList();
+        if (行.Count == 1 && 行[0] == "8")
+            return CheckResult.过("双倍(4) 交出了 8 —— 用的是 return，不是打印");
+
+        return CheckResult.不过(
+            "把「双倍(4)」当成一个值来用，得到的是：" +
+            (行.Count == 0 ? "（什么都没有）" : string.Join(" / ", 行)) + "\n" +
+            "      应该是 8。检查函数体：是不是算错了，或者顺手多打印了别的东西？\n" +
+            "      函数只应该**交出**结果：\n" +
+            "          int 双倍(int n) { return n * 2; }");
+    }
+
+    [检查说明("打印星星：n 个星号、不换行；n 是 0 时什么都不打印")]
+    public static CheckResult 检查_打印星星(string 代码)
+    {
+        // 这一条要的是一个 **void 函数**：它只做事，不交出值。
+        // 所以这里不能用「把调用塞进 cout」的写法（那对 void 函数编译不过），
+        // 只能把它当语句调用，然后看它打印了什么。
+        const string 调用点 = """
+std::cout << "星星3|"; 打印星星(3); std::cout << "\n";
+std::cout << "星星5|"; 打印星星(5); std::cout << "\n";
+std::cout << "星星0|"; 打印星星(0); std::cout << "\n";
+""";
+        return CppCheck.运行后(代码, run =>
+        {
+            string 三 = 取值(run, "星星3");
+            string 五 = 取值(run, "星星5");
+            string 零 = 取值(run, "星星0");
+
+            if (三 == null || 五 == null || 零 == null)
+                return CheckResult.不过(
+                    "没能拿到「打印星星」的输出。\n" +
+                    "      可能的原因：函数名或参数对不上 —— 这一课要求的写法是：\n" +
+                    "          void 打印星星(int n) { for (int i = 0; i < n; i++) std::cout << \"*\"; }");
+
+            var 错 = new List<string>();
+            if (三 != "***") 错.Add("      打印星星(3) 打印了「" + 显示(三) + "」，应该是「***」");
+            if (五 != "*****") 错.Add("      打印星星(5) 打印了「" + 显示(五) + "」，应该是「*****」");
+            if (零 != "") 错.Add("      打印星星(0) 打印了「" + 显示(零) + "」，应该什么都不打印");
+
+            if (错.Count == 0)
+                return CheckResult.过("3 个、5 个星号都对；n 是 0 时也正确地什么都没打印");
+
+            return CheckResult.不过(
+                "打印星星的结果不对：\n" + string.Join("\n", 错) + "\n" +
+                "      检查循环的边界：\n" +
+                "          for (int i = 0; i < n; i++)      ✓ 循环体执行 n 次\n" +
+                "          for (int i = 0; i <= n; i++)     ✗ 会打印 n+1 个\n" +
+                "      另外 n 是 0 的时候，循环一次都不该进 —— 这也正是 `i < n` 的含义。");
+        }, null, 调用点);
+    }
+
+    [检查说明("每个函数前面有没有写返回类型（int / void）")]
+    public static CheckResult 检查_返回类型都写了吗(string 代码)
+    {
+        // 为什么这一条要看源码文本，而不是靠编译器：
+        // **g++ 不会因为你漏写返回类型而报错**（实测 16.1.0：既没有 error 也没有
+        // warning，它默默当成 int）。所以这个错误编译器抓不住，只能自己盯。
+        // 真正的功能验证由别的检查负责，这条只负责提醒。
+        var 缺 = new List<string>();
+        foreach (var 名字 in new[] { "双倍", "最大值", "打印星星" })
+        {
+            // 故意不锚定行首、也用 \s+：unsigned int 双倍(...)、换行后再写函数名
+            // 这些都是合法写法，不该被判成"没写返回类型"。
+            var 有类型 = System.Text.RegularExpressions.Regex.IsMatch(
+                代码, @"(int|void|long|double|float|bool|char|auto)\s+"
+                      + System.Text.RegularExpressions.Regex.Escape(名字) + @"\s*\(");
+            if (!有类型) 缺.Add(名字);
+        }
+        if (缺.Count == 0)
+            return CheckResult.过("双倍、最大值、打印星星 前面都写了返回类型");
+
+        return CheckResult.不过(
+            "这些函数前面没有写返回类型：" + string.Join("、", 缺) + "\n" +
+            "      这是 C++ 和 Python 最直接的区别：\n" +
+            "          Python:  def 双倍(n):  return n * 2          ← 不写类型\n" +
+            "          C++:     int 双倍(int n) { return n * 2; }    ← 必须写\n" +
+            "      ⚠ 注意：**编译器不会因为你漏写而报错** ——\n" +
+            "        g++ 会默默把它当成 int，程序照样能跑。所以这个错只能靠你自己记住。\n" +
+            "      三种返回类型，按「这个函数交出什么」来选：\n" +
+            "          int     交出整数        （双倍、最大值）\n" +
+            "          double  交出小数\n" +
+            "          void    什么都不交出    （打印星星：它只负责打印）");
+    }
+
+    // ══════════════════ 小工具 ══════════════════
+
+    /// <summary>「返回类型写了 int，函数体里却没有 return」时给学生看的话。</summary>
+    private const string 缺返回提示 =
+        "「双倍」声明了要返回 int，但函数体里**没有 return**。\n" +
+        "      编译器其实提醒了一句（藏在编译输出里）：\n" +
+        "          warning: no return statement in function returning non-void\n" +
+        "      这种代码**能编译**，但一用到函数的返回值，程序就崩 —— 因为它根本没交出值。\n" +
+        "      多半是你把结果打印出来了，而不是交出去：\n" +
+        "          int 双倍(int n) { std::cout << n * 2; }    ✗ 打印了，但没有交出\n" +
+        "      这两句做的是完全不同的事：\n" +
+        "          std::cout << n * 2;   ← 打到屏幕上，函数本身什么都没交出\n" +
+        "          return n * 2;         ← 把结果交给调用它的人\n" +
+        "      改成：\n" +
+        "          int 双倍(int n) { return n * 2; }";
+
+    /// <summary>
+    /// 确认「写了 int 却没有 return」这件事：是就返回说明，不是返回 null。
+    /// 只在别的检查**已经失败**时才调用 —— 每次要起一次 g++，正常答案不该为它多等。
+    /// </summary>
+    private static string 没有return说明(string 代码)
+    {
+        const string 调用点 = """
+std::cout << 双倍(4) << "\n";
+""";
+        var run = CppCheck.编译并运行(代码, null, 调用点);
+        return run.编译信息.Contains("no return statement") ? 缺返回提示 : null;
+    }
+
+    /// <summary>从「标记|值」形式的输出里取出右边。找不到返回 null。</summary>
+    private static string 取值(CppRun run, string 标记)
+    {
+        foreach (var 行 in run.行)
+        {
+            int i = 行.IndexOf('|');
+            if (i > 0 && 行.Substring(0, i).Trim() == 标记) return 行.Substring(i + 1).Trim();
+        }
+        return null;
+    }
+
+    private static string 显示(string s) => s.Length == 0 ? "（空）" : s;
+
+    /// <summary>
+    /// 「函数没写」时返回一句能照着做的提示；不是这种情况返回 null（交给通用说明）。
+    ///
+    /// 为什么不用现成的 CppCheck.写了函数：它靠"报错里有没有这个名字"来判断，
+    /// 而 g++ 会把中文标识符转义成 \U000053cc 这种东西 —— 名字对不上，
+    /// 提示就会退化成一段看不懂的报错。这里只匹配 ASCII 的报错片段。
+    /// </summary>
+    private static string 函数不存在说明(CppRun run, string 函数名)
+    {
+        if (!run.编译信息.Contains("was not declared in this scope")) return null;
+        return
+            "没有找到「" + 函数名 + "」这个函数，所以编译器不认识这个名字。\n" +
+            "      检查三件事：\n" +
+            "        ① 有没有定义（不是只写了名字）—— 函数要有函数体 { } 和 return\n" +
+            "        ② 名字有没有写错 —— C++ **区分大小写**，中文名也要一模一样\n" +
+            "        ③ 返回类型和参数类型是不是按题目写的：\n" +
+            "             int " + 函数名 + "(...)\n" +
+            "      顺便记住：C++ 里函数**必须先定义再使用**，不能像 Python 那样先调用后定义。";
+    }
+}

@@ -1,0 +1,550 @@
+// 第 08 课：类与对象 —— 自己造一种"东西"
+//
+// ══ 这一课要教什么 ══
+// 前面七课用的都是 Java 自带的东西（int、String、ArrayList）。
+// 这一课开始，学生要自己描述一种"东西"：
+//
+//   · class 猫 { … }        —— **图纸**：说清"猫有什么（字段）、能做什么（方法）"
+//   · new 猫("咪咪", 3)      —— 照着图纸**造一只真的猫**（对象）
+//   · 构造方法 猫(...)       —— 造的时候往字段里填初始值的那个方法
+//   · this                  —— "我自己这个对象"，用来区分字段和同名参数
+//
+// 三件事必须讲透，而且都能被检查抓住：
+//
+//   ① 构造方法的名字必须和类名**完全一样**，而且**没有返回类型**（连 void 都不写）。
+//      写成 `void 猫(...)` 它就成了一个普通方法，于是 new 猫("咪咪", 3) 报
+//      「无法将类 猫中的构造器 猫应用到给定类型」—— 报错里看不到 "void" 两个字，
+//      非常隐蔽。这是本课的核心检查点。
+//
+//   ② `this.名字 = 名字;` 里的 this 不能省。
+//      字段名和参数名一样时，右边的 名字 指参数；写成 名字 = 名字; 是把参数
+//      赋给自己 —— 字段永远是 null/0。检查用**和默认值不同的参数**（咪咪、3）
+//      去构造，就能把这件事照出来。
+//
+//   ③ `new` 两次就是**两个互不相干的对象**：改一只的年龄，另一只不受影响。
+//      反过来，如果一个字段写成了 static，它就属于类、被所有对象共用 ——
+//      两个对象会一起变。检查里两个对象一对比就能抓住。
+//
+// ══ 检查设计说明（给维护者）══
+// · 学生的答题文件里写的是**一个普通类** class 猫（没有 main）——
+//   骨架由课程提供（见下面的 骨架）：学生代码放最上面，课程在后面补一个
+//   public class Main 和它的 main。这样学生能专心写类，而探针又拿得到对象。
+// · 探针只用**学生的方法**（打招呼 / 几岁了 / 长大一岁）读写对象，
+//   不直接摸字段 —— 这样即使学生给字段加了 private（好习惯）也不会误判。
+// · 核心检查点 检查_构造方法没有返回类型 用两个角度：
+//     语法：正则找 `void 猫(` / `int 猫(` 这种"带返回类型的假构造方法"
+//     编译：new 猫("咪咪", 3) 报「构造器 猫 不能应用到给定类型」就是证据
+//   两个角度都指向同一句话：**构造方法没有返回类型**。
+
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using LearnCode;
+using LearnCode.JavaLessons;
+
+[Java课程("08", "第 08 课：类与对象 —— 自己造一种东西",
+    "1. 写一个 class 猫，有两个字段：String 名字、int 年龄\n" +
+    "2. 写构造方法 猫(String 名字, int 年龄)：用 this 把参数存进字段\n" +
+    "3. 写 String 打招呼()：返回 \"喵～我是\" + 名字\n" +
+    "4. 写 int 几岁了()：返回 年龄\n" +
+    "5. 写 void 长大一岁()：把 年龄 加 1\n" +
+    "（不用写 class Main、不用写 main —— 课程会替你补上）")]
+public static class 第08课
+{
+    /// <summary>
+    /// 这一课的骨架：学生的类放最上面，课程在后面补一个 public class Main 当入口。
+    ///
+    /// 为什么不把学生的类塞进 Main 里面（默认骨架那样）：
+    /// 这一课教的正是**独立的一个类**，塞进另一个类里就成了内部类，
+    /// 字段/构造方法的语义虽然一样，但那是另一个知识点。
+    /// 而且学生要 new 的是 猫，不是 Main —— 分开写最接近真实的 Java 文件。
+    /// </summary>
+    private const string 骨架 = """
+/*学生代码*/
+
+public class Main {
+    public static void main(String[] args) {
+/*调用点*/
+    }
+}
+""";
+
+    public static string 模板 => """
+// 第 08 课：类与对象
+//
+// 要做：写一个 class 猫（不用写 class Main、不用写 main —— 课程会补上）
+//   1. 两个字段：String 名字、int 年龄
+//   2. 构造方法 猫(String 名字, int 年龄) —— 用 this 把参数存进字段
+//   3. String 打招呼()  →  返回 "喵～我是" + 名字
+//   4. int 几岁了()     →  返回 年龄
+//   5. void 长大一岁()  →  年龄 = 年龄 + 1
+//
+// ⚠ 类是一张**图纸**，对象才是照图纸造出来的东西：
+//      class 猫 { … }           ← 图纸：说清"猫有什么、能做什么"
+//      猫 甲 = new 猫("咪咪", 3); ← 按图纸造出一只猫（这就是"对象"）
+//      猫 乙 = new 猫("大黄", 5); ← 再造一只，和上一只**互不相干**
+//
+//   字段  = 对象"有什么"（名字、年龄）—— 写在类里，每个对象各有一份
+//   方法  = 对象"能做什么"（打招呼、长大一岁）
+//   构造方法 = new 的时候自动执行，负责把初始值填进字段
+//
+// ⚠ 构造方法有两条硬规矩，第二条最容易错：
+//     ① 名字必须和**类名完全一样**（大小写也一样）：类叫 猫，构造方法就叫 猫
+//     ② **没有返回类型** —— 连 void 都不能写！
+//        写成 void 猫(String 名字, int 年龄) 之后，它就只是一个普通方法，
+//        不再负责"造对象"了。于是 new 猫("咪咪", 3) 会报：
+//            错误: 无法将类 猫中的构造器 猫应用到给定类型
+//        报错里根本看不到 void —— 这个坑很隐蔽，所以要先记住规矩。
+//
+// ⚠ this 的意思是"我自己这个对象"。
+//   字段名和参数名一样时（都叫 名字），右边的 名字 指**参数**，
+//   要写 this.名字 才指得到**字段**：
+//         猫(String 名字, int 年龄) {
+//             this.名字 = 名字;       ← 把参数存进字段
+//             this.年龄 = 年龄;
+//         }
+//   忘了 this、写成 名字 = 名字; 是把参数赋给自己 —— 字段永远是 null/0。
+//
+// 写完后运行：dotnet run --project csharp/java-lessons 检查 08
+
+// ── 在下面写你的类 ──
+
+class 猫 {
+    String 名字;      // 字段：这只猫叫什么
+    int 年龄;         // 字段：几岁了
+
+    // 构造方法：名字和类名一样，而且**没有返回类型**
+    猫(String 名字, int 年龄) {
+        // ← 把参数存进字段（字段名和参数名一样，想想怎么写才指得到字段）
+    }
+
+    String 打招呼() {
+        return "";        // ← 改成："喵～我是" + 名字
+    }
+
+    int 几岁了() {
+        return 0;         // ← 改成：return 年龄;
+    }
+
+    void 长大一岁() {
+        // ← 改成：年龄 = 年龄 + 1;
+    }
+}
+""";
+
+    public static string 参考答案 => """
+class 猫 {
+    // 字段：每个对象各有一份
+    String 名字;
+    int 年龄;
+
+    // 构造方法：名字和类名一样，**没有返回类型**（连 void 都不写）
+    猫(String 名字, int 年龄) {
+        this.名字 = 名字;      // this.名字 指字段；右边的 名字 指参数
+        this.年龄 = 年龄;
+    }
+
+    // 方法：用字段拼出这只猫自己的话
+    String 打招呼() {
+        return "喵～我是" + 名字;
+    }
+
+    int 几岁了() {
+        return 年龄;
+    }
+
+    void 长大一岁() {
+        年龄 = 年龄 + 1;       // 改的是"这一只"的年龄，别的猫不受影响
+    }
+}
+""";
+
+    // ══════════════════ 检查 ══════════════════
+
+    [Java检查说明("类写齐了吗：字段、构造方法、三个方法，而且不需要 static")]
+    public static JavaCheckResult 检查_类写齐了吗(string 代码)
+    {
+        string 净 = 去注释(代码);
+        var 缺 = new List<string>();
+
+        // 字段：允许带 private / public（那是访问控制，这一课不考）
+        if (!Regex.IsMatch(净, @"(?:^|[\s{};])(?:(?:public|private|protected)\s+)?String\s+名字\s*(?:=[^;]*)?;"))
+            缺.Add("      字段 名字  —— 要写成：String 名字;");
+        if (!Regex.IsMatch(净, @"(?:^|[\s{};])(?:(?:public|private|protected)\s+)?int\s+年龄\s*(?:=[^;]*)?;"))
+            缺.Add("      字段 年龄  —— 要写成：int 年龄;");
+        if (!Regex.IsMatch(净, @"(?<![\w.])String\s+打招呼\s*\(\s*\)"))
+            缺.Add("      方法 打招呼  —— 要写成：String 打招呼()");
+        if (!Regex.IsMatch(净, @"(?<![\w.])int\s+几岁了\s*\(\s*\)"))
+            缺.Add("      方法 几岁了  —— 要写成：int 几岁了()");
+        if (!Regex.IsMatch(净, @"(?<![\w.])void\s+长大一岁\s*\(\s*\)"))
+            缺.Add("      方法 长大一岁  —— 要写成：void 长大一岁()");
+
+        // 构造方法：只允许访问修饰符在前面，**不能有返回类型**。
+        // (?:^|[;{}\n]) 这一截是关键 —— 少了它，`void 猫(...)` 也会被当成合格的构造方法。
+        if (!Regex.IsMatch(净, @"(?:^|[;{}\n])\s*(?:(?:public|private|protected|final)\s+)*猫\s*\(\s*String\s+\w+\s*,\s*int\s+\w+\s*\)"))
+            缺.Add("      构造方法  —— 要写成：猫(String 名字, int 年龄)（前面**不能有返回类型**，void 也不行）");
+
+        if (缺.Count == 0 && !Regex.IsMatch(净, @"\bclass\s+猫\b"))
+            缺.Add("      类 猫  —— 要写成：class 猫 { … }");
+
+        if (缺.Count > 0)
+            return JavaCheckResult.不过(
+                "这几样没有找到（或者写法跟题目不一样）：\n" +
+                string.Join("\n", 缺) + "\n" +
+                "      一个类长这样：\n" +
+                "          class 猫 {\n" +
+                "              String 名字;                 ← 字段（对象「有什么」）\n" +
+                "              int 年龄;\n" +
+                "              猫(String 名字, int 年龄) { … }  ← 构造方法（没有返回类型）\n" +
+                "              String 打招呼() { … }        ← 方法（对象「能做什么」）\n" +
+                "          }\n" +
+                "      ⚠ 名字要和题目一模一样（Java 区分大小写），而且**不要写 class Main**：\n" +
+                "        课程会在你的类后面补一个 Main 当入口，你只写 猫 就行。");
+
+        // 这一课的类里不该出现 static：static 字段属于"类"，被所有对象共用一份，
+        // 那样"两个对象互不影响"这条就不成立了（也是本课要讲清的区别）。
+        if (Regex.IsMatch(净, @"\bstatic\b"))
+            return JavaCheckResult.不过(
+                "你的类里出现了 static，这一课不需要它。\n" +
+                "      **static 的东西属于「类」，只存一份；不写 static 的属于「对象」，每个对象各一份。**\n" +
+                "          static int 年龄;      ✗ 所有猫共用同一个年龄 —— 改一只，全都变了\n" +
+                "          int 年龄;             ✓ 每只猫有自己的年龄\n" +
+                "      这一课要的正是「每个对象各有一份」的效果，所以字段和方法都不写 static。\n" +
+                "      （第 05 课里的 static 方法属于另一种用法：那是「和对象无关的纯计算」。）");
+
+        return JavaCheckResult.过("class 猫、两个字段、构造方法、三个方法 —— 都写齐了");
+    }
+
+    [Java检查说明("能 new 出对象：构造方法确实把参数存进了字段")]
+    public static JavaCheckResult 检查_能创建对象(string 代码)
+    {
+        // 用**和默认值不同**的参数去构造：咪咪 / 3。
+        // 如果字段没被赋值（比如写了 名字 = 名字; 忘了 this），
+        // 那么 名字 还是 null、年龄 还是 0 —— 一眼就能看出来。
+        var run = 编译并调用语句(代码,
+            @"猫 甲 = new 猫(""咪咪"", 3);",
+            @"System.out.println(""说:"" + 甲.打招呼());",
+            @"System.out.println(""岁:"" + 甲.几岁了());");
+        if (run.Raw.CompileFailed) return 编译不通过(run);
+        if (run.Raw.Error != null)
+            return JavaCheckResult.不过("程序没能跑起来：\n      " + run.Raw.Error);
+
+        var 行 = 行们(run);
+        if (行.Count != 2)
+            return JavaCheckResult.不过(
+                "new 猫(\"咪咪\", 3) 之后应该打印两行（说什么、几岁），实际是：\n" +
+                "          " + (行.Count == 0 ? "（没有任何输出）" : string.Join(" ⏎ ", 行)));
+
+        bool 名字对 = 行[0].Contains("咪咪");
+        bool 岁数对 = 行[1] == "岁:3";
+
+        if (名字对 && 岁数对)
+            return JavaCheckResult.过("new 猫(\"咪咪\", 3) 之后：打招呼说出了咪咪，几岁了是 3 —— 构造方法把参数存进字段了");
+
+        var 错 = new List<string>();
+        if (!名字对)
+            错.Add("      甲.打招呼() 是 " + 显示(行[0]) + "，里面应该带着「咪咪」" +
+                   (行[0].Contains("null") ? "（出现了 null —— 字段根本没被赋上值）" : ""));
+        if (!岁数对)
+            错.Add("      甲.几岁了() 是 " + 显示(行[1]) + "，应该是 3" +
+                   (行[1].EndsWith("0") ? "（还是 0 —— 字段根本没被赋上值）" : ""));
+
+        return JavaCheckResult.不过(
+            "对象造出来了，但**字段没有被正确赋值**：\n" +
+            string.Join("\n", 错) + "\n" +
+            "      ⚠ 最可能的原因：构造方法里忘了 this。\n" +
+            "      字段名和参数名一样时（都叫 名字），右边的 名字 指的是**参数**，\n" +
+            "      所以 名字 = 名字; 只是把参数赋给自己，字段一点没变：\n" +
+            "          名字 = 名字;              ✗ 字段永远是 null\n" +
+            "          this.名字 = 名字;         ✓ this 指「我自己这个对象」，\n" +
+            "                                      this.名字 才是那只猫的字段\n" +
+            "      年龄 也要一起改：this.年龄 = 年龄;\n" +
+            "      顺便记住：字段没赋值时不会是「空着」，而是各自类型的默认值 ——\n" +
+            "      对象类型（String）是 null，int 是 0。");
+    }
+
+    [Java检查说明("构造方法的名字和类名一样，而且**没有返回类型**（本课重点）")]
+    public static JavaCheckResult 检查_构造方法没有返回类型(string 代码)
+    {
+        // ⚠ 本课的核心检查点。
+        //
+        // 这是初学者最难自己发现的错误：`void 猫(...)` 看着和构造方法一模一样，
+        // 编译器也不把它当语法错误 —— 它只是**不再是构造方法**了。
+        // 于是 new 猫("咪咪", 3) 报的是「构造器 猫 不能应用到给定类型」，
+        // 报错里连 void 两个字都没有，学生根本猜不到原因。
+        //
+        // 所以两个角度一起用：
+        //   语法角度：正则直接找「带返回类型的假构造方法」→ 能指名道姓地说清楚
+        //   编译角度：new 猫(...) 真的编译一次 → 这是"确实出问题了"的证据
+        string 净 = 去注释(代码);
+
+        var 带返回类型 = Regex.Match(净,
+            @"\b(void|int|String|boolean|double|long|float|char)\s+猫\s*\(");
+        if (带返回类型.Success)
+            return JavaCheckResult.不过(
+                "你的构造方法写了返回类型：「" + 带返回类型.Groups[1].Value + " 猫(…)」—— 这是本课最隐蔽的一个坑。\n" +
+                "      **构造方法没有返回类型，连 void 都不能写。**\n" +
+                "          猫(String 名字, int 年龄) { … }          ✓ 这才是构造方法\n" +
+                "          void 猫(String 名字, int 年龄) { … }     ✗ 这变成了一个普通方法\n" +
+                "      为什么危险：编译器不认为上面那行是语法错误 —— 它合法，只是\n" +
+                "      名字碰巧和类名一样。真正的后果出现在 new 的时候：\n" +
+                "          猫 甲 = new 猫(\"咪咪\", 3);\n" +
+                "          → 错误: 无法将类 猫中的构造器 猫应用到给定类型\n" +
+                "      报错里**看不到 void 两个字**，所以光看报错很难想到原因。\n" +
+                "      改法：把返回类型删掉就行 ——\n" +
+                "          猫(String 名字, int 年龄) {\n" +
+                "              this.名字 = 名字;\n" +
+                "              this.年龄 = 年龄;\n" +
+                "          }\n" +
+                "      顺便记住：构造方法和普通方法的区别只有两条 ——\n" +
+                "        · 名字必须和类名**完全一样**（大小写也一样）\n" +
+                "        · **没有返回类型**（void 也不行）\n" +
+                "      它是在 new 的那一刻自动执行的，你从来不会直接「调用」它。");
+
+        if (!Regex.IsMatch(净, @"(?<![\w.])猫\s*\(\s*String\s+\w+\s*,\s*int\s+\w+\s*\)"))
+            return JavaCheckResult.不过(
+                "没有找到构造方法 猫(String 名字, int 年龄)。\n" +
+                "      构造方法的样子（两条规矩：名字和类名一样、没有返回类型）：\n" +
+                "          class 猫 {\n" +
+                "              String 名字;\n" +
+                "              int 年龄;\n" +
+                "              猫(String 名字, int 年龄) {     ← 和类名一样，前面什么都不写\n" +
+                "                  this.名字 = 名字;\n" +
+                "                  this.年龄 = 年龄;\n" +
+                "              }\n" +
+                "          }\n" +
+                "      ⚠ 注意它不是 void 猫(...) 也不是 public 猫(...) 之外的东西 ——\n" +
+                "        前面最多只能写 public/private 这种访问修饰符，不能有返回类型。");
+
+        // 语法看着对，再用编译验一次 —— 万一还有别的地方（比如参数类型）不对。
+        var run = 编译并调用语句(代码, @"猫 探针 = new 猫(""咪咪"", 3);", @"System.out.println(探针.几岁了());");
+        if (run.Raw.CompileFailed)
+        {
+            if (含(run.编译信息, "constructor", "构造器", "构造方法"))
+                return JavaCheckResult.不过(
+                    "new 猫(\"咪咪\", 3) 编译不过 —— 编译器说构造器对不上：\n" +
+                    "          " + 头一行(run.编译信息) + "\n" +
+                    "      检查构造方法的三件事：\n" +
+                    "        · 名字和类名完全一样（猫）\n" +
+                    "        · **没有返回类型**（写了 void 就不再是构造方法了）\n" +
+                    "        · 参数是两个：String 名字, int 年龄");
+            return 编译不通过(run);
+        }
+
+        return JavaCheckResult.过("构造方法 猫(String 名字, int 年龄) 写法正确 —— 名字和类名一样、没有返回类型，new 得出来");
+    }
+
+    [Java检查说明("两个对象互不影响：改一只的年龄/名字，另一只不变")]
+    public static JavaCheckResult 检查_两个对象互不影响(string 代码)
+    {
+        // ⚠ 这一条同时也是"static 字段"的照妖镜：
+        //   如果学生把字段写成 static，两只猫会共用同一份年龄 —— 一起变。
+        var run = 编译并调用语句(代码,
+            @"猫 甲 = new 猫(""咪咪"", 3);",
+            @"猫 乙 = new 猫(""大黄"", 3);",
+            @"甲.长大一岁();",
+            @"甲.长大一岁();",
+            @"System.out.println(""甲:"" + 甲.几岁了());",
+            @"System.out.println(""乙:"" + 乙.几岁了());",
+            @"System.out.println(""甲说:"" + 甲.打招呼());",
+            @"System.out.println(""乙说:"" + 乙.打招呼());");
+        if (run.Raw.CompileFailed) return 编译不通过(run);
+        if (run.Raw.Error != null)
+            return JavaCheckResult.不过("程序没能跑起来：\n      " + run.Raw.Error);
+
+        var 行 = 行们(run);
+        if (行.Count != 4)
+            return JavaCheckResult.不过(
+                "应该打印 4 行，实际是：\n      " +
+                (行.Count == 0 ? "（没有任何输出）" : string.Join(" ⏎ ", 行)));
+
+        var 错 = new List<string>();
+        if (行[0] != "甲:5") 错.Add("      甲（长大两次）是 " + 显示(行[0]) + "，应该是 甲:5");
+        if (行[1] != "乙:3") 错.Add("      乙（没长大过）是 " + 显示(行[1]) + "，应该是 乙:3");
+        bool 甲名 = 行[2].Contains("咪咪") && !行[2].Contains("大黄");
+        bool 乙名 = 行[3].Contains("大黄") && !行[3].Contains("咪咪");
+        if (!甲名) 错.Add("      甲 打招呼时说的是 " + 显示(行[2]) + "，应该是咪咪说的（不能混）");
+        if (!乙名) 错.Add("      乙 打招呼时说的是 " + 显示(行[3]) + "，应该是大黄说的（不能混）");
+
+        if (错.Count == 0)
+            return JavaCheckResult.过(
+                "甲 长大两次是 5 岁，乙 还是 3 岁；两只猫各自说自己的名字 ——\n" +
+                "      new 出来的每个对象都有**自己的一份字段**，互不影响。");
+
+        return JavaCheckResult.不过(
+            "两个对象互相影响了（或者字段值不对）：\n" +
+            string.Join("\n", 错) + "\n" +
+            "      这里造了两只猫：甲(\"咪咪\", 3) 和 乙(\"大黄\", 3)，只让甲长大两次。\n" +
+            "      期望：甲变成 5，乙还是 3 —— 因为 new 出来的对象各有各的字段。\n" +
+            "      ⚠ 如果两只一起变了，八成是字段写了 static：\n" +
+            "          static int 年龄;    ✗ 属于「类」，只有一份，所有猫共用 → 一起变\n" +
+            "          int 年龄;           ✓ 属于「对象」，每只猫一份\n" +
+            "      如果只是数值不对（比如甲还是 3），检查 长大一岁：\n" +
+            "          年龄 = 年龄 + 1;     ← 要真的把字段加一（不要写成 return 或打印）\n" +
+            "      如果名字串了，检查 打招呼 里有没有用**字段** 名字（而不是写死的文字）。");
+    }
+
+    [Java检查说明("打招呼：说出来的是这只猫自己的名字")]
+    public static JavaCheckResult 检查_打招呼(string 代码)
+    {
+        var run = 编译并调用语句(代码,
+            @"猫 甲 = new 猫(""咪咪"", 3);",
+            @"猫 乙 = new 猫(""大黄"", 7);",
+            @"System.out.println(""甲说:"" + 甲.打招呼());",
+            @"System.out.println(""乙说:"" + 乙.打招呼());");
+        if (run.Raw.CompileFailed) return 编译不通过(run);
+        if (run.Raw.Error != null)
+            return JavaCheckResult.不过("程序没能跑起来：\n      " + run.Raw.Error);
+
+        var 行 = 行们(run);
+        if (行.Count != 2)
+            return JavaCheckResult.不过(
+                "应该打印 2 行，实际是：\n      " +
+                (行.Count == 0 ? "（没有任何输出）" : string.Join(" ⏎ ", 行)));
+
+        if (行[0].Contains("咪咪") && 行[1].Contains("大黄") && !行[0].Contains("大黄"))
+            return JavaCheckResult.过(
+                "甲 说的是咪咪、乙 说的是大黄 —— 打招呼 用的是**字段** 名字，不是写死的文字。");
+
+        return JavaCheckResult.不过(
+            "打招呼 没有说出这只猫自己的名字：\n" +
+            "      甲(\"咪咪\") 打招呼是：" + 显示(行[0]) + "\n" +
+            "      乙(\"大黄\") 打招呼是：" + 显示(行[1]) + "\n" +
+            "      两只猫必须说出**各自的**名字，所以要拿字段去拼：\n" +
+            "          String 打招呼() {\n" +
+            "              return \"喵～我是\" + 名字;      ← 名字 是字段，每只猫不一样\n" +
+            "          }\n" +
+            "      ⚠ 如果写成 return \"喵～我是咪咪\"; —— 那是写死的，换个名字的猫就错了。");
+    }
+
+    [Java检查说明("对象变量存的是引用：两个名字可以是同一只猫")]
+    public static JavaCheckResult 检查_对象变量是引用(string 代码)
+    {
+        // 这一条讲的是 Java 和 C++ 最不一样的语义之一：
+        //   Java 的类类型变量存的是"引用"（指向对象的地址），
+        //   赋值 猫 乙 = 甲; **不会复制对象**，只是给同一只猫起了第二个名字。
+        // 学生做过 C++ 的话，这里的直觉是反的 —— 所以要专门演示一次。
+        var run = 编译并调用语句(代码,
+            @"猫 甲 = new 猫(""咪咪"", 3);",
+            @"猫 乙 = 甲;                    // 不是拷贝！两个名字指向同一只猫",
+            @"乙.长大一岁();",
+            @"System.out.println(""甲:"" + 甲.几岁了());",
+            @"System.out.println(""乙:"" + 乙.几岁了());");
+        if (run.Raw.CompileFailed) return 编译不通过(run);
+        if (run.Raw.Error != null)
+            return JavaCheckResult.不过("程序没能跑起来：\n      " + run.Raw.Error);
+
+        var 行 = 行们(run);
+        if (行.Count == 2 && 行[0] == "甲:4" && 行[1] == "乙:4")
+            return JavaCheckResult.过(
+                "猫 乙 = 甲; 之后让乙长大，甲也变成了 4 岁 —— 它们是**同一只猫**。\n" +
+                "      Java 的 猫 甲 这个变量里存的不是猫本身，而是「猫在哪里」（引用/地址）：\n" +
+                "          猫 乙 = 甲;         ← 只是把地址抄了一份，没有造新猫\n" +
+                "          想造真正的第二只：猫 乙 = new 猫(\"咪咪\", 3);\n" +
+                "      （这一点和 C++ 的值语义相反 —— 那边 猫 乙 = 甲; 会复制一份。）");
+
+        return JavaCheckResult.不过(
+            "这一条的结果不对：\n" +
+            "          " + (行.Count == 0 ? "（没有任何输出）" : string.Join(" ⏎ ", 行)) + "\n" +
+            "      期望甲和乙都是 4：因为 猫 乙 = 甲; **不是复制对象**，\n" +
+            "      两个变量指的是同一只猫 —— 通过乙改的年龄，甲看到的也变了。\n" +
+            "      （如果两个都是 3，说明 长大一岁 没有真的改字段。）");
+    }
+
+    // ══════════════════ 小工具 ══════════════════
+
+    private static JavaRun 编译并调用语句(string 代码, params string[] 语句们)
+    {
+        var sb = new StringBuilder();
+        foreach (var s in 语句们) sb.Append("        ").Append(s).Append('\n');
+        return JavaCheck.编译并运行(代码, 骨架, sb.ToString());
+    }
+
+    /// <summary>编译没过时：先给针对性说明，没有就交给通用翻译。</summary>
+    private static JavaCheckResult 编译不通过(JavaRun run)
+    {
+        string 信息 = run.编译信息;
+
+        // ① 构造方法对不上 —— 本课的核心错误
+        //    实测原文：错误: 无法将类 猫中的构造器 猫应用到给定类型;
+        //                需要: 没有参数
+        //                找到: String,int
+        //                原因: 实际参数列表和形式参数列表长度不同
+        if (含(信息, "constructor", "构造器", "构造方法")
+            && 含(信息, "cannot be applied to given types", "应用到给定类型"))
+            return JavaCheckResult.不过(
+                "new 猫(\"咪咪\", 3) 用不了 —— 编译器说「构造器 猫 应用到给定类型」不对：\n" +
+                "          " + 头一行(信息) + "\n" +
+                "      ⚠ 报错里**不会出现 void 两个字**，但它八成就是原因：\n" +
+                "          void 猫(String 名字, int 年龄) { … }      ✗ 这只是一个普通方法\n" +
+                "          猫(String 名字, int 年龄) { … }           ✓ 这才是构造方法\n" +
+                "      构造方法的两条规矩：名字必须和类名**完全一样**，而且**没有返回类型**。\n" +
+                "      另一种可能：你根本没写构造方法（那 new 猫(\"咪咪\", 3) 自然没有参数可接）。");
+
+        // ② 学生的类写了 public —— 一个文件只能有一个 public 类
+        //    实测原文：错误: 类 猫 是公共的, 应在名为 猫.java 的文件中声明
+        if (含(信息, "should be declared in a file named", "是公共的", "应在名为"))
+            return JavaCheckResult.不过(
+                "你的类前面写了 public，但一个 .java 文件里只能有**一个** public 类，\n" +
+                "      而且它的名字必须和文件名一样。这个文件里那个位置留给课程的 Main 了。\n" +
+                "      改法：把类前面的 public 去掉 ——\n" +
+                "          class 猫 { … }          ✓\n" +
+                "          public class 猫 { … }   ✗\n" +
+                "      （同一个文件里可以有多个类，但 public 只能有一个。）");
+
+        // ③ 多写了 import / package
+        if (含(信息, "illegal start of type", "非法的类型开始"))
+            return JavaCheckResult.不过(
+                "文件里多了一句 import（或者 package）。\n" +
+                "      这一课不需要 import（你的 猫 类什么都没用到），把它删掉就行。");
+
+        // ④ 类名 / 方法名对不上
+        if (含(信息, "cannot find symbol", "找不到符号"))
+            return JavaCheckResult.不过(
+                "编译器不认识这个名字 —— 通常是类名/方法名和题目不一样。\n" +
+                "      这一课要求的东西：\n" +
+                "          class 猫                ← 类名（区分大小写，就是「猫」这一个字）\n" +
+                "          String 名字;  int 年龄;   ← 两个字段\n" +
+                "          猫(String 名字, int 年龄) ← 构造方法\n" +
+                "          String 打招呼()  int 几岁了()  void 长大一岁()\n" +
+                "      ⚠ 别自己写 class Main —— 课程会补上，你只写 猫 就行。");
+
+        // ⑤ 类型对不上
+        if (含(信息, "incompatible types", "不兼容的类型"))
+            return JavaCheckResult.不过(
+                "类型对不上。这一课最常见的是：\n" +
+                "        · 几岁了() 要返回 int（年龄 是 int）\n" +
+                "        · 打招呼() 要返回 String，里面拼字段 名字 是合法的（字符串 + 字符串）\n" +
+                "          但别把 int 和 String 弄混，比如 return 年龄; 放进 打招呼 就错了");
+
+        return JavaCheck.编译失败说明(run);
+    }
+
+    private static List<string> 行们(JavaRun run) => run.行.Select(l => l.Trim()).ToList();
+
+    /// <summary>报错信息里的第一行（用来给学生看个开头，不要整段堆上去）。</summary>
+    private static string 头一行(string 信息)
+    {
+        foreach (var l in 信息.Split('\n'))
+            if (l.Trim().Length > 0) return l.Trim();
+        return "（编译没有给出文字说明）";
+    }
+
+    /// <summary>报错文本里认不认得出这些片段（中英都要认，见第 05 课文件头的说明）。</summary>
+    private static bool 含(string 文本, params string[] 片段)
+    {
+        foreach (var f in 片段)
+            if (文本.Contains(f, System.StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    /// <summary>去掉注释再做语法（正则）检查 —— 注释里的字会骗过正则（第 05 课实测踩过）。</summary>
+    private static string 去注释(string 代码)
+    {
+        string 无块注释 = Regex.Replace(代码, @"/\*.*?\*/", " ", RegexOptions.Singleline);
+        return Regex.Replace(无块注释, @"//[^\n]*", " ");
+    }
+
+    private static string 显示(string s) => s.Length == 0 ? "（空）" : s;
+}
