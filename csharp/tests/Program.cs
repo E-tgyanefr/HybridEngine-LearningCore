@@ -1,4 +1,4 @@
-// LearnCode 的测试 —— 纯控制台，零测试框架依赖。
+// HybridEngine-light 的测试 —— 纯控制台，零测试框架依赖。
 //
 // 为什么不引入 xUnit/MSTest：这个包的目标就是「装完即用、不依赖第三方」。
 // 连测试都要额外装包，就跟这个目标自相矛盾了。（Python 版同理，用自带的 unittest。）
@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LearnCode;
+using HybridEngine-light;
 
 internal static class Tests
 {
@@ -31,7 +31,7 @@ internal static class Tests
 
     private static int Main()
     {
-        Console.WriteLine("=== LearnCode (C#) 测试 ===\n");
+        Console.WriteLine("=== HybridEngine-light (C#) 测试 ===\n");
 
         Coordinates();
         Shapes();

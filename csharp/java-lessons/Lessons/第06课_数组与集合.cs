@@ -41,8 +41,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("06", "第 06 课：数组与集合 —— 一次装很多东西",
     "1. static int 数组长度(int[] a)：返回数组的长度（a.length，**不加括号**）\n" +

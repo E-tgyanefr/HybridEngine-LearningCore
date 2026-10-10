@@ -26,8 +26,8 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("05", "第 05 课：函数 —— 把计算打包，想用几次用几次",
     "1. 写 int 双倍(int n)，返回 n 的两倍\n" +

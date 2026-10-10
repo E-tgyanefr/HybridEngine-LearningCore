@@ -6,10 +6,10 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <AssemblyName>LearnCode.Lessons</AssemblyName>
-    <RootNamespace>LearnCode.Lessons</RootNamespace>
+    <AssemblyName>HybridEngineLight.Lessons</AssemblyName>
+    <RootNamespace>HybridEngineLight.Lessons</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LearnCode\LearnCode.csproj" />
+    <ProjectReference Include="..\HybridEngine-light\HybridEngineLight.csproj" />
   </ItemGroup>
 </Project>

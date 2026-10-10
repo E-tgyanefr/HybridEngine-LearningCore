@@ -3,13 +3,13 @@
 运行： python lessons/看报错.py
 
 这个文件本身就是"课程"：你不需要看懂代码，
-只要看**同样的错误，普通 Python 和 learncode 分别说了什么**。
+只要看**同样的错误，普通 Python 和 hybridengine_light 分别说了什么**。
 """
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode import explain
+from hybridengine_light import explain
 
 # 每个用例 = (说明, 一段会出错的代码)
 CASES = [

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""learncode-ctl 的端到端测试 —— **可重复运行**，只用标准库。
+"""hybridengine_light-ctl 的端到端测试 —— **可重复运行**，只用标准库。
 
 ═══════════════════════════════════════════════════════════════════════════
 它验什么（对应 HybridEngine/docs/控制协议.md 的判据 + 本次任务的判据）
@@ -19,12 +19,12 @@
 怎么用
 ═══════════════════════════════════════════════════════════════════════════
 
-    python tools/e2e_ctl.py                  # 只测 learncode-ctl
+    python tools/e2e_ctl.py                  # 只测 hybridengine_light-ctl
     python tools/e2e_ctl.py --ms-ctl <路径>  # 顺带跑跨产品那条判据
     python tools/e2e_ctl.py --no-cross       # 明确不跑跨产品（会说明为什么）
 
-⚠ 零弹窗：本脚本给子进程设 `LEARNCODE_NO_DISPLAY=1`，
-   而 `learncode-ctl` 自己也不 import tkinter —— 画布那条线不会被碰到。
+⚠ 零弹窗：本脚本给子进程设 `HYBRIDENGINE_LIGHT_NO_DISPLAY=1`，
+   而 `hybridengine_light-ctl` 自己也不 import tkinter —— 画布那条线不会被碰到。
 ⚠ stderr 一律 **DEVNULL**（与 professional 的 `tools/msctl.py` 同一个做法）：
    两个产品的日志都走 stderr，协议只走 stdout。
 """
@@ -63,7 +63,7 @@ class Ctl:
     def __init__(self, argv: list[str], cwd: Path | None = None, env_extra: dict | None = None):
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf-8"
-        env["LEARNCODE_NO_DISPLAY"] = "1"          # ⚠ 兜底：绝不让画布建窗口
+        env["HYBRIDENGINE_LIGHT_NO_DISPLAY"] = "1"          # ⚠ 兜底：绝不让画布建窗口
         env.update(env_extra or {})
         self.argv = argv
         self.p = subprocess.Popen(
@@ -131,9 +131,9 @@ class Ctl:
         return self.发原文("emu.quit")
 
 
-def learncode_ctl() -> list[str]:
-    """怎么起 learncode-ctl —— 两种方式都行，这里走**安装路径无关**的那个。"""
-    return [sys.executable, "-m", "learncode.ctl"]
+def hybridengine_light_ctl() -> list[str]:
+    """怎么起 hybridengine_light-ctl —— 两种方式都行，这里走**安装路径无关**的那个。"""
+    return [sys.executable, "-m", "hybridengine_light.ctl"]
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -143,13 +143,13 @@ def learncode_ctl() -> list[str]:
 class Test协议层(unittest.TestCase):
 
     def test_ping_info_未知命令_quit(self):
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             ping = c.发("emu.ping")
             self.assertTrue(ping["pong"], "emu.ping 应该回 pong:true")
             self.assertIsInstance(ping.get("pid"), int, "ping 应带上 pid")
 
             info = c.发("emu.info")
-            self.assertEqual(info["product"], "learncode")
+            self.assertEqual(info["product"], "hybridengine_light")
             self.assertTrue(info.get("version"), "emu.info 必须给出 version")
             # ⚠ 协议文档 §3.1 明确把 product 定为"调用方区分两个产品"的依据
             self.assertNotEqual(info["product"], "hybridengine",
@@ -172,7 +172,7 @@ class Test协议层(unittest.TestCase):
             self.assertTrue(r3["ok"], "emu.quit 必须 ok:true")
 
     def test_quit后进程真的退出(self):
-        c = Ctl(learncode_ctl())
+        c = Ctl(hybridengine_light_ctl())
         try:
             c.quit()
             code = c.p.wait(timeout=10)
@@ -183,7 +183,7 @@ class Test协议层(unittest.TestCase):
 
     def test_坏请求不静默(self):
         """不是 JSON / 缺 cmd / args 不是对象 —— 三种都要有一个明确的错。"""
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             for 坏 in ('这不是 JSON', '[1,2,3]', '{"id":9}', '{"id":9,"cmd":"emu.ping","args":5}'):
                 c.p.stdin.write(坏 + "\n")
                 c.p.stdin.flush()
@@ -195,7 +195,7 @@ class Test协议层(unittest.TestCase):
                                 f"{坏!r} 的 err.msg 不能为空（不静默）")
 
     def test_空行被跳过而不是当成空请求(self):
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             c.p.stdin.write("\n\n")
             c.p.stdin.flush()
             self.assertTrue(c.发("emu.ping")["pong"], "空行之后协议应该还在正常工作")
@@ -209,8 +209,8 @@ class Test自省(unittest.TestCase):
 
     def test_commands与实现不分叉(self):
         """⚠ 自省表的每一条都必须真在命令表里（不是文档抄来的）。"""
-        from learncode import ctl
-        with Ctl(learncode_ctl()) as c:
+        from hybridengine_light import ctl
+        with Ctl(hybridengine_light_ctl()) as c:
             r = c.发("ctl.commands")
             self.assertIn("commands", r)
             self.assertTrue(r["commands"], "ctl.commands 不能是空列表")
@@ -232,8 +232,8 @@ class Test自省(unittest.TestCase):
            `进程提前退出（cmd=lesson.list）`）。
            所以：**先按自省顺序跑完所有其它命令，emu.quit 放最后**。
         """
-        from learncode import ctl
-        with Ctl(learncode_ctl()) as c:
+        from hybridengine_light import ctl
+        with Ctl(hybridengine_light_ctl()) as c:
             命令 = c.发("ctl.commands")["commands"]
             冒烟参数 = _冒烟参数(c)
             没冒烟 = [n for n in 命令 if n not in 冒烟参数]
@@ -262,7 +262,7 @@ class Test自省(unittest.TestCase):
 
 def _冒烟参数(c: Ctl) -> dict:
     """给每条命令准备一份**真实可用**的参数（冒烟不是测参数校验）。"""
-    from learncode import ctl, exam
+    from hybridengine_light import ctl, exam
 
     # 真实题号（用于 code.check / exam.answer 的正例）
     bank, _ = exam.load_banks(根)
@@ -357,7 +357,7 @@ def _找可跑的课():
       再看 `*-answers/`（学生目录，可能还是空模板 —— 跑起来会
       `NotImplementedError`，那不是 lesson.run 的问题，是"还没写作业"）。
     """
-    from learncode import ctl
+    from hybridengine_light import ctl
     for line, 元 in ctl.课程线.items():
         for p in ctl._课程们(line):
             候选 = []
@@ -394,7 +394,7 @@ class Test协议流纯净(unittest.TestCase):
         `code.run` 要跑学生代码，而学生代码里就有 print。
         如果那些 print 混进 stdout，下面第一句 `json.loads` 就会炸。
         """
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             r = c.发("code.run", source="print('我是学生代码')\nprint('第二行')\n")
             self.assertIn("我是学生代码", r["stdout"], "stdout 抓取失效")
             # ⚠ 关键：紧接着的协议请求必须还是干净的 JSON 一行
@@ -402,7 +402,7 @@ class Test协议流纯净(unittest.TestCase):
                             "学生代码的 print 之后协议流就被污染了")
 
     def test_报错也走协议不含原始print(self):
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             r = c.发("code.run", source="print('先打印')\n1/0\n")
             self.assertFalse(r["ok"])
             self.assertIn("ZeroDivisionError", r["error"])
@@ -418,9 +418,9 @@ class Test协议流纯净(unittest.TestCase):
 class Test考试闭环(unittest.TestCase):
 
     def test出题作答判分订正(self):
-        from learncode import exam
+        from hybridengine_light import exam
         bank, _ = exam.load_banks(根)
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             会话 = c.发("exam.start", n=6, seed=20240607, mode="practice")
             self.assertIn("session", 会话)
             self.assertEqual(len(会话["questions"]), 6)
@@ -455,9 +455,9 @@ class Test考试闭环(unittest.TestCase):
         修法：`answer` 一律 0 起下标；要按人看的序号用 `choice`（1 起）。
         下面把两种写法都钉住，顺带钉住"越界要报错"。
         """
-        from learncode import exam
+        from hybridengine_light import exam
         bank, _ = exam.load_banks(根)
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             s = c.发("exam.start", n=8, seed=424242)
             选择题 = [(i, q) for i, q in enumerate(s["questions"]) if q["type"] == "choice"]
             self.assertTrue(选择题, "这场抽题里没有选择题 —— 换个 seed")
@@ -484,9 +484,9 @@ class Test考试闭环(unittest.TestCase):
 
     def test答错必须判错(self):
         """⚠ 判据必须能失败 —— "全对"本身什么也证明不了。"""
-        from learncode import exam
+        from hybridengine_light import exam
         bank, _ = exam.load_banks(根)
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             会话 = c.发("exam.start", n=6, seed=20240607, mode="practice")
             错了几题 = 0
             for i, 题面 in enumerate(会话["questions"]):
@@ -506,7 +506,7 @@ class Test考试闭环(unittest.TestCase):
             self.assertFalse(成绩["ok"])
 
     def test会话隔离且不存在时报错(self):
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             a = c.发("exam.start", n=3, seed=1)
             b = c.发("exam.start", n=3, seed=1)
             self.assertNotEqual(a["session"], b["session"])
@@ -519,9 +519,9 @@ class Test考试闭环(unittest.TestCase):
             self.assertIn("没有这个考试会话", bad["err"]["msg"])
 
     def test未作答按错计且说明清楚(self):
-        from learncode import exam
+        from hybridengine_light import exam
         bank, _ = exam.load_banks(根)
-        with Ctl(learncode_ctl()) as c:
+        with Ctl(hybridengine_light_ctl()) as c:
             会话 = c.发("exam.start", n=4, seed=99)
             r = c.发("exam.answer", session=会话["session"], i=0,
                      answer=_查答案(bank, 会话["questions"][0]))
@@ -561,7 +561,7 @@ def _跨产品测(ms_ctl: Path):
             f"（本次**没有**构建任何东西，只读地找现成的 exe）")
 
     观察 = {}
-    for 名, argv in (("learncode", learncode_ctl()), ("hybridengine", [str(ms_ctl)])):
+    for 名, argv in (("hybridengine_light", hybridengine_light_ctl()), ("hybridengine", [str(ms_ctl)])):
         with Ctl(argv) as c:
             info = c.发("emu.info")
             命令 = c.发("ctl.commands")["commands"]
@@ -580,25 +580,25 @@ class Test跨产品(unittest.TestCase):
 
     def test同一段客户端代码驱动两个产品(self):
         try:
-            from learncode import ctl
+            from hybridengine_light import ctl
             _ = ctl
         except Exception as e:                          # noqa: BLE001
-            self.fail(f"import learncode.ctl 失败：{e}")
+            self.fail(f"import hybridengine_light.ctl 失败：{e}")
 
         ms = _ms_ctl_path()
         观察 = _跨产品测(ms)
 
         # ── ① 两个产品都说自己是活的 ──
-        self.assertTrue(观察["learncode"]["ping"])
+        self.assertTrue(观察["hybridengine_light"]["ping"])
         self.assertTrue(观察["hybridengine"]["ping"])
 
         # ── ② ⚠ 判据本体：靠 product 区分 ──
-        self.assertEqual(观察["learncode"]["product"], "learncode")
+        self.assertEqual(观察["hybridengine_light"]["product"], "hybridengine_light")
         self.assertEqual(观察["hybridengine"]["product"], "hybridengine")
-        self.assertNotEqual(观察["learncode"]["product"], 观察["hybridengine"]["product"])
+        self.assertNotEqual(观察["hybridengine_light"]["product"], 观察["hybridengine"]["product"])
 
         # ── ③ 两个产品的自省都非空，且**命令集不同**（各自做各自的事）──
-        甲 = set(观察["learncode"]["commands"])
+        甲 = set(观察["hybridengine_light"]["commands"])
         乙 = set(观察["hybridengine"]["commands"])
         self.assertTrue(甲 and 乙)
         self.assertNotEqual(甲, 乙, "两个产品的命令集不该一样")
@@ -608,9 +608,9 @@ class Test跨产品(unittest.TestCase):
         self.assertTrue(协议层 <= 乙, f"专业版缺协议层命令：{协议层 - 乙}")
 
         # ── ④ 未知命令的行为**逐字一致**（同一错误码、同一措辞形状）──
-        self.assertEqual(观察["learncode"]["unknownCode"], 观察["hybridengine"]["unknownCode"])
-        self.assertEqual(观察["learncode"]["unknownMsg"], 观察["hybridengine"]["unknownMsg"])
-        self.assertEqual(观察["learncode"]["unknownMsg"], "未知命令: 绝对不存在的命令.xyz")
+        self.assertEqual(观察["hybridengine_light"]["unknownCode"], 观察["hybridengine"]["unknownCode"])
+        self.assertEqual(观察["hybridengine_light"]["unknownMsg"], 观察["hybridengine"]["unknownMsg"])
+        self.assertEqual(观察["hybridengine_light"]["unknownMsg"], "未知命令: 绝对不存在的命令.xyz")
 
 
 _MS_CTL: Path | None = None
@@ -626,7 +626,7 @@ def _ms_ctl_path() -> Path:
 
 def main(argv=None) -> int:
     global _MS_CTL
-    ap = argparse.ArgumentParser(description="learncode-ctl 端到端测试")
+    ap = argparse.ArgumentParser(description="hybridengine_light-ctl 端到端测试")
     ap.add_argument("--ms-ctl", default=str(默认_MS_CTL),
                     help="专业版 ms_ctl 可执行文件（跨产品判据用）")
     ap.add_argument("--no-cross", action="store_true",

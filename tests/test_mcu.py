@@ -23,7 +23,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode.mcu import 模拟器, 引脚编号错误, 短路错误  # noqa: E402
+from hybridengine_light.mcu import 模拟器, 引脚编号错误, 短路错误  # noqa: E402
 
 
 class Test引脚(unittest.TestCase):

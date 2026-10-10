@@ -22,7 +22,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode.raspi import 树莓派, GPIO, 引脚错误, 传感器  # noqa: E402
+from hybridengine_light.raspi import 树莓派, GPIO, 引脚错误, 传感器  # noqa: E402
 
 
 class Test引脚(unittest.TestCase):

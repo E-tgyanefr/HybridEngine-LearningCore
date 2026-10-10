@@ -10,7 +10,7 @@
 //   · **值语义与引用** —— 参数怎么传，决定了函数能不能改到外面的东西
 //   · **整数除法 / 类型转换** —— 和 C# 类似但更严格
 //
-// 行协议见 LearnCode/BankLoader.cs。
+// 行协议见 HybridEngine-light/BankLoader.cs。
 // 对出题人：**只改下面的题表，Dump() 不用动。**
 
 using System;

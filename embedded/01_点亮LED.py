@@ -43,7 +43,7 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode 嵌入式 检查 01
+#   python -m hybridengine_light 嵌入式 检查 01
 #
 # 你不需要买板子。模拟器会替你"插上"板和 LED。
 
@@ -52,7 +52,7 @@
 
 def _新板():
     """建一块模拟板子，带一个 LED。"""
-    from learncode.mcu import 模拟器
+    from hybridengine_light.mcu import 模拟器
     板 = 模拟器(引脚数=8, 名字="模拟开发板")
     led = 板.输出引脚(2, 名字="LED")
     return 板, led

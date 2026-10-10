@@ -40,8 +40,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("08", "第 08 课：类与对象 —— 自己造一种东西",
     "1. 写一个 class 猫，有两个字段：String 名字、int 年龄\n" +

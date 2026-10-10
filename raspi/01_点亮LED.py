@@ -66,13 +66,13 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode 树莓派 检查 01
+#   python -m hybridengine_light 树莓派 检查 01
 
 
 # ── 下面是检查用的代码，不用改 ──
 
 def _新派():
-    from learncode.raspi import 树莓派
+    from hybridengine_light.raspi import 树莓派
     派 = 树莓派(名字="模拟树莓派")
     led = 派.接LED(17, 名字="LED")
     return 派, led

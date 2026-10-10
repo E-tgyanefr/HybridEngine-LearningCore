@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+"""`hybridengine_light-ctl` —— HybridEngine-light 的控制接口启动器。
+
+与专业版 `ms_ctl` 同一套协议（见 `HybridEngine/docs/控制协议.md`），
+所以同一段客户端代码能驱动两个产品，靠 `emu.info` 的 `product` 字段分流。
+
+═══════════════════════════════════════════════════════════════════════════
+为什么需要这个（不能只写 `python -m hybridengine_light.ctl` 吗）
+═══════════════════════════════════════════════════════════════════════════
+
+能。但协议文档第四节把命令行约定写成 `hybridengine_light-ctl [--stdio] ...` ——
+**两个产品的调用形状要一致**，否则"同一段客户端代码"就得知道
+"轻量版要写 `python -m`，专业版是可执行文件"。那正是协议要消掉的东西。
+
+⚠ 它**不假设** hybridengine_light 已安装：
+   自己把项目根插进 `sys.path` ⇒ 克隆下来就能用。
+   对"零依赖、装完即用"这个项目目标来说，这一点必须成立。
+
+用法：
+    hybridengine_light-ctl                  # 进 stdio 协议循环（Ctrl-Z / EOF 结束）
+    hybridengine_light-ctl --help
+    hybridengine_light-ctl --commands       # 只列命令，不进循环（自省，给人看）
+
+Windows 上直接打 `hybridengine_light-ctl` 用的是同目录的 `hybridengine_light-ctl.cmd`；
+命令行的形状与这里完全一样。
+"""
+
+import sys
+from pathlib import Path
+
+# ⚠ 必须在 import hybridengine_light 之前：本文件可能被从**任意** cwd 调起
+根 = Path(__file__).resolve().parent
+if str(根) not in sys.path:
+    sys.path.insert(0, str(根))
+
+from hybridengine_light import ctl            # noqa: E402
+
+
+def _列命令() -> int:
+    """`--commands`：把命令表打出来（不进协议循环）。
+
+    为什么留着：协议循环是给**程序**用的，而人调试 `hybridengine_light-ctl` 时
+    常常只想知道"到底有哪些命令"。走 `ctl.commands` 要自己拼 JSON、
+    还得配对引号 —— 那太绕了。
+    """
+    from hybridengine_light import __version__
+    lines = [
+        f"hybridengine_light-ctl {__version__}（协议 {ctl.协议版本}，product=hybridengine_light）",
+        f"共 {len(ctl.COMMANDS)} 条命令。协议循环里用 ctl.commands 查询同一份表。",
+        "",
+    ]
+    宽 = max(len(n) for n in ctl.COMMANDS)
+    for 名, 元 in ctl.COMMANDS.items():
+        lines.append(f"  {名:<{宽}}  {元['summary']}")
+        for k, v in (元["args"] or {}).items():
+            lines.append(f"  {'':<{宽}}    · {k}：{v}")
+    lines.append("")
+    lines.append("  别名（本地化写法，等价于上面某一条）：")
+    for a, 目标 in ctl.别名.items():
+        lines.append(f"    {a} → {目标}")
+    lines.append("")
+    sys.stdout.write("\n".join(lines) + "\n")
+    return 0
+
+
+def main() -> int:
+    argv = sys.argv[1:]
+    if argv and argv[0] in ("--commands", "-c", "命令"):
+        return _列命令()
+    return ctl.main(argv)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

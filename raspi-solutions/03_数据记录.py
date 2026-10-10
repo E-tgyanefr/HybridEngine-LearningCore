@@ -72,10 +72,10 @@ def 读回来(派, 路径) -> list[tuple[float, float]]:
     return 出
 
 
-# 想看效果的话，直接运行这个文件（注意要设 PYTHONPATH，不然找不到 learncode 包）：
+# 想看效果的话，直接运行这个文件（注意要设 PYTHONPATH，不然找不到 hybridengine_light 包）：
 #   PowerShell:  $env:PYTHONPATH = (Get-Location).Path ; python raspi-solutions/03_数据记录.py
 if __name__ == "__main__":
-    from learncode.raspi import 树莓派
+    from hybridengine_light.raspi import 树莓派
 
     路径 = "/home/pi/温度记录.csv"
     派 = 树莓派()

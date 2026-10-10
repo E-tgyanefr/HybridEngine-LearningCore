@@ -123,7 +123,7 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode 嵌入式 检查 05
+#   python -m hybridengine_light 嵌入式 检查 05
 
 
 # ── 下面是检查用的代码，不用改 ──
@@ -205,7 +205,7 @@ def _驱动(答案, 样本):
         return None, [], ("还没有定义「有新按下」函数。\n"
                           "      写法：def 有新按下(板子, 按钮): ... 返回 True / False")
 
-    from learncode.mcu import 模拟器
+    from hybridengine_light.mcu import 模拟器
     板 = 模拟器(引脚数=8, 名字="模拟开发板")
     按钮 = 板.输入引脚(3, 名字="按钮", 上下拉="上拉")
 
@@ -276,7 +276,7 @@ def CHECK_准备把状态建在板子上(答案):
     """
     if not hasattr(答案, "准备"):
         return False, "还没有定义「准备」函数"
-    from learncode.mcu import 模拟器
+    from hybridengine_light.mcu import 模拟器
     板 = 模拟器(引脚数=8, 名字="模拟开发板")
     板.输入引脚(3, 名字="按钮", 上下拉="上拉")
     之前 = set(vars(板))

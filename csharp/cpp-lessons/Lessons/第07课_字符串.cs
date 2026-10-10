@@ -32,8 +32,8 @@
 //   所有报错识别只匹配 ASCII 片段 —— g++ 会把中文标识符转义成 \U000053cc。
 
 using System.Collections.Generic;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("07", "第 07 课：字符串 —— 'A' 和 \"A\" 不是一回事",
     "1. 写 int 字节数(std::string s)，返回 s 的字节数（s.size()）\n" +

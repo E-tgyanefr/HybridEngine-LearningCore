@@ -141,7 +141,7 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode 树莓派 检查 02
+#   python -m hybridengine_light 树莓派 检查 02
 #
 #  卡住了？先在答案文件里这样试一下，把过程打出来看：
 #      派 = 树莓派()
@@ -159,7 +159,7 @@ def _新派(读数为: float = 22.0):
 
     温度传感器统一叫「温度」，所以你在函数里写 派.温度.读() 就行。
     """
-    from learncode.raspi import 树莓派
+    from hybridengine_light.raspi import 树莓派
     派 = 树莓派(名字="模拟树莓派")
     派.加传感器("温度", "°C", (0.0, 50.0), 读数为)
     return 派
@@ -380,7 +380,7 @@ def CHECK_报警时能点亮LED(答案):
         return True, ("（可选）没做也没关系 —— 想让报警灯亮起来的话，"
                       "给函数加一个 led=None 参数，报警时调 led.亮()。")
 
-    from learncode.raspi import 树莓派
+    from hybridengine_light.raspi import 树莓派
 
     def 试(读数为, 上限):
         派 = _新派(读数为)

@@ -36,8 +36,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("03", "第 03 课：条件判断",
     "1. static String 猜数字(int 猜)：等于 42 → \"对了\" / 小于 42 → \"小了\" / 大于 42 → \"大了\"\n" +

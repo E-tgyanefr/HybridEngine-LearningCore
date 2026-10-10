@@ -45,11 +45,11 @@ def 判断报警(派, 上限=30.0, led=None):
 #   PowerShell:  $env:PYTHONPATH = (Get-Location).Path ; python raspi-solutions/02_读传感器.py
 #   Linux/Mac :  PYTHONPATH=. python raspi-solutions/02_读传感器.py
 # 为什么要设 PYTHONPATH：直接跑子目录里的文件时，Python 只把这个文件所在的
-# 目录加进搜索路径，**找不到仓库根目录下的 learncode 包** ——
-# 报的错是 ModuleNotFoundError: No module named 'learncode'。
-# （检查命令不用管这个：它是 `python -m learncode` 跑的，包本来就在路径上。）
+# 目录加进搜索路径，**找不到仓库根目录下的 hybridengine_light 包** ——
+# 报的错是 ModuleNotFoundError: No module named 'hybridengine_light'。
+# （检查命令不用管这个：它是 `python -m hybridengine_light` 跑的，包本来就在路径上。）
 if __name__ == "__main__":
-    from learncode.raspi import 树莓派
+    from hybridengine_light.raspi import 树莓派
 
     派 = 树莓派()
     派.加传感器("温度", "°C", (0.0, 50.0), 22.0)

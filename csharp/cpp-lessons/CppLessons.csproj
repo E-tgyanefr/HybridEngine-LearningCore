@@ -6,11 +6,11 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <AssemblyName>LearnCode.CppLessons</AssemblyName>
-    <RootNamespace>LearnCode.CppLessons</RootNamespace>
+    <AssemblyName>HybridEngineLight.CppLessons</AssemblyName>
+    <RootNamespace>HybridEngineLight.CppLessons</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LearnCode\LearnCode.csproj" />
+    <ProjectReference Include="..\HybridEngine-light\HybridEngineLight.csproj" />
   </ItemGroup>
 </Project>

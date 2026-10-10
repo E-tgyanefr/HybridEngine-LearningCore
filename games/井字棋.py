@@ -22,7 +22,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode import Stage
+from hybridengine_light import Stage
 
 # ── 棋盘 ──
 # 用"三层列表"还是"一维列表"？这里用**一维**，因为 3×3 的一维下标很好算：

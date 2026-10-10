@@ -92,10 +92,10 @@ def 一直监测(派, 轮数, 路径, 上限=30.0, 下限=10.0):
     return {"轮数": 轮数, "报警次数": 报警次数}
 
 
-# 想看效果的话，直接运行这个文件（注意要设 PYTHONPATH，不然找不到 learncode 包）：
+# 想看效果的话，直接运行这个文件（注意要设 PYTHONPATH，不然找不到 hybridengine_light 包）：
 #   PowerShell:  $env:PYTHONPATH = (Get-Location).Path ; python raspi-solutions/05_温室监测器.py
 if __name__ == "__main__":
-    from learncode.raspi import 树莓派
+    from hybridengine_light.raspi import 树莓派
 
     路径 = "/home/pi/温室记录.csv"
     派 = 树莓派()

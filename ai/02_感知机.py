@@ -136,7 +136,7 @@
 #
 #        import sys
 #        sys.path.insert(0, ".")
-#        from learncode.check import load_module     # 载入你写的答案模块
+#        from hybridengine_light.check import load_module     # 载入你写的答案模块
 #        mod = load_module("ai-answers/02_感知机.py")
 #        数据 = [[0,0],[0,1],[1,0],[1,1]]
 #        w, b = mod.训练(数据, [0,1,1,0], 0.1, 1000)
@@ -163,9 +163,9 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode AI 检查 02
+#   python -m hybridengine_light AI 检查 02
 #
-# 卡住了：python -m learncode AI 答案 02   （先自己写一遍再看）
+# 卡住了：python -m hybridengine_light AI 答案 02   （先自己写一遍再看）
 
 
 # ── 下面是检查用的代码，不用改 ──

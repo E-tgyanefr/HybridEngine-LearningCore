@@ -1,11 +1,11 @@
-# LearnCode —— 学编程，从第一行代码看到画面
+# HybridEngine-light —— 学编程，从第一行代码看到画面
 
 **本项目由 AI 协作完成** —— 人类定方向与验收，AI 负责实现、测试与文档。详见文末[「关于这个项目是怎么做出来的」](#关于这个项目是怎么做出来的)。
 
 一个**零依赖**的编程教学项目。教 **Python / C# / C++ / Java** 四门语言。
 
 ```python
-from learncode import Stage
+from hybridengine_light import Stage
 Stage().dot(50, 50, r=20, color="红").wait()
 ```
 
@@ -88,12 +88,12 @@ std::cout << a[10];    // 正常退出，输出 32758（别人变量的内存）
 ## 目录结构
 
 ```
-learncode/                    Python 侧的运行时
+hybridengine_light/                    Python 侧的运行时
     stage.py                  画布：虚拟坐标、中文颜色、按键输入
     explain.py                报错翻译
     check.py                  课程自动检查（CHECK_* 框架）
     exam.py / examrun.py      考试：题库、判分、成绩、弱项统计
-    run.py                    课程运行器（`python -m learncode`）
+    run.py                    课程运行器（`python -m hybridengine_light`）
 
 lessons/                      Python 课程
     01_变量.py                 单文件作业
@@ -108,7 +108,7 @@ games/                        小游戏
     井字棋.py                  图形 + 电脑对手
 
 csharp/                       C# / C++ / Java 侧
-    LearnCode/                 共享的运行时库
+    HybridEngine-light/                 共享的运行时库
         Stage.cs               控制台 ANSI 真彩色 + 半方块字符
         Explain.cs             C# 报错翻译
         CSharpRunner.cs        真编译运行学生 C# 代码
@@ -129,16 +129,16 @@ csharp/                       C# / C++ / Java 侧
 
 ## 六条课程线（33 课，全部逐课验收通过）
 
-一个入口看全部：`python -m learncode`
+一个入口看全部：`python -m hybridengine_light`
 
 | 课程线 | 命令 | 课数 | 说明 |
 |---|---|---|---|
-| **Python** | `python -m learncode` | 2 | 变量、模块化 |
+| **Python** | `python -m hybridengine_light` | 2 | 变量、模块化 |
 | **C++** | `dotnet run --project csharp/cpp-lessons` | 8 | 输出 → 指针与引用 |
 | **Java** | `dotnet run --project csharp/java-lessons` | 8 | 输出 → 类与对象 |
-| **嵌入式/单片机** | `python -m learncode 嵌入式` | 5 | 模拟器：按钮、闪烁、状态机、防抖 |
-| **树莓派** | `python -m learncode 树莓派` | 5 | 模拟器：传感器、数据记录、温室监测器 |
-| **人工智能** | `python -m learncode AI` | 5 | 零依赖：线性回归、感知机、梯度下降、KNN |
+| **嵌入式/单片机** | `python -m hybridengine_light 嵌入式` | 5 | 模拟器：按钮、闪烁、状态机、防抖 |
+| **树莓派** | `python -m hybridengine_light 树莓派` | 5 | 模拟器：传感器、数据记录、温室监测器 |
+| **人工智能** | `python -m hybridengine_light AI` | 5 | 零依赖：线性回归、感知机、梯度下降、KNN |
 
 每条线都是同一个循环：**看课程 → 写答案 → 自动检查 → 拿到具体反馈**。
 
@@ -162,15 +162,15 @@ I2C 地址冲突 —— 这些模拟器一个都发现不了。所以每条检�
 ### Python
 
 ```bash
-python -m learncode               # 有哪些课
-python -m learncode 01            # 看第 1 课
-python -m learncode 检查 01       # 检查答案（首次会生成答题模板）
-python -m learncode 答案 01       # 参考答案
+python -m hybridengine_light               # 有哪些课
+python -m hybridengine_light 01            # 看第 1 课
+python -m hybridengine_light 检查 01       # 检查答案（首次会生成答题模板）
+python -m hybridengine_light 答案 01       # 参考答案
 
-python -m learncode 考试           # 随机抽题，即时判分
-python -m learncode 考试 --成绩    # 历史成绩与弱项
+python -m hybridengine_light 考试           # 随机抽题，即时判分
+python -m hybridengine_light 考试 --成绩    # 历史成绩与弱项
 
-python -m learncode 游戏
+python -m hybridengine_light 游戏
 python games/猜数字.py
 ```
 
@@ -245,13 +245,13 @@ public static class 第01课
 ## 嵌入式 / 单片机（模拟器，不需要真板子）
 
 ```bash
-python -m learncode 嵌入式              # 列出课程
-python -m learncode 嵌入式 01           # 看第 1 课
-python -m learncode 嵌入式 检查 01      # 检查答案
+python -m hybridengine_light 嵌入式              # 列出课程
+python -m hybridengine_light 嵌入式 01           # 看第 1 课
+python -m hybridengine_light 嵌入式 检查 01      # 检查答案
 ```
 
 ```python
-from learncode.mcu import 模拟器
+from hybridengine_light.mcu import 模拟器
 
 板 = 模拟器(引脚数=8)
 led = 板.输出引脚(2, 名字="LED")
@@ -293,12 +293,12 @@ led.高()                 # 点亮
 ## 树莓派（模拟器，不需要真板子）
 
 ```bash
-python -m learncode 树莓派              # 列出课程
-python -m learncode 树莓派 检查 01      # 检查答案
+python -m hybridengine_light 树莓派              # 列出课程
+python -m hybridengine_light 树莓派 检查 01      # 检查答案
 ```
 
 ```python
-from learncode.raspi import 树莓派, GPIO
+from hybridengine_light.raspi import 树莓派, GPIO
 
 派 = 树莓派()
 led = 派.接LED(17)                 # 配好引脚并拿到一个顺手的小对象

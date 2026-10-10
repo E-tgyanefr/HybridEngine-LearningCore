@@ -36,7 +36,7 @@ SOFTWARE.
 ## 范围（Scope）
 
 本许可覆盖**本仓库内**的全部内容：课程（`lessons/` `ai/` `embedded/` `raspi/`
-`cpp-*` `java-*`）、检查器与考试系统（`learncode/`）、C# 运行器（`csharp/`）、
+`cpp-*` `java-*`）、检查器与考试系统（`hybridengine_light/`）、C# 运行器（`csharp/`）、
 测试、工具与文档。
 
 **不含**：`*-answers/` 目录（学生答题处，由课程首次运行时生成模板，不随仓发布）；

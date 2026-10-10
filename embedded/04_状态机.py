@@ -96,7 +96,7 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode 嵌入式 检查 04
+#   python -m hybridengine_light 嵌入式 检查 04
 
 
 # ── 下面是检查用的代码，不用改 ──
@@ -146,7 +146,7 @@ def _建好(答案):
     if not callable(答案.初始化):
         return None, None, None, "「初始化」存在，但它不是函数。要用 def 定义。"
 
-    from learncode.mcu import 模拟器
+    from hybridengine_light.mcu import 模拟器
     板 = 模拟器(引脚数=8, 名字="模拟开发板")
     led = 板.输出引脚(2, 名字="LED")
     按钮 = 板.输入引脚(3, 名字="按钮", 上下拉="上拉")

@@ -23,7 +23,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode.exam import load_banks, validate_bank, normalize  # noqa: E402
+from hybridengine_light.exam import load_banks, validate_bank, normalize  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

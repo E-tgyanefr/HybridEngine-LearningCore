@@ -40,8 +40,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("07", "第 07 课：字符串 —— 内容比较必须用 equals",
     "1. static int 长度(String s)：返回字符个数（s.length()，**要括号**）\n" +

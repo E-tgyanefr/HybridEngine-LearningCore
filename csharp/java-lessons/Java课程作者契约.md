@@ -22,8 +22,8 @@
 // <核心检查点是哪一条？学生能用什么偷懒办法蒙过去？那条检查怎么防住的？>
 
 using System.Linq;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("NN", "第 NN 课：<标题>",
     "1. <要求一>\n" +

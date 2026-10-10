@@ -92,7 +92,7 @@
 # ─────────────────────────────────────────────────────
 #  写完之后
 # ─────────────────────────────────────────────────────
-#   python -m learncode 嵌入式 检查 03
+#   python -m hybridengine_light 嵌入式 检查 03
 
 
 # ── 下面是检查用的代码，不用改 ──
@@ -105,7 +105,7 @@ class _跑不完(Exception):
 
 
 def _新板():
-    from learncode.mcu import 模拟器
+    from hybridengine_light.mcu import 模拟器
     板 = 模拟器(引脚数=8, 名字="模拟开发板")
     led = 板.输出引脚(2, 名字="LED")
     return 板, led

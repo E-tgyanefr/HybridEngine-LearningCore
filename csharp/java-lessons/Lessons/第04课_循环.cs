@@ -36,8 +36,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("04", "第 04 课：循环",
     "1. static int 求和(int n)：1+2+…+n，n<=0 返回 0。用 for\n" +

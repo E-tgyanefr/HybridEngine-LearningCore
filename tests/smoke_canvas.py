@@ -8,7 +8,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode import Stage
+from hybridengine_light import Stage
 
 out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_smoke.ps")
 if os.path.exists(out):

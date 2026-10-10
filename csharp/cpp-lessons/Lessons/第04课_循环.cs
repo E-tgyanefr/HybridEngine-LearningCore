@@ -30,8 +30,8 @@
 
 using System.Linq;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("04", "第 04 课：循环",
     "1. int 求和(int n)：1+2+…+n，n<=0 返回 0。用 for\n" +

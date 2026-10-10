@@ -50,8 +50,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("02", "第 02 课：输入与计算",
     "1. 用 Scanner 读输入：先读一行姓名（nextLine），再读两个整数（nextInt）到 int 甲、int 乙\n" +

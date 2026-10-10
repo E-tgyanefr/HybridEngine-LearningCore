@@ -32,8 +32,8 @@
 //   所以只匹配 ASCII 报错片段（cannot bind / invalid conversion）。
 
 using System.Collections.Generic;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("08", "第 08 课：指针与引用 —— 改了参数，外面会不会变",
     "1. 写 void 翻倍_值(int n)，函数里把 n 翻倍 —— 但外面**不该变**\n" +

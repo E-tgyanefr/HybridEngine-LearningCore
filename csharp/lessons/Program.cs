@@ -1,10 +1,10 @@
-// LearnCode（C# 版）演示 —— 一节课看两件事：怎么画画、报错怎么说人话
+// HybridEngine-light（C# 版）演示 —— 一节课看两件事：怎么画画、报错怎么说人话
 //
 // 跑： dotnet run --project lessons
 
 using System;
 using System.Collections.Generic;
-using LearnCode;
+using HybridEngine-light;
 
 internal static class Demo
 {

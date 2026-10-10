@@ -16,7 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using LearnCode;
+using HybridEngine-light;
 
 internal static class CppTests
 {

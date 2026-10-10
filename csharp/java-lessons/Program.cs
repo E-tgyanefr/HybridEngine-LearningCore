@@ -19,9 +19,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using LearnCode;
+using HybridEngine-light;
 
-namespace LearnCode.JavaLessons;
+namespace HybridEngineLight.JavaLessons;
 
 /// <summary>标在课程类型上，让运行器能发现它。</summary>
 [AttributeUsage(AttributeTargets.Class)]

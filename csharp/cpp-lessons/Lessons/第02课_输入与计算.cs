@@ -29,8 +29,8 @@
 using System;
 using System.Linq;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("02", "第 02 课：输入与计算",
     "1. 用 std::cin 读两个整数到 int 变量 甲、乙\n" +

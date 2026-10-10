@@ -6,7 +6,7 @@
 //
 // ══ 这个文件为什么长得不像普通题库 ══
 // C# 是编译语言，题库要在**运行时被编译**才能读进来。所以这里的 Dump()
-// 负责把题目按行协议打印出来，主程序解析。协议见 LearnCode/BankLoader.cs。
+// 负责把题目按行协议打印出来，主程序解析。协议见 HybridEngine-light/BankLoader.cs。
 //
 // 对出题人：**只改下面的 Q 列表和 CODE_* 两张表，Dump() 不用动。**
 
@@ -119,7 +119,7 @@ public static class CSharpBank
     // ── 写代码题：题号 → (题干, 解释, 入口方法名) ──
     // 学生的方法**返回字符串**，判分时比对输出。
     // 为什么不用反射拿真正的值：学生代码在**另一个进程**里编译运行，
-    // 跨进程只能传字符串。详见 LearnCode/CSharpRunner.cs 顶部说明。
+    // 跨进程只能传字符串。详见 HybridEngine-light/CSharpRunner.cs 顶部说明。
     static readonly List<string[]> 代码题 = new List<string[]>
     {
         new[]{"是偶数", "写一个方法 是偶数(int n)：n 是偶数返回 \"是\"，否则返回 \"不是\"。",

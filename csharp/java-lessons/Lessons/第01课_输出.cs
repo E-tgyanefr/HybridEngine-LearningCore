@@ -18,8 +18,8 @@
 // 外部方法看不见 —— 我第一版就是想用探针访问，行不通（和 C++ 那边踩的是同一个坑）。
 
 using System.Linq;
-using LearnCode;
-using LearnCode.JavaLessons;
+using HybridEngine-light;
+using HybridEngineLight.JavaLessons;
 
 [Java课程("01", "第 01 课：输出与变量 —— 让程序开口说话",
     "1. 写一个完整的 Java 程序（要有 public class Main 和 main 方法）\n" +

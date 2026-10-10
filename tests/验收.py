@@ -19,7 +19,7 @@ import shutil
 import subprocess
 import sys
 
-ROOT = r"D:\Users\etgya\Desktop\Project\LearnCode"
+ROOT = r"D:\Users\etgya\Desktop\Project\HybridEngine-light"
 ENV = dict(os.environ, PYTHONIOENCODING="utf-8", DOTNET_CLI_UI_LANGUAGE="en")
 
 # ── ① 自己准备输入：把参考答案复制进答题目录 ──
@@ -85,10 +85,10 @@ def 跑(标签, 命令, 课号们):
     return 通过, 有效
 
 
-跑("Python", [sys.executable, "-m", "learncode", "检查"], ["01", "02"])
-跑("嵌入式", [sys.executable, "-m", "learncode", "嵌入式", "检查"], ["01", "02", "03", "04", "05"])
-跑("树莓派", [sys.executable, "-m", "learncode", "树莓派", "检查"], ["01", "02", "03", "04", "05"])
-跑("AI", [sys.executable, "-m", "learncode", "AI", "检查"], ["01", "02", "03", "04", "05"])
+跑("Python", [sys.executable, "-m", "hybridengine_light", "检查"], ["01", "02"])
+跑("嵌入式", [sys.executable, "-m", "hybridengine_light", "嵌入式", "检查"], ["01", "02", "03", "04", "05"])
+跑("树莓派", [sys.executable, "-m", "hybridengine_light", "树莓派", "检查"], ["01", "02", "03", "04", "05"])
+跑("AI", [sys.executable, "-m", "hybridengine_light", "AI", "检查"], ["01", "02", "03", "04", "05"])
 
 for 名, 项目 in (("C++", "cpp-lessons"), ("Java", "java-lessons")):
     跑(名, ["dotnet", "run", "--project", f"csharp/{项目}", "检查"],

@@ -12,8 +12,8 @@
 // 那样就学不到"变量"是什么。所以有一条检查专门验证这一点。
 
 using System.Linq;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("01", "第 01 课：输出 —— 让程序开口说话",
     "1. 用 std::cout 打印一行文字：你好，C++\n" +

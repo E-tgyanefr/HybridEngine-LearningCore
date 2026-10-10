@@ -19,7 +19,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from learncode import embedded, raspi_course  # noqa: E402
+from hybridengine_light import embedded, raspi_course  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 from pathlib import Path  # noqa: E402

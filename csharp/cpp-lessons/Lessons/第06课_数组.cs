@@ -26,8 +26,8 @@
 //   所以下面只匹配 ASCII 的报错片段（cannot convert / was not declared 等）。
 
 using System.Collections.Generic;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("06", "第 06 课：数组与向量 —— 一排格子和会变长的格子",
     "1. 写 int 求和(int 数[], int 长度)，把前 长度 个数加起来；长度是 0 时返回 0\n" +

@@ -24,8 +24,8 @@
 
 using System.Linq;
 using System.Text.RegularExpressions;
-using LearnCode;
-using LearnCode.CppLessons;
+using HybridEngine-light;
+using HybridEngineLight.CppLessons;
 
 [课程("03", "第 03 课：条件判断",
     "1. 写函数 std::string 猜数字(int 猜)：等于 42 → 对了 / 小于 42 → 小了 / 大于 42 → 大了\n" +

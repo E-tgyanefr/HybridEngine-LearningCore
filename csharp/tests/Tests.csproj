@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <!-- LearnCode 的测试 —— 纯控制台，零测试框架依赖（与包本身一样不依赖第三方）。 -->
+  <!-- HybridEngine-light 的测试 —— 纯控制台，零测试框架依赖（与包本身一样不依赖第三方）。 -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <AssemblyName>LearnCode.Tests</AssemblyName>
-    <RootNamespace>LearnCode.Tests</RootNamespace>
+    <AssemblyName>HybridEngineLight.Tests</AssemblyName>
+    <RootNamespace>HybridEngineLight.Tests</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LearnCode\LearnCode.csproj" />
+    <ProjectReference Include="..\HybridEngine-light\HybridEngineLight.csproj" />
   </ItemGroup>
 </Project>

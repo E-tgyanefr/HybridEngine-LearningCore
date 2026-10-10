@@ -6,11 +6,11 @@
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
-    <AssemblyName>LearnCode.JavaLessons</AssemblyName>
-    <RootNamespace>LearnCode.JavaLessons</RootNamespace>
+    <AssemblyName>HybridEngineLight.JavaLessons</AssemblyName>
+    <RootNamespace>HybridEngineLight.JavaLessons</RootNamespace>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\LearnCode\LearnCode.csproj" />
+    <ProjectReference Include="..\HybridEngine-light\HybridEngineLight.csproj" />
   </ItemGroup>
 </Project>
