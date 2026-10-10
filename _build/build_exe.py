@@ -63,7 +63,28 @@ args = [sys.executable, "-m", "PyInstaller",
         "--noconfirm", "--clean", "--onedir", "--console",
         "--name", APP, "--distpath", DIST, "--workpath", WORK, "--specpath", BUILD,
         "--paths", ROOT, 入口]
-print("  1 建 exe...")
+
+# ⚠⚠ 动态 import 的模块必须**显式声明**，PyInstaller 的静态分析看不到。
+#
+#   实测踩到：`引擎 贪吃蛇` 在产物里报
+#       ModuleNotFoundError: No module named 'hybridengine_light.pyengine'
+#   因为 `cmd_engine` 里是 `__import__(模块路径, ...)` —— 字符串，静态分析不出来
+#   （源码下能跑，打包后缺模块 —— **这类错只有打包后才现形**）。
+#
+#   凡是"用字符串拼出来的 import"都要在这里补一条。
+隐藏导入 = [
+    "hybridengine_light.pyengine",
+    "hybridengine_light.pyengine.render",
+    "hybridengine_light.pyengine.scene",
+    "hybridengine_light.pyengine.engine",
+    "hybridengine_light.pyengine.components",
+    "hybridengine_light.pyengine.games",
+    "hybridengine_light.pyengine.games.snake",
+]
+for m in 隐藏导入:
+    args += ["--hidden-import", m]
+
+print("  1 建 exe...（含 %d 个显式隐藏导入）" % len(隐藏导入))
 r = subprocess.run(args, cwd=ROOT, capture_output=True)
 if r.returncode != 0:
     for line in (r.stdout + r.stderr).decode("utf-8", "replace").splitlines()[-20:]:
@@ -234,6 +255,29 @@ try:
     print("     ✓ 确认没有残留进程")
 except Exception:
     pass            # 查不到就算了，不因为查不到而挡住构建
+
+# ⚠⚠ 第二步自检：**从产物里真跑一次需要动态 import 的命令**。
+#
+#   实测踩到：`引擎 贪吃蛇` 在产物里报 ModuleNotFoundError，
+#   而第一步自检（`__诊断__`）**全绿** —— 因为那条路径不碰动态 import。
+#   ⇒ "能启动"不等于"功能都在"。自检必须覆盖**会缺东西的那条路**。
+print("  7b 自检：从产物里跑引擎命令…")
+for 命令, 期望 in ((["引擎"], "贪吃蛇"),
+                  (["引擎", "说明"], "组件")):
+    try:
+        q = subprocess.run([os.path.join(发布子, APP + ".exe"), *命令],
+                           capture_output=True, cwd=发布子, timeout=120, env=自检环境)
+        qs = (q.stdout + q.stderr).decode("utf-8", "replace")
+    except Exception as e:
+        qs = f"（跑不起来：{e}）"
+    if 期望 not in qs:
+        print("     ✗ `%s` 的输出里没有「%s」：" % (" ".join(命令), 期望))
+        for line in qs.splitlines()[:8]:
+            print("        " + line)
+        print("       ⇒ 多半是**动态 import 的模块没打进去**（见上面的 --hidden-import）")
+        sys.exit(1)
+    print("     ✓ `%s` 正常" % " ".join(命令))
+print("     ✓ 动态 import 的模块都在")
 
 # 清理临时区（dist 与 work 都是可再生的中间物）
 shutil.rmtree(DIST, ignore_errors=True)
