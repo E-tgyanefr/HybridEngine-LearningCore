@@ -71,6 +71,19 @@ public static class CppRunner
     /// </summary>
     public static bool 用C { get; set; }
 
+    /// <summary>
+    /// 当前语言：`false` = C++/C（用 gcc/g++ 编译），`true` = C#（用 CSharpRunner）。
+    ///
+    /// ⚠ 为什么 C# 也要走这里：C# 课的**检查逻辑**与 C++ 课同构
+    ///   （`[课程]` 特性 + `CppCheck` 助手 + `写了函数` / `编译并运行`），
+    ///   但"跑代码"和"翻译报错"的实现完全不同：
+    ///     · 跑代码   C++ 用 gcc；C# 用 `CSharpRunner`（dotnet 自己就是编译器）
+    ///     · 翻报错   C++ 用 `ExplainCpp`；C# 用 `Explain.For`
+    ///   ⇒ 用一个开关把这两处分派出去，而不是复制一整套课程框架。
+    ///   （复制的话，以后修 C++ 课的 bug 要记得改两处 —— 这正是要避免的。）
+    /// </summary>
+    public static bool 用CSharp { get; set; }
+
     /// <summary>找到的编译器路径。null = 没找到。</summary>
     public static string? Compiler
     {

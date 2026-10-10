@@ -20,7 +20,11 @@ import subprocess
 import sys
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-ROOT = r"D:\Users\etgya\Desktop\Project\LearnCode"
+# ⚠ 不硬编码：脚本在 LearnCode\_build\ ⇒ 上一级就是仓库根。
+#   实测踩到：整理后仓库从 Project\LearnCode 变成 Project\引擎\LearnCode，
+#   而这里写死了旧路径 ⇒ PathGen 找不到工程，验证直接失败。
+#   **路径要推导，不要写死**（build_exe.py 也栽过同一处）。
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LESSONS = os.path.join(ROOT, "csharp", "c-lessons", "Lessons")
 ANS = os.path.join(ROOT, "c-answers")
 GEN = os.path.join(ROOT, "_build", "pathgen")
@@ -39,10 +43,12 @@ io.open(os.path.join(GEN, "PathGen.csproj"), "w", encoding="utf-8", newline="\r\
     <AssemblyName>PathGen</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\\..\\csharp\\HybridEngineLight\\HybridEngineLight.csproj" />
+    <ProjectReference Include="{%REF%}" />
   </ItemGroup>
 </Project>
-''')
+'''.replace('{%REF%}',
+                        os.path.join(ROOT, 'csharp', 'HybridEngineLight',
+                                     'HybridEngineLight.csproj')))
 io.open(os.path.join(GEN, "Program.cs"), "w", encoding="utf-8", newline="\r\n").write(
     '''using System;
 using HybridEngineLight;

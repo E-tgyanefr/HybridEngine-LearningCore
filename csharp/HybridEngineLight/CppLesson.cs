@@ -106,9 +106,286 @@ int main(void) {
     /// <summary>把学生代码塞进骨架并编译运行。</summary>
     public static CppRun 编译并运行(string 学生代码, string? 骨架 = null, string 调用点 = "")
     {
-        string 用骨架 = 骨架 ?? (CppRunner.用C ? 默认骨架C : 默认骨架);
-        string 程序 = 用骨架.Replace("/*学生代码*/", 学生代码).Replace("/*调用点*/", 调用点);
-        return new CppRun { Raw = CppRunner.BuildAndRun(程序) };
+        string 用骨架 = 骨架 ?? (CppRunner.用CSharp ? 默认骨架CSharp
+                                : (CppRunner.用C ? 默认骨架C : 默认骨架));
+        // ⚠ 占位符**按语言取不同的写法**：
+        //   C/C++ 用 `/*学生代码*/`（块注释合法）
+        //   C#    用 `// __学生代码__`（C# **不支持** /* */ 块注释！）
+        //   我第一版对 C# 也用了 /* */ ⇒ 占位符没被替换，
+        //   而 `/*` 被编译器当成预处理器指令：
+        //       error CS1024: Preprocessor directive expected
+        //   —— 课程自己的错，学员会以为是自己写错了。
+        string 程序;
+        if (CppRunner.用CSharp)
+            程序 = 用骨架.Replace("// __学生代码__", 学生代码)
+                        .Replace("// __调用点__", 调用点);
+        else
+            程序 = 用骨架.Replace("/*学生代码*/", 学生代码)
+                        .Replace("/*调用点*/", 调用点);
+        // ⚠ C# 的骨架**自带入口类**（`入口.Main`）⇒ 整段程序直接编译运行。
+        //   C/C++ 则走 gcc（骨架里也有 main）。
+        // 两种 C# 形态必须分开，否则会撞出「入口 重复定义」：
+        //   · 骨架路径（本方法）：骨架自带 `入口.Main`（内容就是调用点）
+        //     ⇒ 整段程序直接跑，**不能让 DumpOutput 再加一个 入口**
+        //   · 完整程序路径（`直接运行`）：学员自己写了 Main ⇒ 也直接跑
+        return 跑(程序, 调用点: CppRunner.用CSharp ? 调用点 : "");
+    }
+
+    /// <summary>
+    /// **C#** 的骨架。
+    ///
+    /// ⚠ C# 与 C/C++ 的骨架完全不同：C# 没有"全局函数"，
+    ///   所有方法必须在类里 ⇒ 学生的代码要塞进一个 `学生代码` 类。
+    ///   这也是"同一个 CppCheck 能同时服务 C# 课"的关键：
+    ///   **只是把学生代码放进不同的壳里**，检查逻辑一行都不用改。
+    /// </summary>
+    public const string 默认骨架CSharp = """
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+public static class 学生代码
+{
+// __学生代码__
+}
+
+public static class 入口
+{
+    public static void Main()
+    {
+        // __调用点__
+    }
+}
+""";
+
+    /// <summary>
+    /// 把**一整段程序**跑起来（不经骨架）。
+    /// 按语言选实现：C# 走 `CSharpRunner`（dotnet 自己就是编译器，
+    /// 不需要另外装东西），C/C++ 走 gcc。
+    /// </summary>
+    private static CppRun 跑(string 程序, string 调用点 = "")
+    {
+        if (!CppRunner.用CSharp)
+            return new CppRun { Raw = CppRunner.BuildAndRun(程序) };
+
+        // ⚠⚠ C# 侧有两个不同的入口，**必须选对**：
+        //
+        //   · `DumpOutput(body, entry)` —— body 是**类一级的成员**
+        //     （方法/类定义），它自己再套一个 `入口.Main` 去调 `entry()`。
+        //     ⇒ 我们从骨架里取出 `学生代码` 类的**成员**，入口名就是 `Main`
+        //       （骨架的 `入口.Main` 里写着我们的调用点）。
+        //
+        //   · `Run(body, cases)` —— body 也放进 `学生代码` 类里，
+        //     但输出靠"测试用例"，**不跑 Main** ⇒ 收不到程序自己打印的东西。
+        //
+        //   我第一版对"独立程序"用了 `Run` —— 于是学员的程序**根本没执行**，
+        //   检查全报"一行都没打印"。**能编译 ≠ 会执行。**
+        var raw = new CppResult();
+        CSharpResult c;      // ⚠ 它在 HybridEngineLight 命名空间下，不是 CSharpRunner 的嵌套类型
+        // ⚠⚠ 这里改了五遍才对，每一遍都是"库的语义没看清"。全记下来：
+        //
+        //   `DumpOutput(body, entry)` 的实际行为：
+        //       usings… + 我们的 body + **它自己的 `入口` 类**
+        //       而那个 `入口.Main` 里写着 `try { <entry>(); }`
+        //
+        //   ① body 传"整段程序" ⇒ 和它的 `入口` 撞车
+        //        → CS0101: 命名空间已包含「入口」的定义
+        //   ② `entry` 传空串 ⇒ 生成 `();`
+        //        → CS1525: Invalid expression term ')'
+        //   ③ "从 `class 入口` 删到结尾" ⇒ 带走上一个类的收尾 `}`
+        //        → CS1004: Duplicate modifier
+        //   ④ 保留原来的 usings ⇒ `System` 重复(CS0105) 且
+        //        `using HybridEngineLight;` 在临时工程里不存在(CS0246)
+        //   ⑤ `entry` 传"空 lambda" ⇒ **程序什么都不做**（行数 0）
+        //        → 检查全报"一行都没打印" —— 最隐蔽的一个：
+        //          **能编译、能运行，就是没干正事。**
+        //
+        //   ⇒ 正确：body = `学生代码` 类的成员（不含 usings）
+        //            entry = **调用点本身**（C# 写 `() => { <调用点> }`）
+        // ⚠ 调用点必须**限定类名**（`学生代码.xxx()`）：
+        //   库生成的 `入口` 类与 `学生代码` 是**两个平级类**，
+        //   不像 C++ 那样在同一个作用域里。
+        //   直接写 `打招呼()` ⇒ CS0103: 当前上下文中不存在名称。
+        // ⚠⚠ `entry` 会被库**当成一个方法名**用（它自己拼 `<entry>()`）。
+        //   而我们的 `调用点` 形态是 `打招呼()` 或 `打招呼(95)`
+        //   —— **末尾那个 `()` 要留**（那是库会补的），但**参数要带上**：
+        //       entry = "学生代码.打招呼"        ⇒ 库拼成 学生代码.打招呼()   ✓
+        //       entry = "学生代码.打招呼(95)"    ⇒ 库拼成 学生代码.打招呼(95)() ✗
+        //   我第一版把整个 `调用点` 贴上 ⇒ 生成 `学生代码.打招呼();();`
+        //       error CS0149: Method name expected
+        //   ⇒ 正确做法：取到"方法名 + 参数表"，**去掉库即将补的那个空 `()`**。
+        //
+        //   做法：若调用点形如 `xxx()`（空参数），去掉尾部 `()`留给库补；
+        //        若带参数，则用 lambda（库补的 `()` 会作用在 lambda 上，
+        //        立即执行 —— 这正是我们要的）。
+        string entry;
+        if (调用点.Length == 0)
+            entry = "() => { }";
+        else if (调用点.EndsWith("()", StringComparison.Ordinal))
+            entry = "学生代码." + 调用点.Substring(0, 调用点.Length - 2);
+        else
+            entry = "() => { 学生代码." + 调用点 + "; }";
+        c = CSharpRunner.DumpOutput(骨架转成可跑程序(程序), entry);
+        if (c.Error != null)
+        {
+            raw.Error = c.Error;
+            raw.CompileFailed = true;
+            raw.CompileOutput = c.Raw;
+        }
+        foreach (var l in c.RawLines) raw.Lines.Add(l);
+        raw.RunOutput = c.Raw;
+        return new CppRun { Raw = raw };
+    }
+
+    /// <summary>
+    /// 把**骨架程序**改写成 `DumpOutput` 能接受的形式。
+    ///
+    /// ⚠⚠ 这一处我改了四遍才对，每次都是"没看清库的语义"。记在这里：
+    ///
+    ///   `DumpOutput(body, entry)` 做的事是：
+    ///       程序 = usings… + 我们的 body + **自己的 `入口` 类**
+    ///       而那个 `入口.Main` 里写着 `try { <entry>(); }`
+    ///
+    ///   ⇒ 三个坑：
+    ///     ① 我们的程序里**已经有 `入口` 类** ⇒ 两个同名类 ⇒
+    ///          error CS0101: 命名空间已包含「入口」的定义
+    ///     ② `entry` 传空串 ⇒ 生成 `();` ⇒
+    ///          error CS1525: Invalid expression term ')'
+    ///     ③ 直接"从 `class 入口` 删到结尾" ⇒ 把**上一个类的收尾 `}`** 也带走了 ⇒
+    ///          error CS1004: Duplicate modifier
+    ///
+    ///   ⇒ 正确做法：**把 `学生代码` 类的花括号内容取出来**当 body
+    ///     （正好就是"学员的方法们"），加上 usings，再交给 DumpOutput；
+    ///     入口用一个合法但什么都不做的表达式（立即执行的空 lambda）。
+    /// </summary>
+    private static string 骨架转成可跑程序(string 程序)
+    {
+        int 类 = 程序.IndexOf("class 学生代码", StringComparison.Ordinal);
+        if (类 < 0)
+        {
+            // 学员写的是**完整程序**（没有 `学生代码` 类）。
+            // ⚠ 不能原样返回：库会再追加一个 `入口` 类，与学员的撞车。
+            //   ⇒ 把学员的 **Main 方法体**搬进 `学生代码` 类，
+            //     其余（他的 `入口` 类）丢掉 —— 入口由库提供。
+            return "public static class 学生代码\n{\n" + 搬Main(程序) + "\n}\n";
+        }
+        int 起 = 程序.IndexOf('{', 类);
+        if (起 < 0) return 程序;
+        int 深 = 0, 止 = -1;
+        for (int i = 起; i < 程序.Length; i++)
+        {
+            if (程序[i] == '{') 深++;
+            else if (程序[i] == '}')
+            {
+                深--;
+                if (深 == 0) { 止 = i; break; }
+            }
+        }
+        if (止 < 0) return 程序;
+        string 成员 = 补公开(程序.Substring(起 + 1, 止 - 起 - 1));
+        // ⚠ **不要保留原来的 usings**：
+        //   ① 库（DumpOutput）自己会加 System / Collections.Generic / Linq / Text
+        //      ⇒ 再留一份会 warning CS0105（重复 using）
+        //   ② 骨架里的 `using HybridEngineLight;` 在**临时工程**里根本不存在
+        //      （那个工程不引用我们的库）⇒ error CS0246
+        //   ⇒ 只交"类里的成员"，usings 让库去管。
+        return "public static class 学生代码\n{\n" + 成员 + "\n}\n";
+    }
+
+    /// <summary>
+    /// 把**完整程序**里学员的 `Main` 方法体搬出来，改成 `学生代码` 类的一个方法。
+    ///
+    /// ⚠ 为什么不能原样跑：库（DumpOutput）**总会追加自己的 `入口` 类**，
+    ///   而学员的完整程序里也有 `入口` ⇒ 两个同名类 ⇒ CS0101。
+    ///   ⇒ 只留他的 `Main` 体，入口统一由库提供。
+    /// </summary>
+    private static string 搬Main(string 程序)
+    {
+        int m = 程序.IndexOf("static void Main", StringComparison.Ordinal);
+        if (m < 0) m = 程序.IndexOf("static int Main", StringComparison.Ordinal);
+        if (m < 0) return "public static void Main() { }";
+        int 起 = 程序.IndexOf('{', m);
+        if (起 < 0) return "public static void Main() { }";
+        int 深 = 0, 止 = -1;
+        for (int i = 起; i < 程序.Length; i++)
+        {
+            if (程序[i] == '{') 深++;
+            else if (程序[i] == '}')
+            {
+                深--;
+                if (深 == 0) { 止 = i; break; }
+            }
+        }
+        if (止 < 0) return "public static void Main() { }";
+        // 学员的 Main 可能是 `static int Main()` ⇒ 返回类型统一换成 void，
+        // 免得他的 `return 0;` 在我们生成的 void 方法里编译不过。
+        string 体 = 程序.Substring(起 + 1, 止 - 起 - 1);
+        体 = System.Text.RegularExpressions.Regex.Replace(体, @"\breturn\s+\d+\s*;", "return;");
+        return "public static void Main()\n{" + 体 + "\n}";
+    }
+
+    /// <summary>
+    /// 给学员写的方法补上 `public`。
+    ///
+    /// ⚠ 为什么必须补：库生成的 `入口` 类与 `学生代码` 是**两个平级类**，
+    ///   而 C# 的默认访问级别是 `private` ⇒ 入口类调不到学员的方法：
+    ///       error CS0122: '学生代码.打招呼()' is inaccessible
+    ///       due to its protection level
+    ///
+    ///   与其让每个学员都记住"这里要写 public"（那是**框架的限制**，
+    ///   不是 C# 语言的重点），不如由课程替他补上。
+    ///   学员想自己写 public 也不会重复（已经有的不再加）。
+    /// </summary>
+    private static string 补公开(string 成员)
+    {
+        var 出 = new System.Text.StringBuilder();
+        foreach (var 原行 in 成员.Split('\n'))
+        {
+            string 行 = 原行;
+            string 去空格 = 行.TrimStart();
+            // 只处理"看起来是方法声明"的行：含括号、有 static、还没写访问修饰符
+            if (去空格.StartsWith("static ", StringComparison.Ordinal) &&
+                去空格.Contains("(") &&
+                !去空格.StartsWith("public ", StringComparison.Ordinal) &&
+                !去空格.StartsWith("private ", StringComparison.Ordinal) &&
+                !去空格.StartsWith("internal ", StringComparison.Ordinal) &&
+                !去空格.StartsWith("protected ", StringComparison.Ordinal))
+            {
+                int 缩进 = 行.Length - 去空格.Length;
+                行 = 行.Substring(0, 缩进) + "public " + 去空格;
+            }
+            出.AppendLine(行);
+        }
+        return 出.ToString();
+    }
+
+    /// <summary>
+    /// 从**完整程序**里取出 `学生代码` 类的成员
+    /// <summary>
+    /// 从**完整程序**里取出 `学生代码` 类的成员（不含 usings 与类声明）。
+    ///
+    /// ⚠ 定位必须从 `class 学生代码` 之后的第一个 '{' 起、再做强配对的 '}'：
+    ///   用"第一个 '{'" 会取到**那个类**的开括号（因为 usings 后紧跟它），
+    ///   而用"最后一个 '}'"会取到 `入口` 类的收尾 ⇒ 取出的片段里
+    ///   带着 `入口` 的定义 ⇒ `CS0101: 已包含 '入口' 的定义`。
+    /// </summary>
+    private static string 取出成员(string 程序)
+    {
+        int 类 = 程序.IndexOf("class 学生代码", StringComparison.Ordinal);
+        if (类 < 0) return 程序;
+        int 起 = 程序.IndexOf('{', 类);
+        if (起 < 0) return 程序;
+        int 深 = 0;
+        for (int i = 起; i < 程序.Length; i++)
+        {
+            if (程序[i] == '{') 深++;
+            else if (程序[i] == '}')
+            {
+                深--;
+                if (深 == 0) return 程序.Substring(起 + 1, i - 起 - 1);
+            }
+        }
+        return 程序.Substring(起 + 1);
     }
 
     // ══════════════════ 常用检查 ══════════════════
@@ -125,7 +402,9 @@ int main(void) {
     /// </summary>
     public static CppRun 直接运行(string 学生代码)
     {
-        return new CppRun { Raw = CppRunner.BuildAndRun(学生代码) };
+        // 学员给的是**完整程序**（含自己的 Main）⇒ 不需要调用点，
+        // 由我们生成的入口直接跑他的 Main。
+        return 跑(学生代码, 调用点: "Main()");
     }
 
     /// <summary>
@@ -235,10 +514,22 @@ int main(void) {
         //   而报错信息里出现的是「CC1PLUS」与 `<<` ——
         //   **课程自己的 bug，学生却会以为是自己写错了**（这正是最坏的一类）。
         //   教训：凡是"拼代码给学生跑"的地方，都必须问一遍"这行在 C 里成立吗"。
-        string 骨架 = (CppRunner.用C ? 默认骨架C : 默认骨架)
-            .Replace("/*调用点*/", CppRunner.用C
-                ? $"printf(\"%d\\n\", (int)({调用}));"
-                : $"std::cout << {调用} << \"\\n\";");
+        // ⚠⚠ 骨架与调用点**都要按语言选**（三种语言三套）。
+        //   我改这里时只处理了 C 与 C++，**漏了 C#** ⇒ C# 课选了 C++ 骨架，
+        //   而 `编译并运行` 在 C# 模式下按 `// __调用点__` 替换
+        //   ⇒ C++ 骨架里的 `/*调用点*/` 没被替换 ⇒ 残留的 `/*`
+        //   ⇒ error CS1024: Preprocessor directive expected
+        //   —— 又是"课程自己的错，学员以为是自己写错"。
+        //
+        //   教训（第三次了）：**凡是"按语言分派"的地方，加新语言时必须逐处过一遍**。
+        //   与其靠记性，不如让每处都显式写出三种情况 —— 漏了编译器会提醒。
+        string 骨架;
+        if (CppRunner.用CSharp)
+            骨架 = 默认骨架CSharp.Replace("// __调用点__", 调用 + ";");
+        else if (CppRunner.用C)
+            骨架 = 默认骨架C.Replace("/*调用点*/", $"printf(\"%d\\n\", (int)({调用}));");
+        else
+            骨架 = 默认骨架.Replace("/*调用点*/", $"std::cout << {调用} << \"\\n\";");
         var run = 编译并运行(学生代码, 骨架);
         if (!run.编译通过)
         {
@@ -272,8 +563,17 @@ int main(void) {
     public static CheckResult 编译失败说明(CppRun run)
     {
         if (run.Raw.CompileFailed)
-            return CheckResult.不过(ExplainCpp.For(run.Raw.CompileOutput, run.Raw.CompileOutput, true)
-                                    .TrimEnd());
+        {
+            // ⚠ 报错翻译**必须按语言选**：
+            //   C++ 用 ExplainCpp，C# 用 Explain。
+            //   我第一版写死了 ExplainCpp ⇒ C# 课报错里出现
+            //   "C++ 区分大小写""C++ 的报错行号要往上多看一行" ——
+            //   **课程自己的错，学员却会以为是自己写错了。**
+            var 说明 = CppRunner.用CSharp
+                ? Explain.For(new Exception(run.Raw.CompileOutput))
+                : ExplainCpp.For(run.Raw.CompileOutput, run.Raw.CompileOutput, true);
+            return CheckResult.不过(说明.TrimEnd());
+        }
         return CheckResult.不过("程序没能正常运行：\n      " + (run.Raw.Error ?? "未知原因"));
     }
 

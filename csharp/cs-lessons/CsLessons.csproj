@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- C# 课程：课程定义（.cs，装检查逻辑）+ 学生作业（.cs，装学生代码）。
+       ⚠ 学生作业在这里是**字符串**（写在答题文件里），由 CSharpRunner
+         现场编译成临时程序再跑 —— 所以本工程不需要在编译期看到它们。 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>HybridEngineLight.CsLessons</AssemblyName>
+    <RootNamespace>HybridEngineLight.CsLessons</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HybridEngineLight\HybridEngineLight.csproj" />
+  </ItemGroup>
+</Project>
