@@ -42,6 +42,7 @@ from pathlib import Path
     "ai":       ("人工智能入门", True,  "零依赖，算法全部自己实现"),
     "embedded": ("嵌入式/单片机", True, "单片机模拟器，不需要真板子"),
     "raspi":    ("树莓派",      True,  "树莓派模拟器，不需要真板子"),
+    "enginecourse": ("引擎入门", True, "用组件拼游戏 —— 模块化编程"),
     "csharp":   ("C#",          False, "要 .NET SDK"),
     "cpp":      ("C++",         False, "要 .NET SDK + g++"),
     "java":     ("Java",        False, "要 .NET SDK + JDK"),
@@ -120,7 +121,7 @@ _缓存根: str | None = None
 #: 编译型轨道 —— 要跑 `dotnet run`，**慢**
 编译型轨道 = ("csharp", "cpp", "java", "c")
 #: 即时轨道 —— 纯读文件，实测 0.00 秒
-即时轨道 = ("python", "games", "ai", "embedded", "raspi")
+即时轨道 = ("python", "games", "ai", "embedded", "raspi", "enginecourse")
 
 
 def 清缓存() -> None:
@@ -151,6 +152,8 @@ def 发现(轨道键: str) -> list[课]:
         出 = []
         for p in R._lessons():
             出.append(课("python", p.stem[:2], R._title_of(p), p, R._答题路径(p)))
+    elif 轨道键 == "enginecourse":
+        出 = _发现引擎课程(root)
     elif 轨道键 in ("ai", "embedded", "raspi", "games"):
         出 = _发现Python系(轨道键, root)
     elif 轨道键 in 编译型轨道:
@@ -158,6 +161,24 @@ def 发现(轨道键: str) -> list[课]:
     else:
         出 = []
     _发现缓存[轨道键] = 出
+    return 出
+
+
+def _发现引擎课程(root: Path) -> list[课]:
+    """引擎课程线（`engine/` + `engine-answers/`）。
+
+    ⚠ 它的答题文件在 `engine-answers/`，**不是**课程旁边 ——
+      所以不能走 `_发现Python系` 那条路（那条把答案当成课程文件自己）。
+    """
+    from . import enginecourse as EC
+    出 = []
+    try:
+        for p in EC._课程们(root):
+            编号 = p.stem[:2]
+            出.append(课("enginecourse", 编号, EC._标题(p), p,
+                        root / EC.答案目录名 / p.name))
+    except Exception:
+        return []
     return 出
 
 
@@ -169,7 +190,8 @@ def _发现Python系(轨道键: str, root: Path) -> list[课]:
             return []
         return [课("games", f.stem[:2], f.stem, f, f) for f in sorted(d.glob("*.py"))]
 
-    模块 = {"ai": "aicourse", "embedded": "embedded", "raspi": "raspi_course"}[轨道键]
+    模块 = {"ai": "aicourse", "embedded": "embedded",
+            "raspi": "raspi_course"}[轨道键]
     m = __import__(f"hybridengine_light.{模块}", fromlist=["x"])
     出 = []
     try:
@@ -241,6 +263,11 @@ def 看课(k: 课) -> str:
     """这一课的正文（要做什么）。"""
     if k.轨道 in ("csharp", "cpp", "java", "c") and k.工程:
         return _运行课程程序(k.工程, [k.编号])[1] or "（这一课没有正文）"
+    if k.轨道 == "enginecourse":
+        from . import enginecourse as EC
+        with _截获输出() as 缓:
+            EC._看课程(项目根(), k.编号)
+        return 缓.getvalue()
     if k.轨道 == "ai":
         from . import aicourse
         with _截获输出() as 缓:
@@ -287,6 +314,8 @@ def _答案文件(k: 课) -> Path:
     if k.轨道 == "python":
         from . import run as R
         return R._答题路径(k.源文件)
+    if k.轨道 == "enginecourse":
+        return k.答题文件      # 已经算好了（engine-answers/ 下）
     if k.轨道 in ("ai", "embedded", "raspi", "games"):
         return k.源文件        # 这几条线的答题就是课程文件旁边/同目录
     if k.轨道 in ("csharp", "cpp", "java", "c") and k.答题文件:
@@ -396,6 +425,13 @@ def 检查(k: 课, 代码: str) -> str:
         with _截获输出() as 缓:
             R._cmd_check(k.编号)
         return 缓.getvalue()
+    if k.轨道 == "enginecourse":
+        # ⚠ 引擎课程线有自己的模块（`enginecourse`），而且它的答题文件在
+        #   `engine-answers/`（不是课程旁边）⇒ 不能并进下面那条 Python 系分支。
+        from . import enginecourse as EC
+        with _截获输出() as 缓:
+            EC._检查(项目根(), k.编号)
+        return 缓.getvalue()
     if k.轨道 in ("ai", "embedded", "raspi"):
         模块 = {"ai": "aicourse", "embedded": "embedded", "raspi": "raspi_course"}[k.轨道]
         m = __import__(f"hybridengine_light.{模块}", fromlist=["x"])
@@ -413,6 +449,11 @@ def 参考答案(k: 课) -> str:
         from . import run as R
         with _截获输出() as 缓:
             R._cmd_answer(k.编号)
+        return 缓.getvalue()
+    if k.轨道 == "enginecourse":
+        from . import enginecourse as EC
+        with _截获输出() as 缓:
+            EC._答案(项目根(), k.编号)
         return 缓.getvalue()
     if k.轨道 in ("ai", "embedded", "raspi"):
         模块 = {"ai": "aicourse", "embedded": "embedded", "raspi": "raspi_course"}[k.轨道]

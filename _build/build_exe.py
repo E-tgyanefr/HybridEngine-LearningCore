@@ -42,7 +42,9 @@ OUTDIR = os.path.join(DIST, APP)
 发布 = os.path.join(os.path.dirname(ROOT), "发布")
 发布子 = os.path.join(发布, APP)
 
-内容 = ["lessons", "games", "embedded", "raspi", "ai", "exams", "csharp", "docs"]
+内容 = ["lessons", "games", "embedded", "raspi", "ai", "exams", "csharp", "docs",
+        "engine", "engine-solutions"]
+# ⚠ `engine-answers/`（学员的答题文件）**不发布** —— 否则新用户一开箱就看到别人的答案。
 
 入口 = os.path.join(BUILD, "entry.py")
 # ⚠ 入口**从受版本控制的模板复制**，不在脚本里拼字符串。
@@ -80,6 +82,8 @@ args = [sys.executable, "-m", "PyInstaller",
     "hybridengine_light.pyengine.components",
     "hybridengine_light.pyengine.games",
     "hybridengine_light.pyengine.games.snake",
+    # 引擎课程线（`引擎课程` 命令）—— 同样是动态加载
+    "hybridengine_light.enginecourse",
 ]
 for m in 隐藏导入:
     args += ["--hidden-import", m]
@@ -263,7 +267,11 @@ except Exception:
 #   ⇒ "能启动"不等于"功能都在"。自检必须覆盖**会缺东西的那条路**。
 print("  7b 自检：从产物里跑引擎命令…")
 for 命令, 期望 in ((["引擎"], "贪吃蛇"),
-                  (["引擎", "说明"], "组件")):
+                  (["引擎", "说明"], "组件"),
+                  # ⚠ 引擎**课程**也要检 —— 它是另一条动态加载路径，
+                  #   第一版自检只检了 `引擎`，而 `引擎课程` 是单独一个模块。
+                  (["引擎课程"], "用组件拼游戏"),
+                  (["引擎课程", "01"], "场景与对象")):
     try:
         q = subprocess.run([os.path.join(发布子, APP + ".exe"), *命令],
                            capture_output=True, cwd=发布子, timeout=120, env=自检环境)

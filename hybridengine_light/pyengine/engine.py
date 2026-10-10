@@ -36,6 +36,10 @@ import time
 from . import render as R
 from .scene import 场景, 场景对象, 画笔接口, 向量
 
+#: ⚠ 模块级别的别名：`游戏.__init__` 的参数叫 `场景`，会遮住同名的类。
+#   这里留一个不会被遮住的名字，让"不传场景就自己造一个"能工作。
+_场景类 = 场景
+
 
 class 相机2D:
     """跟谁看、看多远。世界坐标 → 屏幕坐标。"""
@@ -157,7 +161,19 @@ class 游戏:
     def __init__(self, 场景: 场景 | None = None, 宽: int = 640, 高: int = 640,
                  尺寸: int = 100, 标题: str = "HybridEngine（Python 版）",
                  后端=None, 背景: str = "白") -> None:
-        self.场景 = 场景 if 场景 is not None else 场景()
+        # ⚠⚠ 参数名 `场景` 把**同名的类**遮住了。
+        #
+        #   我原来写的是：
+        #       self.场景 = 场景 if 场景 is not None else 场景()
+        #   在函数体里，`场景` 指的是**参数**（None），不是那个类
+        #   ⇒ `None()` ⇒ `TypeError: 'NoneType' object is not callable`。
+        #
+        #   而且**只在"不传场景"时炸** —— 自带贪吃蛇总是传 `场景=...`，
+        #   所以一直没暴露；第一次有人 `E.游戏(后端=后)` 就撞上了。
+        #   （判据也没覆盖这条路径 —— 现在有了。）
+        #
+        #   ⇒ 用模块级别的别名，别让参数名遮住类名。
+        self.场景 = 场景 if 场景 is not None else _场景类()
         self.宽, self.高, self.尺寸, self.标题, self.背景 = 宽, 高, 尺寸, 标题, 背景
         self.输入 = 输入()
         self.相机 = self.场景.取服务("相机")

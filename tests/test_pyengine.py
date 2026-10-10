@@ -536,5 +536,113 @@ class 样例游戏测试(unittest.TestCase):
         self.assertEqual(cmd_engine.cmd_引擎(__import__("pathlib").Path("."), ["不存在"]), 1)
 
 
+class 构造路径测试(unittest.TestCase):
+    """⚠⚠ 这一组是**实测炸过之后**补的，防的是一类特殊缺陷。
+
+    ## 那次炸的是什么
+
+    `游戏.__init__` 的参数叫 `场景`，把**同名的类**遮住了：
+
+        self.场景 = 场景 if 场景 is not None else 场景()   # 场景 是 None ⇒ None()
+
+    **只在"不传场景"时炸。** 而引擎自己的判据和样例游戏**总是传** `场景=...`
+    ⇒ 这条路径从没被走到。第一次有人 `E.游戏(后端=后)` 就撞上。
+
+    ⇒ 判据必须覆盖**每个"可以省略"的参数被省略时的路径**。
+      这不是"多写几条"，而是"省略"本身就是一种用法。
+    """
+
+    def test_不传场景也能建游戏(self):
+        g = E.游戏(后端=E.录制后端())
+        self.assertIsNotNone(g.场景, "不传场景时没有自动建一个")
+        self.assertEqual(sum(1 for _ in g.场景.遍历()), 0)
+
+    def test_不传场景能跑一帧(self):
+        g = E.游戏(后端=E.录制后端())
+        g.一步()                      # 不该抛
+        self.assertEqual(g.帧数, 1)
+
+    def test_传了场景就用传的那个(self):
+        s = E.场景("我的")
+        g = E.游戏(场景=s, 后端=E.录制后端())
+        self.assertIs(g.场景, s)
+
+    def test_所有参数都能省略(self):
+        """把所有有默认值的参数全省掉 —— 应当能建起来。"""
+        g = E.游戏(后端=E.录制后端())
+        self.assertEqual((g.宽, g.高, g.尺寸), (640, 640, 100))
+        self.assertTrue(g.标题)
+
+    def test_默认相机让世界坐标等于屏幕坐标(self):
+        """⚠ 守着"默认相机在视口正中"那个决定（踩过一次偏移 50 像素）。"""
+        g = E.游戏(后端=E.录制后端(), 尺寸=100)
+        self.assertEqual((g.相机.x, g.相机.y), (50.0, 50.0))
+        o = g.场景.造("p", 30, 40)
+        o.加(C.圆点(半径=2))
+        g.一步()
+        圆 = g.后端.有圆()[0]
+        self.assertAlmostEqual(圆[1], 30.0, places=6)
+        self.assertAlmostEqual(圆[2], 40.0, places=6)
+
+
+class 引擎课程测试(unittest.TestCase):
+    """引擎课程线（`engine/` + `engine-solutions/`）自身的判据。
+
+    ⚠ 特别是"**用参考答案能不能过**"这一条：
+      课程里的检查是我写的、参考答案也是我写的 ——
+      **两边都错时检查会"通过"，而课程是错的。**
+      上一轮加 C 课时就是这么抓出 3 个课程自己的 bug。
+    """
+
+    def _根(self):
+        import pathlib
+        return pathlib.Path(LC)
+
+    def test_课程目录与参考目录都在(self):
+        import pathlib
+        r = self._根()
+        self.assertTrue((r / "engine").is_dir(), "engine/ 课程目录不在")
+        self.assertTrue((r / "engine-solutions").is_dir(), "engine-solutions/ 不在")
+
+    def test_每课都有ANSWER与CHECK(self):
+        import pathlib
+        r = self._根()
+        课 = sorted((r / "engine").glob("[0-9][0-9]_*.py"))
+        self.assertGreaterEqual(len(课), 5, "引擎课程少于 5 课")
+        for p in 课:
+            t = p.read_text(encoding="utf-8")
+            self.assertIn("def CHECK_", t, f"{p.name} 没有 CHECK_ 检查")
+            self.assertIn("要做", t, f"{p.name} 没有「要做」段落（答题模板靠它生成）")
+            解 = r / "engine-solutions" / p.name
+            self.assertTrue(解.is_file(), f"{p.name} 没有参考答案")
+
+    def test_用参考答案跑全部课程都能过(self):
+        """⚠ 这条最要紧 —— 它抓的是**课程自己的错**。"""
+        import pathlib
+        import shutil
+        import tempfile
+        from hybridengine_light import enginecourse as EC
+        r = self._根()
+        临时 = tempfile.mkdtemp(prefix="ms_engcourse_work_")
+        答案目录 = pathlib.Path(临时) / EC.答案目录名
+        答案目录.mkdir(parents=True, exist_ok=True)
+        try:
+            for 解 in sorted((r / "engine-solutions").glob("*.py")):
+                shutil.copyfile(解, 答案目录 / 解.name)
+            坏 = []
+            for p in sorted((r / "engine").glob("[0-9][0-9]_*.py")):
+                编号 = p.stem[:2]
+                课 = EC._载入(p, f"t_lesson_{编号}")
+                答 = EC._载入(答案目录 / p.name, f"t_ans_{编号}")
+                from hybridengine_light.check import run_checks
+                rep = run_checks(课, 答)
+                if not rep.all_ok:
+                    失败 = [n for n, ok, _ in rep.items if not ok]                         if hasattr(rep, "items") else []
+                    坏.append(f"{编号}（通过 {rep.passed}/{rep.total}）")
+            self.assertEqual(坏, [], f"这些课用参考答案都过不了：{坏}")
+        finally:
+            shutil.rmtree(临时, ignore_errors=True)
+
+
 if __name__ == "__main__":
     unittest.main()
