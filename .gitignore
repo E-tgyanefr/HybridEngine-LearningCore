@@ -1,4 +1,4 @@
-﻿# ⚠ 发布前排除项（每一条都写了理由，不要随手删）
+# ⚠ 发布前排除项（每一条都写了理由，不要随手删）
 
 # ① .NET 构建产物 —— 里面记着**开发者机器的绝对路径**
 #    （实测：`csharp/**/obj/*.FileListAbsolute.txt` 含 217 处 `D:\Users\etgya\...`）
@@ -12,6 +12,12 @@ __pycache__/
 
 # ③ 学生答题处 —— 由课程**首次运行时生成模板**（见 README「answers/」一节）
 #    ⇒ 不应随仓发布，否则新用户会以为里面已有答案
+#
+# ⚠⚠ 这里有两套命名，**必须都排除**（我第一版只写了 `*-answers/`，
+#    结果 `lessons/answers/` **漏了** —— 它不以 `-answers` 结尾）：
+#      · `ai-answers/` `embedded-answers/` `raspi-answers/` `cpp-answers/` `java-answers/`
+#      · `lessons/answers/`
+answers/
 *-answers/
 
 # ④ ⚠⚠ **专业版的内容**：`csharp/demo3d` 通过 csproj 链接
