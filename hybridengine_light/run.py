@@ -15,8 +15,8 @@
 """
 
 from __future__ import annotations
+import os
 
-import sys
 import sys
 from pathlib import Path
 
@@ -403,23 +403,72 @@ def _cmd_games() -> int:
     for g in gs:
         print(f"  {g.stem}")
     print()
-    print("  直接运行： python games/猜数字.py")
+    # ⚠ 打包成 exe 后没有 `python` 命令 —— 写死会让学员照抄失败。
+    #   （与"各课程线提示"是同一类坑，那次漏了 11 处。）
+    print(f"  直接运行： {命令名()} 游戏" if getattr(sys, "frozen", False)
+          else "  直接运行： python games/猜数字.py")
     print("  看完游戏可以打开源码 —— 它们是用前面几课的知识写的，读得懂。")
     print()
     return 0
 
 
+def 需要暂停等待(冻结: bool, 是终端: bool, 参数个数: int,
+                 命令行有提示符: bool, 用了编辑器: bool = False) -> bool:
+    """要不要在结束前"按回车继续"。
+
+    ⚠ **这是实测暴露的缺陷，不是锦上添花**：
+
+      双击 exe 时 Windows 会给它**一个新的控制台**；程序打印完课程列表、
+      进程一结束，**窗口就跟着关了** —— 学员看到的是"一闪而过，什么都没看见"。
+
+    ⚠ 但**不能无条件暂停**，否则从命令行跑的人每次都被卡住。
+      判据（三条都要满足）：
+        · `冻结` —— 只有打包产物才可能"双击"（源码用法必经终端）
+        · `是终端` —— 不是管道/重定向（否则 `... | more` 会挂住）
+        · `参数个数 == 0`，**或者**用过编辑器
+          —— 用编辑器时它清屏退出，正文被擦掉了，必须留个机会看
+        · `命令行有提示符 == False` —— 真从 cmd 跑的话 cmd 会设 `PROMPT`；
+          双击出来的进程**没有**它。这条让命令行用户不被卡住。
+    """
+    if not (冻结 and 是终端):
+        return False
+    if not (参数个数 == 0 or 用了编辑器):
+        return False
+    return not 命令行有提示符
+
+
+def _暂停等待() -> None:
+    """等一次回车。⚠ 只在真终端里调用；读不到就静默结束，绝不抛异常。"""
+    try:
+        input("\n  按回车键关闭…")
+    except (EOFError, KeyboardInterrupt):
+        pass
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
-        return _cmd_list()
+        码 = _cmd_list()
+        if 需要暂停等待(bool(getattr(sys, "frozen", False)),
+                        bool(sys.stdin and sys.stdin.isatty()),
+                        len(argv),
+                        bool(os.environ.get("PROMPT"))):
+            _暂停等待()
+        return 码
     cmd = argv[0]
     if cmd in ("检查", "check"):
         return _cmd_check(argv[1]) if len(argv) > 1 else _cmd_list()
     if cmd in ("答案", "answer"):
         return _cmd_answer(argv[1]) if len(argv) > 1 else _cmd_list()
     if cmd in ("编辑", "edit"):
-        return _cmd_edit(argv[1]) if len(argv) > 1 else _cmd_list()
+        码 = _cmd_edit(argv[1]) if len(argv) > 1 else _cmd_list()
+        # ⚠ 编辑器**清屏**退出 —— 正文被擦掉了。双击进来的学员会看到"一片空白 + 窗口关闭"，
+        #   所以这里必须给一次看结果的机会（哪怕命令行用户受不了，也该留）。
+        if 需要暂停等待(bool(getattr(sys, "frozen", False)),
+                        bool(sys.stdin and sys.stdin.isatty()),
+                        1, bool(os.environ.get("PROMPT")), 用了编辑器=True):
+            _暂停等待()
+        return 码
     if cmd in ("游戏", "games"):
         return _cmd_games()
     if cmd in ("树莓派", "raspi"):
