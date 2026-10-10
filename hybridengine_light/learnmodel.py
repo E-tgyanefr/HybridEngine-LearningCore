@@ -232,23 +232,126 @@ def _发现编译型(轨道键: str, root: Path) -> list[课]:
 
 # ── 调用编译型课程程序 ───────────────────────────────────────────────────
 
+#: 工具名 -> 可执行文件候选名（Windows 上带 .exe）
+_工具候选 = {
+    "dotnet": ("dotnet", "dotnet.exe"),
+    "g++": ("g++", "g++.exe", "clang++", "clang++.exe", "c++"),
+    "gcc": ("gcc", "gcc.exe", "clang", "clang.exe"),
+    "javac": ("javac", "javac.exe"),
+    "java": ("java", "java.exe"),
+}
+
+_工具缓存: dict[str, str | None] = {}
+
+
+def 便携工具目录() -> list[Path]:
+    """可能放着**便携工具链**的目录（按优先级）。
+
+    ⚠ 为什么要这个：`.NET SDK` 4GB、MinGW 914MB、JDK 373MB ——
+      **装不进 11MB 的发布包**（物理限制，不是偷懒）。
+      所以留一个"把工具链放这儿就自动认"的位置：
+
+        <exe 旁边>\\tools\\         ← 打包产物旁边的 tools/
+        <项目根>\\tools\\           ← 源码仓库里的 tools/
+
+      放了就用，没放就退回 PATH 上的系统工具 —— **两边都不影响**。
+      这样"能自带的"都自带了，只有 GB 级的必须外部安装。
+    """
+    出: list[Path] = []
+    try:
+        出.append(项目根() / "tools")
+    except Exception:
+        pass
+    try:
+        import sys as _sys
+        if getattr(_sys, "frozen", False):
+            出.append(Path(_sys.executable).resolve().parent / "tools")
+    except Exception:
+        pass
+    return 出
+
+
+def _找工具(名: str) -> str | None:
+    """找一个工具：**先看便携目录，再退回 PATH**。返回可执行路径（None = 没有）。"""
+    if 名 in _工具缓存:
+        return _工具缓存[名]
+    候选 = _工具候选.get(名, (名,))
+    结果: str | None = None
+    for 根 in 便携工具目录():
+        if not 根.is_dir():
+            continue
+        for 子 in (None, "bin", 名):
+            基准 = 根 if 子 is None else 根 / 子
+            for c in 候选:
+                p = 基准 / c
+                if p.is_file():
+                    # ⚠ 必须**带扩展名**才能被 CreateProcess 找到；
+                    #   没有 .exe 的话优先补上。
+                    结果 = str(p)
+                    break
+            if 结果:
+                break
+        if 结果:
+            break
+        # 再扫一层（tools/*/bin/<c>）—— 便携包目录名五花八门
+        try:
+            for 子目录 in 根.iterdir():
+                if not 子目录.is_dir():
+                    continue
+                for c in 候选:
+                    p = 子目录 / "bin" / c
+                    if p.is_file():
+                        结果 = str(p)
+                        break
+                if 结果:
+                    break
+        except OSError:
+            pass
+        if 结果:
+            break
+    if not 结果:
+        结果 = shutil.which(名)
+    _工具缓存[名] = 结果
+    return 结果
+
+
 def 有dotnet() -> bool:
-    return shutil.which("dotnet") is not None
+    return _找工具("dotnet") is not None
 
 
 def _运行课程程序(工程: Path, 参数: list[str], 超时: int = 300) -> tuple[int, str]:
-    """跑 `dotnet run --project <工程> <参数>`，返回 (退出码, 输出文字)。"""
-    if not 有dotnet():
+    """跑 `dotnet run --project <工程> <参数>`，返回 (退出码, 输出文字)。
+
+    ⚠ 优先用**预构建**（`--no-build`）：
+      打包时已经构建过了 ⇒ 首次跑就是瞬间，而且**不需要联网**（不用 NuGet 还原）。
+      没预构建过（比如从源码跑）就退回普通构建。
+    """
+    dotnet = _找工具("dotnet")
+    if dotnet is None:
         return 127, (
             "没有找到 .NET SDK。\n\n"
             "这几门课程要把你写的代码**真的编译运行**才能判对错，所以需要它：\n\n"
-            "  Windows  https://dotnet.microsoft.com/download\n"
-            "           或：winget install Microsoft.DotNet.SDK.8\n\n"
+            "  Windows  装 .NET SDK 8（推荐 winget）：\n"
+            "             winget install Microsoft.DotNet.SDK.8\n"
+            "           或者去 https://dotnet.microsoft.com/download 下\n\n"
+            "  ⚠ 要的是 **SDK**，不是 Runtime —— Runtime 里没有编译器。\n\n"
             "装完**重开一个窗口**（让 PATH 生效）再试。\n"
-            "（Python 那几门不需要它，现在就能用。）")
+            "（Python 那几条线不需要它，现在就能用。）\n\n"
+            "💡 也可以把工具链放进 exe 旁边的 `tools\\` 目录（便携方式），程序会自动认。")
+
+    已构建 = (工程 / "bin").is_dir()
+    基础 = [dotnet, "run", "--project", str(工程)]
+    if 已构建:
+        基础.append("--no-build")
     try:
-        r = subprocess.run(["dotnet", "run", "--project", str(工程), *参数],
-                           capture_output=True, timeout=超时, cwd=str(工程.parent.parent))
+        r = subprocess.run([*基础, *参数], capture_output=True, timeout=超时,
+                           cwd=str(工程.parent.parent))
+        # ⚠ 预构建的 bin 与源码不匹配时 `--no-build` 会失败
+        #   （比如改过课程文件）⇒ 退回普通构建，别让学员卡在一个假错误上。
+        if r.returncode != 0 and 已构建:
+            r = subprocess.run([dotnet, "run", "--project", str(工程), *参数],
+                               capture_output=True, timeout=超时,
+                               cwd=str(工程.parent.parent))
         文 = (r.stdout + r.stderr).decode("utf-8", "replace")
         return r.returncode, 文
     except subprocess.TimeoutExpired:
@@ -470,9 +573,16 @@ def 参考答案(k: 课) -> str:
 
 def 体检() -> list[tuple[str, bool, str]]:
     """环境自检：哪几条线现在能用、缺什么。界面首页显示这个。"""
-    出 = [("Python 运行时", True, sys.version.split()[0]),
-          (".NET SDK（C#/C++/Java/C 需要）", 有dotnet(), "已安装" if 有dotnet() else "未安装"),
-          ("g++（C++ 需要）", shutil.which("g++") is not None, shutil.which("g++") or "未安装"),
-          ("gcc（C 需要）", shutil.which("gcc") is not None, shutil.which("gcc") or "未安装"),
-          ("javac（Java 需要）", shutil.which("javac") is not None, shutil.which("javac") or "未安装")]
+    def 项(名, 工具, 缺了怎么装):
+        p = _找工具(工具)
+        return (名, p is not None, (p or "未安装") + ("" if p else "  ← " + 缺了怎么装))
+    出 = [
+        ("Python 运行时", True, sys.version.split()[0] + "（已内置，不需要装）"),
+        项(".NET SDK（C# / C++ / Java / C 需要）", "dotnet",
+           "winget install Microsoft.DotNet.SDK.8"),
+        项("g++（C++ 需要）", "g++",
+           "winget install BrechtSanders.WinLibs.POSIX.UCRT"),
+        项("gcc（C 需要）", "gcc", "与 g++ 同一个包"),
+        项("javac（Java 需要）", "javac", "装 JDK（不是 JRE）"),
+    ]
     return 出

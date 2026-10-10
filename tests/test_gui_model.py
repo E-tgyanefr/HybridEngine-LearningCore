@@ -146,9 +146,13 @@ class 运行与检查测试(unittest.TestCase):
     def test_没有dotnet时给出人话指引(self):
         # ⚠ 这是编译型四条线的**唯一**失败模式：缺工具链。
         #   不能抛异常、不能什么都不说 —— 要给能照做的安装指引。
+        # ⚠ mock 的层次要与实现一致：实现现在走 `_找工具("dotnet")`
+        #   （它同时管便携目录与 PATH）。只 mock `有dotnet` 就不生效了 ——
+        #   实测就是因此红的（`工程.parent.parent` 拿到字符串，报 TypeError）。
+        import pathlib
         import unittest.mock as mock
-        with mock.patch.object(M, "有dotnet", return_value=False):
-            码, 文 = M._运行课程程序(self.临时, [])
+        with mock.patch.object(M, "_找工具", return_value=None):
+            码, 文 = M._运行课程程序(pathlib.Path(self.临时), [])
         self.assertEqual(码, 127)
         self.assertIn(".NET SDK", 文)
         self.assertIn("dotnet.microsoft.com", 文)
@@ -187,6 +191,105 @@ class 该开图形界面测试(unittest.TestCase):
         self.assertFalse(该开图形界面(True, 0, False, False), "可用GUI没被读")
         self.assertFalse(该开图形界面(True, 0, True, True), "PROMPT没被读")
         self.assertFalse(该开图形界面(True, 0, True, False, True), "逃生门没被读")
+
+
+class 便携工具链测试(unittest.TestCase):
+    """「能配的都配好」的核心机制：**工具链放对位置就自动认**。
+
+    ## 为什么值得一整套判据
+
+    ⚠ `.NET SDK` 4GB、MinGW 914MB、JDK 373MB —— **装不进 11MB 的发布包**。
+      所以只能做成"放这儿就认"。而"自动认"这件事**最容易 quietly 失效**：
+      路径拼错、少个 .exe、扫描顺序不对 —— 表现都是"学员明明放了却不生效"，
+      而那时他已经在怀疑自己了。
+
+    ## 判据覆盖
+
+      · 能扫到 `tools/<工具>.exe`
+      · 能扫到 `tools/<工具>/bin/<工具>.exe`（便携包常见布局）
+      · 能扫到 `tools/<任意名>/bin/<工具>.exe`（目录名五花八门）
+      · **便携优先于 PATH**（放了的就该被用）
+      · 找不到就退回 PATH
+      · 体检里能反映出便携工具（否则自检在骗人）
+    """
+
+    def setUp(self):
+        import tempfile
+        self.根 = tempfile.mkdtemp(prefix="ms_tools_work_")
+        self.旧env = os.environ.get("HYBRIDENGINE_LIGHT_ROOT")
+        os.environ["HYBRIDENGINE_LIGHT_ROOT"] = self.根
+        M.清缓存()                    # 缓存与根绑定，换根要清
+        M._工具缓存.clear()           # ⚠ 工具缓存也要清，否则上一个用例的结果还在
+
+    def tearDown(self):
+        import shutil
+        if self.旧env is None:
+            os.environ.pop("HYBRIDENGINE_LIGHT_ROOT", None)
+        else:
+            os.environ["HYBRIDENGINE_LIGHT_ROOT"] = self.旧env
+        M._工具缓存.clear()
+        M.清缓存()
+        shutil.rmtree(self.根, ignore_errors=True)
+
+    def _放假工具(self, 相对: str) -> str:
+        import pathlib
+        p = pathlib.Path(self.根) / 相对
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("#!/bin/sh\n", encoding="utf-8")
+        return str(p)
+
+    def test_扫到直接在tools下的工具(self):
+        路径 = self._放假工具("tools/dotnet.exe")
+        M._工具缓存.clear()
+        self.assertEqual(M._找工具("dotnet"), 路径)
+
+    def test_扫到tools里的工具目录(self):
+        路径 = self._放假工具("tools/dotnet/dotnet.exe")
+        M._工具缓存.clear()
+        self.assertEqual(M._找工具("dotnet"), 路径)
+
+    def test_扫到任意名字目录下的bin(self):
+        # 便携包目录名五花八门（mingw64 / jdk-21 / dotnet-sdk-8 ...）
+        路径 = self._放假工具("tools/mingw64/bin/g++.exe")
+        M._工具缓存.clear()
+        self.assertEqual(M._找工具("g++"), 路径)
+
+    def test_便携优先于PATH(self):
+        """⚠ 这条最要紧：放了的就该被用，而不是被系统 PATH 上的抢走。"""
+        路径 = self._放假工具("tools/dotnet.exe")
+        M._工具缓存.clear()
+        找到 = M._找工具("dotnet")
+        self.assertEqual(找到, 路径,
+                         "便携目录里的工具没被优先使用 —— 那用户放了也白放")
+
+    def test_没有便携就退回PATH(self):
+        # 这个用例的临时根里没有任何 tools ⇒ 应当退回系统 PATH
+        M._工具缓存.clear()
+        找到 = M._找工具("dotnet")
+        import shutil as _sh
+        self.assertEqual(找到, _sh.which("dotnet"))
+
+    def test_体检能反映便携工具(self):
+        """⚠ 自检不能说谎：便携目录里的工具必须出现在体检里。"""
+        self._放假工具("tools/javac.exe")
+        M._工具缓存.clear()
+        d = {名: (好, 值) for 名, 好, 值 in M.体检()}
+        键 = [k for k in d if "javac" in k]
+        self.assertTrue(键, "体检里没有 javac 这一项")
+        好, 值 = d[键[0]]
+        self.assertTrue(好, f"便携目录里有 javac，体检却说没有：{值}")
+        self.assertIn("tools", 值.replace("\\", "/"), f"体检没指向便携路径：{值}")
+
+    def test_体检给出缺了怎么装(self):
+        """⚠ 只说"缺 .NET"等于把墙留给学员撞 —— 必须带上安装命令。"""
+        import pathlib
+        # 把便携目录指到一个空地方，并让 PATH 查不到 dotnet
+        d = {名: (好, 值) for 名, 好, 值 in M.体检()}
+        键 = [k for k in d if ".NET" in k]
+        self.assertTrue(键)
+        好, 值 = d[键[0]]
+        if not 好:
+            self.assertIn("install", 值, f"缺 .NET 时没给出安装方式：{值}")
 
 
 if __name__ == "__main__":

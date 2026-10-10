@@ -105,10 +105,59 @@ for d in 内容:
         continue
     dst = os.path.join(OUTDIR, d)
     shutil.rmtree(dst, ignore_errors=True)
+    # ⚠ 忽略 `bin`/`obj`（构建产物）—— 但**下面第 2b 步会把预构建的补回去**。
     shutil.copytree(src, dst, ignore=shutil.ignore_patterns(
         "__pycache__", "*.pyc", "bin", "obj", "answers", "*-answers"))
     n = sum(len(f) for _, _, f in os.walk(dst))
     print("     %s/ : %d 文件" % (d, n))
+
+# ── 2b 预构建四条编译型课程 ────────────────────────────────────────────
+#
+# ⚠⚠ 为什么要在**打包时**构建它们：
+#
+#   学员第一次跑 `c-lessons` 时，`dotnet run` 会**现场编译**：
+#     · 慢（十几秒，让人以为卡死）
+#     · **要联网**（NuGet 还原）—— 没网就直接失败，而学员根本不知道为什么
+#
+#   预构建之后：`--no-build` 直接跑，**首次就是瞬间**，也不需要联网。
+#   代价只有约 1.5MB（四个工程各 ~0.4MB）。
+#
+#   ⚠ 这也是"能配的都配好"里**能配的那部分** —— 工具链（.NET SDK 4GB、
+#     MinGW 914MB、JDK 373MB）装不进 11MB 的包，那是物理限制。
+print("  2b 预构建四条编译型课程...")
+编译型 = [
+    ("c-lessons",    os.path.join("csharp", "c-lessons", "CLessons.csproj")),
+    ("cpp-lessons",  os.path.join("csharp", "cpp-lessons", "CppLessons.csproj")),
+    ("java-lessons", os.path.join("csharp", "java-lessons", "JavaLessons.csproj")),
+]
+if shutil.which("dotnet") is None:
+    print("     ⚠ 没有 dotnet —— 跳过预构建（产物里那几条线首次会现场编译）")
+else:
+    # ⚠ 必须在**资源目录**（ROOT/csharp/...）里构建，然后把 bin/obj 复制进产物。
+    #   直接在产物目录构建的话，路径变了 obj 里的引用会失效。
+    for 名, 相对 in 编译型:
+        工程 = os.path.join(ROOT, 相对)
+        if not os.path.isfile(工程):
+            print("     %s: 找不到工程，跳过" % 名)
+            continue
+        r = subprocess.run(["dotnet", "build", 工程, "-v", "q", "--nologo"],
+                           cwd=ROOT, capture_output=True, timeout=900)
+        if r.returncode != 0:
+            print("     %s: ✗ 构建失败 —— 产物里这条线首次会现场编译" % 名)
+            for line in (r.stdout + r.stderr).decode("utf-8", "replace").splitlines()[-4:]:
+                print("        " + line.strip()[:110])
+            continue
+        # 把 bin/obj 复制进产物（obj 也要 —— dotnet 判断"要不要重编"靠它）
+        目录 = os.path.dirname(os.path.join(ROOT, 相对))
+        变了 = 0
+        for 子 in ("bin", "obj"):
+            源 = os.path.join(目录, 子)
+            if os.path.isdir(源):
+                目的 = os.path.join(OUTDIR, os.path.dirname(相对), 子)
+                shutil.rmtree(目的, ignore_errors=True)
+                shutil.copytree(源, 目的, ignore=shutil.ignore_patterns("*.pdb"))
+                变了 += sum(len(f) for _, _, f in os.walk(目的))
+        print("     %s: ✓ 预构建好了（%d 文件）" % (名, 变了))
 
 print("  3 写「怎么用.txt」...")
 io.open(os.path.join(OUTDIR, "怎么用.txt"), "w", encoding="utf-8", newline="\r\n").write(
@@ -130,16 +179,32 @@ io.open(os.path.join(OUTDIR, "怎么用.txt"), "w", encoding="utf-8", newline="\
     "\n"
     "你的答题文件在 lessons\\answers\\ 下（就在这个文件夹里，看得见、改得动）。\n"
     "\n"
-    "【C# / C++ / Java / C 课程】—— 这四门**需要你自己装工具链**\n"
-    "    这四门的课程内容在 csharp\\ 下，运行要靠 .NET：\n"
+    "【C# / C++ / Java / C 课程】—— 这四门要装工具链\n"
+    "    课程内容在 csharp\\ 下，运行要靠 .NET：\n"
     "        dotnet run --project csharp/cpp-lessons     （C++ 课程，8 课）\n"
     "        dotnet run --project csharp/java-lessons    （Java 课程，8 课）\n"
     "        dotnet run --project csharp/c-lessons       （C 课程，8 课）\n"
-    "    所以要装：.NET SDK（跑课程程序）+ 对应编译器（g++ / javac / gcc）。\n"
-    "    这是语言本身的要求，不是这个 exe 能替你装的。\n"
     "\n"
-    "为什么这四门不一样：课程程序要把你写的代码**真的编译并运行**才能检查对错，\n"
-    "所以它必须有编译器。Python 那几门只用 Python 自己，所以能开箱即用。\n"
+    "    为什么这四门不一样：课程程序要把你写的代码**真的编译并运行**才能判对错，\n"
+    "    所以它必须有编译器。Python 那几门只用 Python 自己，所以能开箱即用。\n"
+    "\n"
+    "    ⚠ 要装什么（exe 里已经能显示，不用记）：\n"
+    "        winget install Microsoft.DotNet.SDK.8                    （.NET SDK）\n"
+    "        winget install BrechtSanders.WinLibs.POSIX.UCRT          （gcc / g++）\n"
+    "        JDK（跑 Java；注意是 JDK，不是 JRE）\n"
+    "        装完**重开一个窗口**（让 PATH 生效）。\n"
+    "\n"
+    "    ✅ 已经替你做好的部分：\n"
+    "        · 四条编译型课程**已经预先构建好**了 —— 第一次跑就是**瞬间**，\n"
+    "          而且**不需要联网**（不用等 NuGet 还原）。\n"
+    "        · 你可以把工具链放进 exe 旁边的 `tools\\` 目录（便携方式），\n"
+    "          程序会**自动认出来**，不必改系统 PATH。\n"
+    "          认得的布局：tools\\dotnet.exe、tools\\dotnet\\dotnet.exe、\n"
+    "                       tools\\mingw64\\bin\\g++.exe（任意名字\\bin\\工具.exe）\n"
+    "\n"
+    "    ⚠ .NET SDK 约 4GB、MinGW 约 900MB、JDK 约 370MB ——\n"
+    "      它们**装不进这个 12MB 的包**（这是物理限制）。\n"
+    "      但除了它们，其余都已经配好了。\n"
     "\n"
     "_internal\\ 是运行时文件，不用管它；也不要从那里启动。\n"
     "\n"
