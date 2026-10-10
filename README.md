@@ -2,7 +2,7 @@
 
 **本项目由 AI 协作完成** —— 人类定方向与验收，AI 负责实现、测试与文档。详见文末[「关于这个项目是怎么做出来的」](#关于这个项目是怎么做出来的)。
 
-一个**零依赖**的编程教学项目。教 **Python / C# / C++ / Java** 四门语言。
+一个**零依赖**的编程教学项目。教 **Python / C# / C++ / Java / C** 五门语言。
 
 ```python
 from hybridengine_light import Stage
@@ -48,7 +48,7 @@ TypeError: unsupported operand type(s) for +: 'int' and 'str'
 
 ---
 
-## 四门语言，各自的坑不一样
+## 五门语言，各自的坑不一样
 
 报错翻译**不能照搬规则表** —— 每门语言让新手卡住的地方完全不同：
 
@@ -124,10 +124,11 @@ csharp/                       C# / C++ / Java 侧
     exams/                     C# 20 题 + C++ 16 题
     tests/                     74 项测试
     cpp-lessons/               C++ 课程（8 课）+ 课程作者契约.md
-    java-lessons/              Java 课程
+    java-lessons/              Java 课程（8 课）
+    c-lessons/                 C 课程（8 课）
 ```
 
-## 六条课程线（33 课，全部逐课验收通过）
+## 七条课程线（41 课，全部逐课验收通过）
 
 一个入口看全部：`python -m hybridengine_light`
 
@@ -192,6 +193,25 @@ dotnet run --project csharp/java-lessons 检查 01
 ```
 
 答案文件在 `java-answers/` 下。
+
+### C 课程
+
+```bash
+dotnet run --project csharp/c-lessons              # 列出课程
+dotnet run --project csharp/c-lessons 01           # 看第 1 课的要求
+dotnet run --project csharp/c-lessons 检查 01      # 检查答案（首次生成模板）
+dotnet run --project csharp/c-lessons 答案 01      # 参考答案
+```
+
+答案文件在 `c-answers/` 下。
+
+> **C 和 C++ 是两门课，不是一个**。课程内容不同（C 讲指针、`\0` 结尾、
+> `printf` 格式串；C++ 讲 `std::string`、`vector`、引用），
+> 而且**报错信息差别很大** —— C 的报错更"裸"，正是要让学生早点见到的。
+>
+> ⚠ 实现上它们**共用**编译器与运行器（gcc/g++ 本来就是同一套），
+> 只差 `-std=c11` / `.c` 后缀 / `printf` 骨架 —— 见 `CppRunner.用C`。
+> **不复制第二份运行器**：那份代码里每个坑都是实测撞出来的。
 
 ### 跑测试
 

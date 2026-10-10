@@ -67,11 +67,11 @@ internal static class Program
 
             var p = t.GetProperty("参考答案", BindingFlags.Public | BindingFlags.Static);
             if (p != null && p.PropertyType == typeof(string))
-                def.参考答案 = (string?)p.GetValue(null) ?? "";
+                def.参考答案 = (string)p.GetValue(null) ?? "";
 
             var p2 = t.GetProperty("模板", BindingFlags.Public | BindingFlags.Static);
             if (p2 != null && p2.PropertyType == typeof(string))
-                def.模板 = (string?)p2.GetValue(null) ?? "";
+                def.模板 = (string)p2.GetValue(null) ?? "";
 
             CppCourse.注册(def, t);
         }
