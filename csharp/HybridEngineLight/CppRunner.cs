@@ -58,7 +58,20 @@ public static class CppRunner
     private static bool _searched;
     private static readonly object Gate = new();
 
-    /// <summary>找到的 C++ 编译器路径。null = 没找到。</summary>
+    /// <summary>
+    /// 当前语言模式：`false` = C++（默认，兼容既有用法），`true` = C。
+    ///
+    /// ⚠ 为什么用"模式"而不是再写一个 `CRunner`：
+    ///   C 与 C++ **用同一个编译器**（gcc/g++ 是同一套），差别只有两点：
+    ///     · 标准旗标：`-std=c11` vs `-std=c++17`
+    ///     · 源文件后缀：`.c` vs `.cpp`
+    ///   复制一份 360 行的运行器只为了改这两个字，会让以后修 bug 要修两处
+    ///   —— 而这份代码里踩过的坑（旧目录复用、删不掉不能判失败、
+    ///     退出码必须看）都是**血的教训**，绝不该有第二份。
+    /// </summary>
+    public static bool 用C { get; set; }
+
+    /// <summary>找到的编译器路径。null = 没找到。</summary>
     public static string? Compiler
     {
         get { lock (Gate) { if (!_searched) { _searched = true; _compiler = Find(); } return _compiler; } }
@@ -124,10 +137,14 @@ public static class CppRunner
         // Windows 偶尔还锁着（杀软/句柄延迟）就抛异常，**正确的代码被判成 ✗**。
         //
         // 带进程号之后，"新目录本来就是空的"这个前提重新成立。
-        string dir = Path.Combine(Path.GetTempPath(), "hybridengine_light_cpp",
+        string dir = Path.Combine(Path.GetTempPath(),
+                                  CppRunner.用C ? "hybridengine_light_c" : "hybridengine_light_cpp",
                                   $"run{Environment.ProcessId}_{seq}");
         Directory.CreateDirectory(dir);
-        string src = Path.Combine(dir, "main.cpp");
+        // ⚠ C 与 C++ 的源文件后缀不同：gcc 靠后缀决定语言
+        //   （写成 .cpp 会让它按 C++ 编译 —— 而 C 的代码有很多在 C++ 里是错的，
+        //    比如 `int *p = malloc(...)` 少了强制转换，C++ 直接报错）。
+        string src = Path.Combine(dir, CppRunner.用C ? "main.c" : "main.cpp");
         // Windows 上可执行文件带 .exe，别的平台不带 —— 用运行时判断而不是编译期
         string exe = Path.Combine(dir, OperatingSystem.IsWindows() ? "prog.exe" : "prog");
 
@@ -151,9 +168,11 @@ public static class CppRunner
         清理旧目录(seq);
 
         // ── 编译 ──
-        // -std=c++17：教学用足够，而且比最新标准宽容一点（新手少撞语言特性问题）
+        // -std=c++17 / -std=c11：教学用足够，而且比最新标准宽容一点（新手少撞语言特性问题）
         // -Wall：把警告也打开 —— 初学者最该看到的往往是警告而不是错误
-        var args = new[] { "-std=c++17", "-O1", "-Wall", "-o", exe, src };
+        var args = CppRunner.用C
+            ? new[] { "-std=c11", "-O1", "-Wall", "-o", exe, src }
+            : new[] { "-std=c++17", "-O1", "-Wall", "-o", exe, src };
         var (cout, cerr, timedOut, _) = Exec(cc, args, timeoutMs);
         r.CompileOutput = (cerr + "\n" + cout).Trim();
         if (timedOut) { r.Error = "编译超时 —— 这通常不是你的代码问题，检查一下编译器是否正常"; return r; }
@@ -277,7 +296,8 @@ public static class CppRunner
     {
         try
         {
-            string root = Path.Combine(Path.GetTempPath(), "hybridengine_light_cpp");
+            string root = Path.Combine(Path.GetTempPath(),
+                                       CppRunner.用C ? "hybridengine_light_c" : "hybridengine_light_cpp");
             if (!Directory.Exists(root)) return;
             foreach (var d in Directory.GetDirectories(root))
             {

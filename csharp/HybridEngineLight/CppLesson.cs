@@ -81,10 +81,32 @@ int main() {
 }
 """;
 
+    /// <summary>
+    /// **C 语言**的骨架（`CppRunner.用C == true` 时用它）。
+    ///
+    /// ⚠ 必须与 C++ 那份**分开**，不能共用：
+    ///   · C 没有 `<iostream>` / `std::cout` / `<vector>` / `<algorithm>`
+    ///   · C 没有重载 —— `printf` 要自己写格式串
+    ///   共用的话学生看到的是「我明明写的是 C，为什么报 `iostream: No such file`」。
+    /// </summary>
+    public const string 默认骨架C = """
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+/*学生代码*/
+
+int main(void) {
+    /*调用点*/
+    return 0;
+}
+""";
+
     /// <summary>把学生代码塞进骨架并编译运行。</summary>
     public static CppRun 编译并运行(string 学生代码, string? 骨架 = null, string 调用点 = "")
     {
-        string 用骨架 = 骨架 ?? 默认骨架;
+        string 用骨架 = 骨架 ?? (CppRunner.用C ? 默认骨架C : 默认骨架);
         string 程序 = 用骨架.Replace("/*学生代码*/", 学生代码).Replace("/*调用点*/", 调用点);
         return new CppRun { Raw = CppRunner.BuildAndRun(程序) };
     }
@@ -123,7 +145,13 @@ int main() {
         // 一次编译，把所有用例的调用都塞进 main —— 编译一遍能省一两秒
         var 调用点 = new System.Text.StringBuilder();
         for (int i = 0; i < 用例们.Length; i++)
-            调用点.Append("    std::cout << ").Append(用例们[i].调用).Append(" << \"\\n\";\n");
+            // ⚠ 打印语句**随语言变**：C 没有 `std::cout`，只有 `printf`。
+            //   硬编码 `std::cout` 的话，C 课会报"`cout` 未声明"，
+            //   而那是**课程自己的错**，学生却会以为是自己写错了。
+            if (CppRunner.用C)
+                调用点.Append("    printf(\"%d\\n\", ").Append(用例们[i].调用).Append(");\n");
+            else
+                调用点.Append("    std::cout << ").Append(用例们[i].调用).Append(" << \"\\n\";\n");
 
         var run = 编译并运行(学生代码, null, 调用点.ToString());
         if (!run.编译通过) return 编译失败说明(run);
@@ -201,7 +229,16 @@ int main() {
     public static CheckResult 写了函数(string 学生代码, string 函数名, string 调用表达式 = "")
     {
         string 调用 = 调用表达式.Length > 0 ? 调用表达式 : 函数名 + "()";
-        string 骨架 = 默认骨架.Replace("/*调用点*/", $"std::cout << {调用} << \"\\n\";");
+        // ⚠⚠ 骨架与打印语句**都要随语言变**。
+        //   我第一版只改了 `逐个用例`，漏了这一处 —— 于是 C 课的签名检查生成出：
+        //       std::cout << printf("%s\n", 判等级(95)); << "\n";
+        //   而报错信息里出现的是「CC1PLUS」与 `<<` ——
+        //   **课程自己的 bug，学生却会以为是自己写错了**（这正是最坏的一类）。
+        //   教训：凡是"拼代码给学生跑"的地方，都必须问一遍"这行在 C 里成立吗"。
+        string 骨架 = (CppRunner.用C ? 默认骨架C : 默认骨架)
+            .Replace("/*调用点*/", CppRunner.用C
+                ? $"printf(\"%d\\n\", (int)({调用}));"
+                : $"std::cout << {调用} << \"\\n\";");
         var run = 编译并运行(学生代码, 骨架);
         if (!run.编译通过)
         {
@@ -214,7 +251,7 @@ int main() {
                     $"          int {函数名}(...) {{\n" +
                     $"              ...\n" +
                     $"          }}\n" +
-                    $"      注意：C++ 里函数的**返回类型必须写**，不能像 Python 那样只写 def。");
+                    $"      注意：函数的**返回类型必须写**，不能像 Python 那样只写 def。");
             return 编译失败说明(run);
         }
         return CheckResult.过($"「{函数名}」可以正常调用，输出 {显示(run.全部输出)}");
