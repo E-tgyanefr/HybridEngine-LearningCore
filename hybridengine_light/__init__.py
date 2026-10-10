@@ -24,6 +24,6 @@ from .coach import Coach, 诊断
 #   版本号是**唯一来源**：改这里 + 打同名 tag，不要各写各的。
 # 独立于引擎版本：引擎（专业版）是 0.5.0（见 HybridEngine/CMakeLists.txt），
 #   轻量版是**自己一条线**，不跟着走。
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 __all__ = ["Stage", "color_of", "explain", "friendly", "run_safely",
            "Coach", "诊断", "__version__"]

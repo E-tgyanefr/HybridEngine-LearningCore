@@ -445,9 +445,46 @@ def _暂停等待() -> None:
         pass
 
 
+def 该开图形界面(冻结: bool, 参数个数: int, 可用图形界面: bool,
+                 命令行有提示符: bool, 禁止图形界面: bool = False) -> bool:
+    """双击 exe（无参数）时该开 GUI 还是走命令行。
+
+    ⚠ **不能"冻结就开 GUI"** —— 从 cmd 跑 `HybridEngine-light.exe` 的人
+      要的是命令行列表，给他弹一个窗口是骚扰。
+      判据（都要满足）：
+        · `冻结` —— 源码用法必经终端，不该弹窗
+        · `参数个数 == 0` —— 带参数就是明确的命令行意图
+        · `可用图形界面` —— 没有显示环境（CI/SSH）时不能试
+        · `命令行有提示符 == False` —— cmd 会设 `PROMPT`；双击出来的进程**没有**
+        · `禁止图形界面 == False` —— 留个逃生门（`HYBRIDENGINE_LIGHT_CLI=1`）
+    """
+    if 禁止图形界面 or not 冻结 or not 可用图形界面:
+        return False
+    if 参数个数 != 0:
+        return False
+    return not 命令行有提示符
+
+
+def _有图形界面() -> bool:
+    """能不能开 tkinter 窗口。⚠ 只"试一试"，失败当没有 —— 不抛异常。"""
+    try:
+        import tkinter
+        r = tkinter.Tk()
+        r.destroy()
+        return True
+    except Exception:
+        return False
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
+        if 该开图形界面(bool(getattr(sys, "frozen", False)), len(argv),
+                        _有图形界面(),
+                        bool(os.environ.get("PROMPT")),
+                        bool(os.environ.get("HYBRIDENGINE_LIGHT_CLI"))):
+            from .learn_gui import main as 图形界面
+            return 图形界面()
         码 = _cmd_list()
         if 需要暂停等待(bool(getattr(sys, "frozen", False)),
                         bool(sys.stdin and sys.stdin.isatty()),
