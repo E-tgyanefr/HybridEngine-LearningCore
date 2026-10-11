@@ -170,7 +170,7 @@ int main() {
 """;
 
 
-    [检查说明("工具链就绪（编译器与 dotnet 都在）")]
+    [检查说明("工具链就绪（gcc 与 dotnet 都在）")]
     public static CheckResult 检查_1a(string 代码)
     {
         return CppLesson.工具链就绪(代码);
