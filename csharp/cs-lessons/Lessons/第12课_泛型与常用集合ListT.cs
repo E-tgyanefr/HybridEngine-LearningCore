@@ -244,9 +244,6 @@ public static class 第12课
 """;
 
     public static string 参考答案 => """
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 static int 数满足<T>(List<T> 们, Func<T, bool> 条件)
 {
@@ -298,20 +295,14 @@ static string 名次表(Dictionary<string, int> 表)
     [检查说明("数满足：int 与 string 两种 T 都对")]
     public static CheckResult 检查_3(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 数满足());
+    printf("%d\n", 数满足());
+    printf("%d\n", 数满足());
+    printf("%d\n", 数满足());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 数满足());
-    printf("%d\n", 数满足());
-    printf("%d\n", 数满足());
-    printf("%d\n", 数满足());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "数满足(new List<int>{1,2,3,4}, n => n % 2 == 0)",
@@ -345,20 +336,14 @@ int main(void) {
     [检查说明("查到了：键在 / 键不在两条路都对")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 查到了());
+    printf("%d\n", 查到了());
+    printf("%d\n", 查到了());
+    printf("%d\n", 查到了());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 查到了());
-    printf("%d\n", 查到了());
-    printf("%d\n", 查到了());
-    printf("%d\n", 查到了());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "查到了(new Dictionary<string,int>{[\"甲\"]=90}, \"甲\", out int v1) + \":\" + v1",
@@ -392,20 +377,14 @@ int main(void) {
     [检查说明("名次表：按分数从高到低")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(名次表(new Dictionary<string,int>{["甲"]=70,["乙"]=90,["丙"]=80}).Replace("\n", " / "));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 名次表(new Dictionary<string,int>{["甲"]=70,["乙"]=90,["丙"]=80}));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "乙 90\\n丙 80\\n甲 70"
+            "乙 90 / 丙 80 / 甲 70"
         };
         string[] 输入 = {
             "new Dictionary<string,int>{[\"甲\"]=70,[\"乙\"]=90,[\"丙\"]=80}"

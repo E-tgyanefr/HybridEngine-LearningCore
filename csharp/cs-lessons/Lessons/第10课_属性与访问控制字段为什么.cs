@@ -325,20 +325,14 @@ class 计数器
     [检查说明("学生：非法分数被拒绝，合法分数生效")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 学生());
+    printf("%d\n", 学生());
+    printf("%d\n", 学生());
+    printf("%d\n", 学生());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 学生());
-    printf("%d\n", 学生());
-    printf("%d\n", 学生());
-    printf("%d\n", 学生());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "new 学生(\"甲\", 70).报告()",
@@ -372,20 +366,14 @@ int main(void) {
     [检查说明("计数器：加 / 设为 / 重置 串起来都对")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 计数器());
+    printf("%d\n", 计数器());
+    printf("%d\n", 计数器());
+    printf("%d\n", 计数器());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 计数器());
-    printf("%d\n", 计数器());
-    printf("%d\n", 计数器());
-    printf("%d\n", 计数器());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "new 计数器(1).值",

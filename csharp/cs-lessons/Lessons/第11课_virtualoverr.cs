@@ -307,13 +307,36 @@ class 跑车 : 汽车
         return CheckResult.过();
     }
 
-    [检查说明("玩具狗用的是隐藏")]
+    [检查说明("隐藏：玩具狗按声明类型走")]
     public static CheckResult 检查_2(string 代码)
     {
-        string 去注释 = 去掉注释(代码);
-        if (!去注释.Contains("new string 叫声()"))
-            return CheckResult.不过("没找到「new string 叫声()」—— 这一课要求用到它。");
-        return CheckResult.过();
+        var 调用点 = """
+    Console.WriteLine(用声明类型取叫声(new 玩具狗("小玩具")));
+
+""";
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string[] 期望 = {
+            "玩具叫"
+        };
+        string[] 输入 = {
+            "new 玩具狗(\"小玩具\")"
+        };
+        for (int i = 0; i < 期望.Length; i++)
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
+                return CheckResult.不过(
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
+                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+            }
+        }
+        return CheckResult.过("每一组都对");
     }
 
     [检查说明("跑车把参数交给了基类")]
@@ -328,22 +351,16 @@ class 跑车 : 汽车
     [检查说明("多态：通过基类类型调用也走派生类实现")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(用多态取叫声(new 狗("旺财")));
+    Console.WriteLine(用多态取叫声(new 动物("甲")));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 用多态取叫声(new 狗("旺财")));
-    printf("%d\n", 用多态取叫声(new 动物("甲")));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "汪汪",
-            "..."
+            "……"
         };
         string[] 输入 = {
             "new 狗(\"旺财\")",
@@ -369,17 +386,11 @@ int main(void) {
     [检查说明("隐藏：玩具狗按声明类型走")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(用声明类型取叫声(new 玩具狗("小玩具")));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 用声明类型取叫声(new 玩具狗("小玩具")));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "玩具叫"
@@ -407,20 +418,14 @@ int main(void) {
     [检查说明("构造器链：base 先跑，自己的属性也赋值了")]
     public static CheckResult 检查_6(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 跑车());
+    printf("%d\n", 跑车());
+    printf("%d\n", 跑车());
+    printf("%d\n", 跑车());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 跑车());
-    printf("%d\n", 跑车());
-    printf("%d\n", 跑车());
-    printf("%d\n", 跑车());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "new 跑车(\"甲\", 300, 4).简介()",

@@ -745,6 +745,80 @@ public sealed record CppCheckItem(string 名字, Func<string, CheckResult> 检�
 
 public static class CppLesson
 {
+    /// <summary>把「调用点」里学员自己定义的名字限定成 `学生代码.xxx`。
+    ///
+    /// ⚠⚠ 为什么必须有它：
+    ///   课程库把学员的代码放进 `public static class 学生代码`，
+    ///   再把「调用点」放进**另一个类**（`入口`）的 `Main` 里。
+    ///   ⇒ 调用点写 `描述(-1)` 时，编译器在 `入口` 里找不到 `描述`：
+    ///         error CS0103: 当前上下文中不存在名称"描述"
+    ///
+    ///   所以调用点里出现的、**学员自己定义的名字**，必须补上 `学生代码.` 前缀。
+    ///
+    /// ⚠ 但**不能无脑替换所有标识符** —— 那会把 `Console.WriteLine` 也换掉。
+    ///   判据是：**只换学员在代码里真的定义过的名字**。
+    ///
+    /// ⚠ 这份"类型声明名单"我栽过**两次**：
+    ///     第一次只有 `class`，漏了 `interface`（第 08 课的 `interface 图形`）；
+    ///     第二次漏了 `record`（新的元组/记录课 ⇒ CS0246）。
+    ///   ⇒ 它不是"我知道的那几种"，而是"**学员能在顶层写出来的所有类型声明**"。
+    ///     加一门课、加一个语言特性时都要回来重看这一行。
+    /// </summary>
+    public static string 限定(string 代码, string 调用点)
+    {
+        // 学员定义的方法名：`static 返回类型 名字(`
+        var 方法名 = new System.Collections.Generic.List<string>();
+        foreach (System.Text.RegularExpressions.Match m in
+                 System.Text.RegularExpressions.Regex.Matches(代码,
+                     // ⚠⚠ 返回类型这一段**必须允许空格和括号** —— 我第一版是
+                     //     `[\w<>\[\],\.\?]+\s+(\w+)\s*\(`，它匹配不了**元组返回类型**：
+                     //         static (string 名字, bool 及格) 取名字(成绩记录 r)
+                     //                       ↑ 空格和括号
+                     //     于是 `取名字` 没人认出来、调用点里的裸名没人限定 ⇒
+                     //         error CS0103: 当前上下文中不存在名称"取名字"
+                     //     而且**只有用元组的课会红**，别的课照样绿 —— 很难看出规律。
+                     //   ⇒ 判据改成"`static` 与 `名字(` 之间的**任何东西**"，
+                     //     而不是"我猜得出的那几种返回类型"。
+                     @"(?m)^\s*(?:public\s+|private\s+|internal\s+|protected\s+)?static\s+" +
+                     @".+?\s+(\w+)\s*\("))
+        {
+            方法名.Add(m.Groups[1].Value);
+        }
+        // 学员定义的类型名：class / interface / enum / struct / record
+        var 类型名 = new System.Collections.Generic.List<string>();
+        foreach (System.Text.RegularExpressions.Match m in
+                 System.Text.RegularExpressions.Regex.Matches(代码,
+                     @"(?m)^\s*(?:public\s+|internal\s+|private\s+)?(?:static\s+)?" +
+                     @"(?:sealed\s+)?(?:abstract\s+)?(?:partial\s+)?" +
+                     @"(?:class|interface|enum|struct|record)\s+(\w+)"))
+        {
+            类型名.Add(m.Groups[1].Value);
+        }
+
+        string 出 = 调用点;
+        foreach (var 名 in 方法名)
+        {
+            // 前面不是 `.` 或标识符字符（避免把别的名字的一部分换掉），
+            // 后面跟 `(`
+            出 = System.Text.RegularExpressions.Regex.Replace(出,
+                @"(?<![\w.])" + System.Text.RegularExpressions.Regex.Escape(名) + @"\s*\(",
+                "学生代码." + 名 + "(");
+        }
+        foreach (var 名 in 类型名)
+        {
+            // `new 成绩记录(...)` / `成绩记录 r` 里的类型名
+            出 = System.Text.RegularExpressions.Regex.Replace(出,
+                @"(?<![\w.])" + System.Text.RegularExpressions.Regex.Escape(名) + @"\b",
+                "学生代码." + 名);
+        }
+        // ⚠ 上面两步会把已经被限定过的再限定一次（`学生代码.学生代码.xxx`），
+        //   收一下。判据用"前面不是 `.`"，所以理论上不会发生 —— 但发生过一次
+        //   就够毁了，所以稳妥起见做一遍收尾。
+        出 = 出.Replace("学生代码.学生代码.", "学生代码.");
+        return 出;
+    }
+
+
     /// <summary>第 00 课专用：工具链到底装好了没有。
     ///
     /// ⚠⚠ 为什么要单独有这一条：

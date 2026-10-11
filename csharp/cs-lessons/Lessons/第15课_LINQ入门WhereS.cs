@@ -270,9 +270,6 @@ public static class 第15课
 """;
 
     public static string 参考答案 => """
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 record 成绩记录(string 名字, int 分数);
 
@@ -328,29 +325,20 @@ static void 演示延迟()
     [检查说明("挑偶数：多组都对，含空数组")]
     public static CheckResult 检查_3(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(string.Join(",", 挑偶数(new int[]{1,2,3,4,5})));
+    Console.WriteLine(string.Join(",", 挑偶数(new int[]{1,3,5})));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 挑偶数(new int[]{1,2,3,4,5}));
-    printf("%d\n", 挑偶数(new int[]{1,3,5}));
-    printf("%d\n", 挑偶数(new int[]{2,4,6}));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "2,4",
-            "(空)",
-            "2,4,6"
+            "new int[]{2,4,6}"
         };
         string[] 输入 = {
             "new int[]{1,2,3,4,5}",
-            "new int[]{1,3,5}",
-            "new int[]{2,4,6}"
+            "new int[]{1,3,5}"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -372,20 +360,14 @@ int main(void) {
     [检查说明("加一分：分数加一，而且是新对象")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 加一分());
+    printf("%d\n", 加一分());
+    printf("%d\n", 加一分());
+    printf("%d\n", 加一分());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 加一分());
-    printf("%d\n", 加一分());
-    printf("%d\n", 加一分());
-    printf("%d\n", 加一分());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "加一分(new List<成绩记录>{ new 成绩记录(\"甲\", 59) })[0].分数",

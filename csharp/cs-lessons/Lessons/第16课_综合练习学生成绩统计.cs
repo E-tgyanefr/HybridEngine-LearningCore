@@ -256,9 +256,6 @@ public static class 第16课
 """;
 
     public static string 参考答案 => """
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 record 成绩记录(string 名字, int 分数);
 
@@ -330,32 +327,58 @@ static List<string> 名字们(List<成绩记录> 们)
         return CheckResult.过();
     }
 
-    [检查说明("报警用的是 switch 表达式")]
+    [检查说明("报警：名字空的优先级最高，四种结果都对")]
     public static CheckResult 检查_3(string 代码)
     {
-        string 去注释 = 去掉注释(代码);
-        if (!去注释.Contains("switch"))
-            return CheckResult.不过("没找到「switch」—— 这一课要求用到它。");
-        return CheckResult.过();
+        var 调用点 = """
+    Console.WriteLine(报警(new 成绩记录("", 200)));
+    Console.WriteLine(报警(new 成绩记录("甲", 200)));
+    Console.WriteLine(报警(new 成绩记录("甲", 59)));
+    Console.WriteLine(报警(new 成绩记录("甲", 60)));
+
+""";
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string[] 期望 = {
+            "名字是空的",
+            "数据异常",
+            "不及格",
+            "正常"
+        };
+        string[] 输入 = {
+            "new 成绩记录(\"\", 200)",
+            "new 成绩记录(\"甲\", 200)",
+            "new 成绩记录(\"甲\", 59)",
+            "new 成绩记录(\"甲\", 60)"
+        };
+        for (int i = 0; i < 期望.Length; i++)
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
+                return CheckResult.不过(
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
+                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+            }
+        }
+        return CheckResult.过("每一组都对");
     }
 
     [检查说明("统计：人数 / 及格 / 平均（两位小数）/ 头名 都对")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 统计());
+    printf("%d\n", 统计());
+    printf("%d\n", 统计());
+    printf("%d\n", 统计());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 统计());
-    printf("%d\n", 统计());
-    printf("%d\n", 统计());
-    printf("%d\n", 统计());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).平均",
@@ -389,20 +412,14 @@ int main(void) {
     [检查说明("统计：空列表不抛异常")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    printf("%d\n", 空统计());
+    printf("%d\n", 空统计());
+    printf("%d\n", 空统计());
+    printf("%d\n", 空统计());
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 空统计());
-    printf("%d\n", 空统计());
-    printf("%d\n", 空统计());
-    printf("%d\n", 空统计());
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "统计(new List<成绩记录>(), 60).人数",
@@ -436,20 +453,14 @@ int main(void) {
     [检查说明("报警：名字空的优先级最高，四种结果都对")]
     public static CheckResult 检查_6(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(报警(new 成绩记录("", 200)));
+    Console.WriteLine(报警(new 成绩记录("甲", 200)));
+    Console.WriteLine(报警(new 成绩记录("甲", 59)));
+    Console.WriteLine(报警(new 成绩记录("甲", 60)));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 报警(new 成绩记录("", 200)));
-    printf("%d\n", 报警(new 成绩记录("甲", 200)));
-    printf("%d\n", 报警(new 成绩记录("甲", 59)));
-    printf("%d\n", 报警(new 成绩记录("甲", 60)));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "名字是空的",
@@ -483,18 +494,12 @@ int main(void) {
     [检查说明("名字们：空名字被筛掉，顺序是按分数降序")]
     public static CheckResult 检查_7(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
-
-/*学生代码*/
-
-int main(void) {
+        var 调用点 = """
     printf("%d\n", 名字们());
     printf("%d\n", 名字们());
-    return 0;
-}
+
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "string.Join(\",\", 名字们(new List<成绩记录>{ new 成绩记录(\"甲\", 70), new 成绩记录(\"\", 99), new 成绩记录(\"乙\", 88) }))",

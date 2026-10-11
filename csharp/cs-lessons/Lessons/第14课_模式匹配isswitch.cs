@@ -259,9 +259,6 @@ public static class 第14课
 """;
 
     public static string 参考答案 => """
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 static string 描述(int 分) => 分 switch
 {
@@ -314,23 +311,17 @@ static string 描述对象(object 东西) => 东西 switch
     [检查说明("描述：负数必须走\"无效\"，其余四档都对")]
     public static CheckResult 检查_3(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(描述(-1));
+    Console.WriteLine(描述(0));
+    Console.WriteLine(描述(59));
+    Console.WriteLine(描述(60));
+    Console.WriteLine(描述(89));
+    Console.WriteLine(描述(90));
+    Console.WriteLine(描述(100));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 描述(-1));
-    printf("%d\n", 描述(0));
-    printf("%d\n", 描述(59));
-    printf("%d\n", 描述(60));
-    printf("%d\n", 描述(89));
-    printf("%d\n", 描述(90));
-    printf("%d\n", 描述(100));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "无效",
@@ -370,20 +361,14 @@ int main(void) {
     [检查说明("至少一门不及格：正常数据是 False，空名字或越界是 True")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(至少一门不及格(new 成绩记录("甲", 90)));
+    Console.WriteLine(至少一门不及格(new 成绩记录("", 90)));
+    Console.WriteLine(至少一门不及格(new 成绩记录("乙", -1)));
+    Console.WriteLine(至少一门不及格(new 成绩记录("丙", 101)));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 至少一门不及格(new 成绩记录("甲", 90)));
-    printf("%d\n", 至少一门不及格(new 成绩记录("", 90)));
-    printf("%d\n", 至少一门不及格(new 成绩记录("乙", -1)));
-    printf("%d\n", 至少一门不及格(new 成绩记录("丙", 101)));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "False",
@@ -417,20 +402,14 @@ int main(void) {
     [检查说明("描述对象：四种类型分支都对")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(描述对象((object)7));
+    Console.WriteLine(描述对象((object)(-7)));
+    Console.WriteLine(描述对象((object)"甲"));
+    Console.WriteLine(描述对象((object)""));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 描述对象((object)7));
-    printf("%d\n", 描述对象((object)(-7)));
-    printf("%d\n", 描述对象((object)"甲"));
-    printf("%d\n", 描述对象((object)""));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "正数 7",

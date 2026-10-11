@@ -293,10 +293,6 @@ public static class 第13课
 """;
 
     public static string 参考答案 => """
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 class 分数越界异常 : Exception
 {
@@ -332,7 +328,6 @@ static double 算平均(int[] 数们)
 static int 带资源算(int 数)
 {
     // using var：作用域结束时自动 Dispose —— 出了异常也照样 Dispose
-    using var 写手 = new StringWriter();
     写手.WriteLine("干活");
 
     // ⚠ return 不会跳过 Dispose：先算好返回值，再 Dispose，最后才返回
@@ -359,39 +354,88 @@ static int 带资源算(int 数)
         return CheckResult.过();
     }
 
-    [检查说明("算平均 用了浮点除法（不是整数除法）")]
+    [检查说明("算平均：平均值是小数（不是向零取整的整数）")]
     public static CheckResult 检查_3(string 代码)
     {
-        string 去注释 = 去掉注释(代码);
-        if (!去注释.Contains("(double)"))
-            return CheckResult.不过("没找到「(double)」—— 这一课要求用到它。");
-        return CheckResult.过();
+        var 调用点 = """
+    Console.WriteLine(算平均(new int[]{1,2}).ToString("F6"));
+    Console.WriteLine(算平均(new int[]{90,80,70}).ToString("F6"));
+
+""";
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string[] 期望 = {
+            "1.500000",
+            "80.000000"
+        };
+        string[] 输入 = {
+            "new int[]{1,2}",
+            "new int[]{90,80,70}"
+        };
+        for (int i = 0; i < 期望.Length; i++)
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
+                return CheckResult.不过(
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
+                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+            }
+        }
+        return CheckResult.过("每一组都对");
     }
 
-    [检查说明("带资源算 用了 using")]
+    [检查说明("带资源算：using 与 return 共存，值还是对的")]
     public static CheckResult 检查_4(string 代码)
     {
-        string 去注释 = 去掉注释(代码);
-        if (!去注释.Contains("using"))
-            return CheckResult.不过("没找到「using」—— 这一课要求用到它。");
-        return CheckResult.过();
+        var 调用点 = """
+    Console.WriteLine(带资源算(21));
+    Console.WriteLine(带资源算(0));
+    Console.WriteLine(带资源算(-5));
+
+""";
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string[] 期望 = {
+            "42",
+            "0",
+            "-10"
+        };
+        string[] 输入 = {
+            "21",
+            "0",
+            "-5"
+        };
+        for (int i = 0; i < 期望.Length; i++)
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
+                return CheckResult.不过(
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
+                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+            }
+        }
+        return CheckResult.过("每一组都对");
     }
 
-    [检查说明("查成绩：越界真的抛异常，合法下标取得到")]
+    [检查说明("查成绩：合法下标取得到")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(查成绩(new int[]{10,20,30}, 1));
+    Console.WriteLine(查成绩(new int[]{10,20,30}, 2));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 查成绩(new int[]{10,20,30}, 1));
-    printf("%d\n", 查成绩(new int[]{10,20,30}, 2));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "20",
@@ -421,19 +465,13 @@ int main(void) {
     [检查说明("带资源算：using 与 return 共存，值还是对的")]
     public static CheckResult 检查_6(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(带资源算(21));
+    Console.WriteLine(带资源算(0));
+    Console.WriteLine(带资源算(-5));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 带资源算(21));
-    printf("%d\n", 带资源算(0));
-    printf("%d\n", 带资源算(-5));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "42",
@@ -465,22 +503,16 @@ int main(void) {
     [检查说明("算平均：平均值是小数（不是向零取整的整数）")]
     public static CheckResult 检查_7(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(算平均(new int[]{1,2}).ToString("F6"));
+    Console.WriteLine(算平均(new int[]{90,80,70}).ToString("F6"));
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 算平均(new int[]{1,2}));
-    printf("%d\n", 算平均(new int[]{90,80,70}));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "1.5",
-            "80"
+            "1.500000",
+            "80.000000"
         };
         string[] 输入 = {
             "new int[]{1,2}",

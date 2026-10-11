@@ -316,20 +316,14 @@ static (int 最低, int 最高) 取最高最低(int[] 数们)
     [检查说明("数值改不掉：返回值是 90，且那个字段是 int")]
     public static CheckResult 检查_3(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine(数值改不掉(new 分数 { 得分 = 80 }).得分);
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 数值改不掉(new 分数 { 得分 = 80 }));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "(90, int)"
+            "90"
         };
         string[] 输入 = {
             "new 分数 { 得分 = 80 }"
@@ -354,18 +348,12 @@ int main(void) {
     [检查说明("取名字：及格线 60 两边都要对")]
     public static CheckResult 检查_4(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine($"({取名字(new 成绩记录("甲", 60)).Item1}, {取名字(new 成绩记录("甲", 60)).Item2})");
+    Console.WriteLine($"({取名字(new 成绩记录("乙", 59)).Item1}, {取名字(new 成绩记录("乙", 59)).Item2})");
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 取名字(new 成绩记录("甲", 60)));
-    printf("%d\n", 取名字(new 成绩记录("乙", 59)));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "(甲, True)",
@@ -395,20 +383,14 @@ int main(void) {
     [检查说明("取最高最低：多组都对，含全负数与单元素")]
     public static CheckResult 检查_5(string 代码)
     {
-        var 骨架 = """
-#include <stdio.h>
+        var 调用点 = """
+    Console.WriteLine($"({取最高最低(new int[]{3,1,4,1,5}).Item1}, {取最高最低(new int[]{3,1,4,1,5}).Item2})");
+    Console.WriteLine($"({取最高最低(new int[]{-5,-1,-9}).Item1}, {取最高最低(new int[]{-5,-1,-9}).Item2})");
+    Console.WriteLine($"({取最高最低(new int[]{7}).Item1}, {取最高最低(new int[]{7}).Item2})");
+    Console.WriteLine($"({取最高最低(new int[]{0,0}).Item1}, {取最高最低(new int[]{0,0}).Item2})");
 
-/*学生代码*/
-
-int main(void) {
-    printf("%d\n", 取最高最低(new int[]{3,1,4,1,5}));
-    printf("%d\n", 取最高最低(new int[]{-5,-1,-9}));
-    printf("%d\n", 取最高最低(new int[]{7}));
-    printf("%d\n", 取最高最低(new int[]{0,0}));
-    return 0;
-}
 """;
-        var run = CppCheck.编译并运行(代码, 骨架);
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "(1, 5)",
