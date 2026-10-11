@@ -296,25 +296,19 @@ static string 名次表(Dictionary<string, int> 表)
     public static CheckResult 检查_3(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 数满足());
-    printf("%d\n", 数满足());
-    printf("%d\n", 数满足());
-    printf("%d\n", 数满足());
+    Console.WriteLine(数满足(new List<int>{1,2,3,4}, n => n % 2 == 0));
+    Console.WriteLine(数满足(new List<string>{"甲","乙丙"}, s => s.Length == 1));
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "数满足(new List<int>{1,2,3,4}, n => n % 2 == 0)",
             "\"2\"",
-            "数满足(new List<string>{\"甲\",\"乙丙\"}, s => s.Length == 1)",
             "\"1\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "数满足(new List<int>{1,2,3,4}, n => n % 2 == 0)",
+            "数满足(new List<string>{\"甲\",\"乙丙\"}, s => s.Length == 1)"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -327,7 +321,7 @@ static string 名次表(Dictionary<string, int> 表)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -337,25 +331,21 @@ static string 名次表(Dictionary<string, int> 表)
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 查到了());
-    printf("%d\n", 查到了());
-    printf("%d\n", 查到了());
-    printf("%d\n", 查到了());
+    int v1;
+    Console.WriteLine(查到了(new Dictionary<string,int>{["甲"]=90}, "甲", out v1) + ":" + v1);
+    int v2;
+    Console.WriteLine(查到了(new Dictionary<string,int>{["甲"]=90}, "乙", out v2));
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "查到了(new Dictionary<string,int>{[\"甲\"]=90}, \"甲\", out int v1) + \":\" + v1",
             "\"True:90\"",
-            "查到了(new Dictionary<string,int>{[\"甲\"]=90}, \"乙\", out int v2)",
             "\"False\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "int v1; ⇒ 查到了(new Dictionary<string,int>{[\"甲\"]=90}, \"甲\", out v1) + \":\" + v1",
+            "int v2; ⇒ 查到了(new Dictionary<string,int>{[\"甲\"]=90}, \"乙\", out v2)"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -368,7 +358,7 @@ static string 名次表(Dictionary<string, int> 表)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");

@@ -326,25 +326,19 @@ class 计数器
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 学生());
-    printf("%d\n", 学生());
-    printf("%d\n", 学生());
-    printf("%d\n", 学生());
+    Console.WriteLine(new 学生("甲", 70).报告());
+    Console.WriteLine(new 学生("甲", 70).改成绩(999).报告());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "new 学生(\"甲\", 70).报告()",
             "\"甲 70\"",
-            "new 学生(\"甲\", 70).改成绩(999).报告()",
             "\"甲 70\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "new 学生(\"甲\", 70).报告()",
+            "new 学生(\"甲\", 70).改成绩(999).报告()"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -357,7 +351,7 @@ class 计数器
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -367,25 +361,19 @@ class 计数器
     public static CheckResult 检查_5(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 计数器());
-    printf("%d\n", 计数器());
-    printf("%d\n", 计数器());
-    printf("%d\n", 计数器());
+    Console.WriteLine(new 计数器(1).值);
+    Console.WriteLine(new 计数器(1).加(3).值);
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "new 计数器(1).值",
             "\"0\"",
-            "new 计数器(1).加(3).值",
             "\"3\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "new 计数器(1).值",
+            "new 计数器(1).加(3).值"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -398,7 +386,7 @@ class 计数器
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");

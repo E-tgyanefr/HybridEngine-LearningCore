@@ -372,25 +372,19 @@ static List<string> 名字们(List<成绩记录> 们)
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 统计());
-    printf("%d\n", 统计());
-    printf("%d\n", 统计());
-    printf("%d\n", 统计());
+    Console.WriteLine(统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).平均);
+    Console.WriteLine(统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).头名);
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).平均",
             "\"86.67\"",
-            "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).头名",
             "\"甲\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).平均",
+            "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).头名"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -403,7 +397,7 @@ static List<string> 名字们(List<成绩记录> 们)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -413,25 +407,19 @@ static List<string> 名字们(List<成绩记录> 们)
     public static CheckResult 检查_5(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 空统计());
-    printf("%d\n", 空统计());
-    printf("%d\n", 空统计());
-    printf("%d\n", 空统计());
+    Console.WriteLine(统计(new List<成绩记录>(), 60).人数);
+    Console.WriteLine(统计(new List<成绩记录>(), 60).头名);
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "统计(new List<成绩记录>(), 60).人数",
             "\"0\"",
-            "统计(new List<成绩记录>(), 60).头名",
             "\"\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "统计(new List<成绩记录>(), 60).人数",
+            "统计(new List<成绩记录>(), 60).头名"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -444,7 +432,7 @@ static List<string> 名字们(List<成绩记录> 们)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -495,19 +483,16 @@ static List<string> 名字们(List<成绩记录> 们)
     public static CheckResult 检查_7(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 名字们());
-    printf("%d\n", 名字们());
+    Console.WriteLine(string.Join(",", 名字们(new List<成绩记录>{ new 成绩记录("甲", 70), new 成绩记录("", 99), new 成绩记录("乙", 88) })));
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "string.Join(\",\", 名字们(new List<成绩记录>{ new 成绩记录(\"甲\", 70), new 成绩记录(\"\", 99), new 成绩记录(\"乙\", 88) }))",
             "\"乙,甲\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用"
+            "string.Join(\",\", 名字们(new List<成绩记录>{ new 成绩记录(\"甲\", 70), new 成绩记录(\"\", 99), new 成绩记录(\"乙\", 88) }))"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -520,7 +505,7 @@ static List<string> 名字们(List<成绩记录> 们)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");

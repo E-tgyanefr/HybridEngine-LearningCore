@@ -419,25 +419,19 @@ class 跑车 : 汽车
     public static CheckResult 检查_6(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 跑车());
-    printf("%d\n", 跑车());
-    printf("%d\n", 跑车());
-    printf("%d\n", 跑车());
+    Console.WriteLine(new 跑车("甲", 300, 4).简介());
+    Console.WriteLine(new 跑车("乙", 200, 8).简介());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "new 跑车(\"甲\", 300, 4).简介()",
             "\"甲 300 4\"",
-            "new 跑车(\"乙\", 200, 8).简介()",
             "\"乙 200 8\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "new 跑车(\"甲\", 300, 4).简介()",
+            "new 跑车(\"乙\", 200, 8).简介()"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -450,7 +444,7 @@ class 跑车 : 汽车
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");

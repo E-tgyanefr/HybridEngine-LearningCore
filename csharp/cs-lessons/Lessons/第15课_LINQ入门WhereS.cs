@@ -361,25 +361,19 @@ static void 演示延迟()
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    printf("%d\n", 加一分());
-    printf("%d\n", 加一分());
-    printf("%d\n", 加一分());
-    printf("%d\n", 加一分());
+    Console.WriteLine(加一分(new List<成绩记录>{ new 成绩记录("甲", 59) })[0].分数);
+    Console.WriteLine(加一分(new List<成绩记录>{ new 成绩记录("甲", 59) })[0].名字);
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "加一分(new List<成绩记录>{ new 成绩记录(\"甲\", 59) })[0].分数",
             "\"60\"",
-            "加一分(new List<成绩记录>{ new 成绩记录(\"甲\", 59) })[0].名字",
             "\"甲\""
         };
         string[] 输入 = {
-            "第 1 次调用",
-            "第 2 次调用",
-            "第 3 次调用",
-            "第 4 次调用"
+            "加一分(new List<成绩记录>{ new 成绩记录(\"甲\", 59) })[0].分数",
+            "加一分(new List<成绩记录>{ new 成绩记录(\"甲\", 59) })[0].名字"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -392,7 +386,7 @@ static void 演示延迟()
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 这一条要求**同一个程序里连着调**的结果 —— 如果你用普通局部变量，它每次都会回到初值。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
