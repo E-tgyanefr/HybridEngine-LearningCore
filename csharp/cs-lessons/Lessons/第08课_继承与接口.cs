@@ -224,7 +224,7 @@ static string 报告(List<图形> 们)
         var 类名们 = new List<string>();
         foreach (System.Text.RegularExpressions.Match m in
                  System.Text.RegularExpressions.Regex.Matches(
-                     代码, @"(?m)^\s*(?:public\s+|internal\s+|private\s+)?(?:static\s+)?(?:sealed\s+)?(?:abstract\s+)?(?:class|interface|enum|struct)\s+(\w+)"))
+                     代码, @"(?m)^\s*(?:public\s+|internal\s+|private\s+)?(?:static\s+)?(?:sealed\s+)?(?:abstract\s+)?(?:class|interface|enum|struct|record)\s+(\w+)"))
         {
             string 全 = m.Value;
             if (全.Contains("public") || 全.Contains("internal")

@@ -191,7 +191,7 @@ public class Main {
 """;
 
 
-    [Java检查说明("工具链就绪（javac / java / dotnet 都在）")]
+    [Java检查说明("工具链就绪（gcc 与 dotnet 都在）")]
     public static JavaCheckResult 检查_1a(string 代码)
     {
         return JavaLesson.工具链就绪(代码);

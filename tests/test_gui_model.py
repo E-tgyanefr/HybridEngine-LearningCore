@@ -65,6 +65,94 @@ class 回答路径测试(unittest.TestCase):
         for k in M.发现("python"):
             self.assertIn("answers", str(k.答题文件))
 
+    def test_答题文件绝不能是课程文件自己(self):
+        """★ 这条是**防事故**的，不是防 bug 的。
+
+        ⚠ 原来的 `_答案文件()` 对 ai / embedded / raspi 直接
+          `return k.源文件` —— 答题文件和课程文件是**同一个文件**。
+          后果：GUI 里"答案"框显示的是课程本身，学员一保存就把课程覆盖掉，
+          而且他不知道自己毁了什么。
+
+        ⚠ 为什么一直没被发现：CLI（`python -m hybridengine_light AI 01`）
+          走的是各模块自己的 `_检查()`，那条路**一直是对的**。
+          同一个概念在 CLI 和 GUI 里算出了两个答案，而**看起来都对**。
+
+        ⇒ 所以判据要写成"**遍历所有课程线**"，而不是只测 Python 那条 ——
+          只测一条的话，另外几条各错各的也照样绿。
+        """
+        坏 = []
+        for 轨道 in M.轨道:
+            try:
+                课们 = M.发现(轨道)
+            except Exception:                        # noqa: BLE001
+                continue
+            for k in 课们:
+                try:
+                    答 = M._答案文件(k)
+                except Exception:                    # noqa: BLE001
+                    continue
+                if 答.resolve() == k.源文件.resolve():
+                    坏.append(f"{轨道} {k.编号}：答题文件 == 课程文件（{答.name}）")
+        self.assertEqual(坏, [], "以下课程的答题文件就是课程文件本身，"
+                                 "学员保存时会覆盖课程：\n  " + "\n  ".join(坏))
+
+    def test_答题文件都在对应线的目录下(self):
+        """每条线的答题文件应该待在自己那条线的 answers 目录里。"""
+        for 轨道 in M.轨道:
+            try:
+                课们 = M.发现(轨道)
+            except Exception:                        # noqa: BLE001
+                continue
+            if not 课们:
+                continue
+            k = 课们[0]
+            答 = str(M._答案文件(k)).replace("\\", "/")
+            with self.subTest(轨道=轨道):
+                self.assertTrue(
+                    "answers" in 答 or "solutions" in 答,
+                    f"{轨道} 的答题文件不在 answers 目录下：{答}")
+
+
+class 看课命令行测试(unittest.TestCase):
+    """★ 课程正文里的命令行必须跟着**当前环境**变。
+
+    ⚠ 打包成 exe 之后没有 `python` 命令。课程正文（注释）里写死了
+      `python -m hybridengine_light 树莓派 检查 01`，学员照着敲会得到
+      "不是内部或外部命令" —— **错的其实是课程**。
+
+    ⚠ 为什么不在课程文件里直接改掉：从源码跑的时候那个写法**本来就是对的**
+      （开发者就是这么跑）。写死了 exe 名字反而在源码环境下错。
+      ⇒ 正确做法是**在显示的那一刻**按环境替换。
+    """
+
+    def test_源码环境下命令行保持python写法(self):
+        from hybridengine_light._paths import 命令名
+        文 = "#   python -m hybridengine_light 树莓派 检查 01"
+        出 = M._把命令行写对(文)
+        self.assertIn(命令名(), 出)
+
+    def test_exe环境下命令行不能出现python(self):
+        """模拟 frozen，确认写死的 python 会被换掉。"""
+        from hybridengine_light import _paths
+        原 = _paths.命令名
+        try:
+            _paths.命令名 = lambda: "HybridEngine-light.exe"
+            文 = ("#   python -m hybridengine_light 树莓派 检查 01\n"
+                  "# 卡住了：python -m hybridengine_light AI 答案 02")
+            出 = M._把命令行写对(文)
+        finally:
+            _paths.命令名 = 原
+        self.assertNotIn("python -m", 出)
+        self.assertIn("HybridEngine-light.exe", 出)
+
+    def test_四条线的看课都不抛(self):
+        for 轨道 in ("ai", "embedded", "raspi", "enginecourse"):
+            课们 = M.发现(轨道)
+            if not 课们:
+                continue
+            with self.subTest(轨道=轨道):
+                self.assertTrue(M.看课(课们[0]).strip())
+
 
 class 环境体检测试(unittest.TestCase):
     def test_体检返回固定几项且不抛(self):

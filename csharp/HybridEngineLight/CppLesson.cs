@@ -440,18 +440,27 @@ public static class 入口
             //   `学生代码.计数器` 就不可访问：
             //       error CS0122: '计数器' 不可访问，因为它具有一定的保护级别
             //   ⇒ 与"方法补 public"同理，课程替他补上，不让学员记这个细节。
-            // ⚠ 必须是 `class` **和** `interface` **和** `enum` / `struct`。
+            // ⚠ 必须是 `class` **和** `interface` **和** `enum` / `struct`，
+            //   以及 **`record`**。
             //   我第一版只处理了 `class` —— 第 08 课的 `interface 图形`
             //   于是仍是 internal，而 `报告(List<图形>)` 补成 public 之后：
             //       error CS0051: 可访问性不一致 ——
             //         参数类型比方法更不可访问
             //   这类错误**只在同时有"公开的方法"和"没公开的类型"时出现**，
-            //   所以前七课都没暴露。加新语言/新课程时值得专门想一遍：
-            //   "还有哪些**声明**我没补修饰符？"
+            //   所以前七课都没暴露。
+            //   ⚠ 第二次栽在同一处：写第 09~16 课（元组/结构/记录类型）时
+            //     漏了 `record` —— 调用点里的 `new 成绩记录(...)` 于是没被限定成
+            //     `学生代码.成绩记录`，报
+            //         error CS0246: 未能找到类型或命名空间名"成绩记录"
+            //   ⇒ 教训：这份名单**不是"我知道的那几种"**。
+            //     它是"学员能在顶层写出来的所有类型声明" ——
+            //     加一门课、加一个语言特性时都要回来重看这一行。
+            //     （`record` 还有个变体 `record struct`，被下面的 `record ` 前缀覆盖到。）
             if (去空格.StartsWith("class ", StringComparison.Ordinal) ||
                 去空格.StartsWith("interface ", StringComparison.Ordinal) ||
                 去空格.StartsWith("enum ", StringComparison.Ordinal) ||
-                去空格.StartsWith("struct ", StringComparison.Ordinal))
+                去空格.StartsWith("struct ", StringComparison.Ordinal) ||
+                去空格.StartsWith("record ", StringComparison.Ordinal))
             {
                 int 缩进0 = 行.Length - 去空格.Length;
                 行 = 行.Substring(0, 缩进0) + "public " + 去空格;

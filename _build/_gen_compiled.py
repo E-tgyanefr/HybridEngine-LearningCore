@@ -59,7 +59,7 @@ LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
         前缀="第",
     ),
     "java": dict(
-        数据=["_build/_java00.txt"],
+        数据=["_build/_java00.txt", "_build/_java16.txt"],
         产物目录="csharp/java-lessons/Lessons",
         特性="Java课程",
         返回类型="JavaCheckResult",

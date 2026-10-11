@@ -192,7 +192,14 @@ def _发现Python系(轨道键: str, root: Path) -> list[课]:
         d = root / "games"
         if not d.is_dir():
             return []
-        return [课("games", f.stem[:2], f.stem, f, f) for f in sorted(d.glob("*.py"))]
+        # ⚠ 小游戏是**给人读的成品**，没有"答题"这回事。
+        #   但它同样**不能**把答题文件指成课程文件自己 ——
+        #   一旦有人（或以后的代码）真把它当答题文件用，
+        #   就会覆盖掉游戏源码。指向一个同名的新文件至少是安全的。
+        #   （界面上游戏那条线本来也不给做题。）
+        return [课("games", f.stem[:2], f.stem, f,
+                   root / "games-answers" / f.name,
+                   None) for f in sorted(d.glob("*.py"))]
 
     模块 = {"ai": "aicourse", "embedded": "embedded",
             "raspi": "raspi_course"}[轨道键]
@@ -201,7 +208,24 @@ def _发现Python系(轨道键: str, root: Path) -> list[课]:
     try:
         for p in m._课程们(root):
             编号 = p.stem[:2]
-            出.append(课(轨道键, 编号, m._标题(p), p, p))
+            # ⚠⚠ **答题文件必须在 `<线>-answers/` 下，不能是课程文件自己。**
+            #
+            #   原来这里写的是 `课(轨道键, 编号, 标题, p, p)` ——
+            #   源文件和答题文件**指向同一个文件**。后果很严重：
+            #   GUI 里打开这三条线，右边"答案"框里显示的其实是**课程本身**，
+            #   学员一保存就把课程内容覆盖掉了（而且他不知道自己毁了什么）。
+            #
+            #   这是子代理实测发现的，我自己一直没看出来 ——
+            #   因为 CLI（`python -m hybridengine_light AI 01`）走的是
+            #   各模块自己的 `_检查()`，那条路一直是**对**的：
+            #       aicourse.py:     答案目录 = root / "ai-answers"
+            #       embedded.py:     答案目录 = root / "embedded-answers"
+            #       raspi_course.py: 答案目录 = root / "raspi-answers"
+            #   ⇒ 同一个概念在 CLI 和 GUI 里算出了两个答案，而**看起来都对**。
+            #     **两处实现"看起来一样"不等于它们一致 —— 要么共用，
+            #     要么就写一条判据把两边对比起来。**
+            出.append(课(轨道键, 编号, m._标题(p), p,
+                         root / (轨道键 + "-answers") / p.name))
     except Exception:
         # ⚠ 课程线坏了不该让整个界面打不开 —— 界面要能显示其它线
         return []
@@ -464,8 +488,37 @@ def _运行课程程序(工程: Path, 参数: list[str], 超时: int = 300) -> t
 
 # ── 读课程正文 / 答案 ────────────────────────────────────────────────────
 
+def _把命令行写对(文: str) -> str:
+    """把"看课"正文里写死的 `python -m hybridengine_light …` 换成真正的命令名。
+
+    ⚠⚠ 为什么需要这个（同一个坑的第二次）：
+      **打包成 exe 之后没有 `python` 命令。** 课程正文里写
+          python -m hybridengine_light 树莓派 检查 01
+      学员照着敲会得到"不是内部或外部命令" —— 而错的其实是**课程**。
+
+      项目里已经栽过一次（各课程线提示漏了 11 处），`_paths.命令名()` 就是
+      为它准备的。这次是课程**正文**里的 21 处（ai 10 / embedded 4 /
+      raspi 5 / engine 2）。
+
+    ⚠ 为什么不直接改那 21 行课程文件：
+      课程文件是**源码仓库里的文档**，从源码跑的时候 `python -m hybridengine_light`
+      **本来就是对的**（开发者就是这么跑）。写死了 exe 的名字反而在源码环境下错。
+      ⇒ 正确做法是**在显示的那一刻**按当前环境替换，而不是把正文写死成任一种。
+        这和 `run._stub_for` 里用 `命令名()` 是同一个思路。
+    """
+    import re
+    from ._paths import 命令名
+    return re.sub(r"python\s+-m\s+hybridengine_light",
+                  命令名().replace("\\", "\\\\"), 文)
+
+
 def 看课(k: 课) -> str:
     """这一课的正文（要做什么）。"""
+    return _把命令行写对(_看课原文(k))
+
+
+def _看课原文(k: 课) -> str:
+    """看课的原始正文 —— 命令行还没被替换成当前环境的那一种。"""
     if k.轨道 in ("csharp", "cpp", "java", "c") and k.工程:
         return _运行课程程序(k.工程, [k.编号])[1] or "（这一课没有正文）"
     if k.轨道 == "enginecourse":
@@ -522,7 +575,16 @@ def _答案文件(k: 课) -> Path:
     if k.轨道 == "enginecourse":
         return k.答题文件      # 已经算好了（engine-answers/ 下）
     if k.轨道 in ("ai", "embedded", "raspi", "games"):
-        return k.源文件        # 这几条线的答题就是课程文件旁边/同目录
+        # ⚠⚠ 这里原来写的是 `return k.源文件` —— **把课程文件当成了答题文件**。
+        #   后果：GUI 里"答案"框显示的是课程本身，学员一保存就覆盖课程。
+        #   现在改成和 CLI 各模块一致的 `<线>-answers/<课程文件名>`
+        #   （`_发现Python系` 已经把 k.答题文件 算对了，直接用它）。
+        #
+        #   ⚠ `games` 是个例外：小游戏是**给人读的成品**，没有答题这回事。
+        #     但它同样不该返回课程文件 —— 真被当成答题文件时，
+        #     返回一个同名的 answers 路径至少是"写到一个新文件"，
+        #     不会破坏源码。界面上游戏那条线本来也不给做题。
+        return k.答题文件
     if k.轨道 in ("csharp", "cpp", "java", "c") and k.答题文件:
         # 编译型的答题文件名由 C# 侧算（含标题清理规则）⇒ 问它要，别猜
         return _问答题路径(k)
