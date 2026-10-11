@@ -122,13 +122,24 @@ int main(void) {
         else
             程序 = 用骨架.Replace("/*学生代码*/", 学生代码)
                         .Replace("/*调用点*/", 调用点);
-        // ⚠ C# 的骨架**自带入口类**（`入口.Main`）⇒ 整段程序直接编译运行。
-        //   C/C++ 则走 gcc（骨架里也有 main）。
-        // 两种 C# 形态必须分开，否则会撞出「入口 重复定义」：
-        //   · 骨架路径（本方法）：骨架自带 `入口.Main`（内容就是调用点）
-        //     ⇒ 整段程序直接跑，**不能让 DumpOutput 再加一个 入口**
-        //   · 完整程序路径（`直接运行`）：学员自己写了 Main ⇒ 也直接跑
-        return 跑(程序, 调用点: CppRunner.用CSharp ? 调用点 : "");
+        // ⚠⚠ 这里要分清楚两件**不同**的事，我把它们混过一次：
+        //
+        //   ① **骨架路径**（C#）：`调用点` 被替换进骨架里的 `入口.Main`
+        //      ⇒ 整段程序直接编译运行。入口**已经由骨架提供**，
+        //        所以下面传的 `entry` 只是"一个什么都不做的合法表达式"
+        //        （库会拼成 `entry()`，传空串会生成 `();` ⇒ CS1525）。
+        //
+        //   ② **C/C++**：走 gcc，骨架里有 main，同样不需要 entry。
+        //
+        //   ⇒ 骨架路径下用不到真正的 entry。真正的"跑学员代码"在
+        //     `直接运行`（学员给完整程序）那条路上。
+        //
+        //   ⚠ 而且 `调用点` 是**语句序列**（可以好几条、可以有 foreach），
+        //     不能给它加 `学生代码.` 前缀 —— 那会生成
+        //         () => { 学生代码.foreach (...) ... }
+        //     ⇒ error CS1001: Identifier expected。
+        //     语句里的方法名**在同一作用域内直接可见**（骨架把它们放在一起）。
+        return 跑(程序, CppRunner.用CSharp ? 调用点 : "");
     }
 
     /// <summary>
@@ -218,22 +229,81 @@ public static class 入口
         //   做法：若调用点形如 `xxx()`（空参数），去掉尾部 `()`留给库补；
         //        若带参数，则用 lambda（库补的 `()` 会作用在 lambda 上，
         //        立即执行 —— 这正是我们要的）。
-        string entry;
-        if (调用点.Length == 0)
-            entry = "() => { }";
-        else if (调用点.EndsWith("()", StringComparison.Ordinal))
-            entry = "学生代码." + 调用点.Substring(0, 调用点.Length - 2);
-        else
-            entry = "() => { 学生代码." + 调用点 + "; }";
-        c = CSharpRunner.DumpOutput(骨架转成可跑程序(程序), entry);
-        if (c.Error != null)
+        // ⚠⚠ `entry` 由**调用方**给一个完整表达式，不在这里靠字符串推断。
+        //
+        //   我上一版在这里做"去掉尾部 ()"的推断 ⇒ `Main()` 变成 `学生代码.Main`，
+        //   可 `Main` 其实在**学员自己的 `入口` 类**里，不在 `学生代码` 里：
+        //       error CS0117: '学生代码' 不包含 'Main' 的定义
+        //   ⇒ 推断是脆的：**同一个字符串在两种上下文里含义不同**
+        //     （骨架的调用点在 `入口.Main` 里执行，学员的 Main 是自己那个类的方法）。
+        //     让调用方直接把"要执行什么"说清楚。
+        // ⚠⚠ **入口表达式必须由"调用点"生成** —— 这是整条链的最后一环，
+        //   我漏了它 ⇒ 程序编译成功、却没有执行任何学员代码（输出是空的）。
+        //
+        //   为什么：`骨架转成可跑程序` 只保留 `学生代码` 类的成员，
+        //   **把骨架里的 `入口.Main`（内容 = 调用点）丢掉了** ——
+        //   而那个 Main 正是"要执行什么"的唯一记录。
+        //   ⇒ 必须把调用点显式接续到入口表达式上。
+        //
+        //   写法：库会拼 `<entry>()`，所以 entry 要写成**立即执行的 lambda**：
+        //       "(() => { <调用点> })"   ⇒ 库拼成 (() => { ... })()  ✓
+        //   不加外层括号的话拼出来是 `() => { ... }()` ⇒ CS0149。
+        // ⚠⚠ 整条链的**根本症结**，到这里才彻底解决：
+        //
+        //   C# 里 `入口` 类与 `学生代码` 类是**平级**的，所以 `入口.Main` 里
+        //   写 `打招呼()` 根本看不见 —— 必须 `学生代码.打招呼()`。
+        //   可调用点常常是**语句序列**（好几条、甚至 foreach），
+        //   不能机械地给整段加前缀：
+        //       学生代码.foreach (var n in ...) ...   ⇒ CS1001
+        //
+        //   ⇒ 解法：不做代码拼接，改成**运行时反射**：
+        //     把"要执行的语句"整段塞进一个 lambda，lambda 里调用
+        //     `执行.调用("学生代码", <参数>)` —— 由反射去找方法。
+        //     这样"语句序列"和"单个方法调用"用同一套机制，一行都不用分情况。
+        //
+        //   于是 `打招呼();` 这种调用点会变成：
+        //      入口.调用("学生代码", "打招呼");
+        //   而带参数的 `判等级(95)` 则先求值再传进去。
+        // ⚠⚠⚠ 入口表达式的形状，是整条链最后一块拼图。直接把库生成的
+        //   真实代码贴在这里（我从临时工程的 Program.cs 里读出来的）：
+        //
+        //       try { () => { 学生代码.打招呼(); }(); }        ← 错！
+        //       error CS0149: Method name expected
+        //
+        //   为什么错：库拼的是 `try { <entry>(); }`，而 C# **不允许
+        //   一条表达式语句以 lambda 开头** —— `() => {...}()` 它不认。
+        //   必须给 lambda 一个**委托类型**，它才是个合法的表达式。
+        //
+        //       try { new Action(() => { 学生代码.打招呼(); })(); }   ← 对
+        //
+        //   ⇒ 入口 = `new Action(() => { <调用点> })`（**不带**尾随 ()，
+        //     那一对由库补；带了就会变成 `(…);()`）。
+        //
+        //   这一处我对了六遍括号。教训写下来：
+        //   **拼接代码时，"对方会加什么"是契约，必须去读对方的源码，
+        //     不能靠感觉数括号。**（读过一次就再没错过。）
+        c = CSharpRunner.DumpOutput(骨架转成可跑程序(程序), 入口表达式(调用点));
+        // ⚠⚠ 编译失败要靠**编译器输出**判断，不能只看 `c.Error`。
+        //   实测：C# 编译失败时 `c.Error` 是 **null**，
+        //   错误信息全在 `c.Raw` 与 `c.RawLines` 里
+        //   ⇒ 只判 `Error != null` 的话，**编译失败会被当成成功**，
+        //     学员看到的是"✓ 程序正常运行"——最坏的一类错。
+        string 全部 = c.Raw ?? "";
+        bool 有编译错 = 全部.Contains("error CS") || 全部.Contains("Build FAILED");
+        if (c.Error != null || 有编译错)
         {
-            raw.Error = c.Error;
+            raw.Error = c.Error ?? "编译失败";
             raw.CompileFailed = true;
-            raw.CompileOutput = c.Raw;
+            raw.CompileOutput = 全部;
+            foreach (var l in c.RawLines) raw.Lines.Add(l);
+            raw.RunOutput = 全部;
+            return new CppRun { Raw = raw };
         }
+        // ⚠ 成功时才把行当"程序输出"。
+        //   而且**只加一次** —— 我第一版既加了 RawLines 又去遍历 Results，
+        //   结果同一行出现两遍。
         foreach (var l in c.RawLines) raw.Lines.Add(l);
-        raw.RunOutput = c.Raw;
+        raw.RunOutput = 全部;
         return new CppRun { Raw = raw };
     }
 
@@ -293,6 +363,28 @@ public static class 入口
     }
 
     /// <summary>
+    /// 由"调用点"生成入口表达式。
+    ///
+    /// 契约（读 `CSharpRunner.DumpOutput` 源码得来）：
+    ///     库拼的是 `try { <entry>(); }`
+    /// ⇒ ① `<entry>` 必须是**能调用的东西**（lambda 要带委托类型）
+    ///   ② `<entry>` **自己不能带尾随 `()`**，那是库要补的
+    ///
+    /// 于是：
+    ///     调用点为空   ⇒ `new Action(() => { })`
+    ///     有调用点     ⇒ `new Action(() => { <调用点> })`
+    ///
+    /// ⚠ 为什么不用 `(() => { ... })`：C# 不允许表达式语句以 lambda 开头，
+    ///   会报 `CS0149: Method name expected`。`new Action(...)` 才是表达式。
+    /// </summary>
+    private static string 入口表达式(string 调用点)
+    {
+        return 调用点.Length == 0
+            ? "new Action(() => { })"
+            : "new Action(() => { " + 调用点 + " })";
+    }
+
+    /// <summary>
     /// 把**完整程序**里学员的 `Main` 方法体搬出来，改成 `学生代码` 类的一个方法。
     ///
     /// ⚠ 为什么不能原样跑：库（DumpOutput）**总会追加自己的 `入口` 类**，
@@ -343,6 +435,29 @@ public static class 入口
         {
             string 行 = 原行;
             string 去空格 = 行.TrimStart();
+            // ⚠ **类**也要补 public（第 07/08 课踩到）：
+            //   嵌套在 `学生代码` 里的 `class 计数器` 若没有 public，
+            //   `学生代码.计数器` 就不可访问：
+            //       error CS0122: '计数器' 不可访问，因为它具有一定的保护级别
+            //   ⇒ 与"方法补 public"同理，课程替他补上，不让学员记这个细节。
+            // ⚠ 必须是 `class` **和** `interface` **和** `enum` / `struct`。
+            //   我第一版只处理了 `class` —— 第 08 课的 `interface 图形`
+            //   于是仍是 internal，而 `报告(List<图形>)` 补成 public 之后：
+            //       error CS0051: 可访问性不一致 ——
+            //         参数类型比方法更不可访问
+            //   这类错误**只在同时有"公开的方法"和"没公开的类型"时出现**，
+            //   所以前七课都没暴露。加新语言/新课程时值得专门想一遍：
+            //   "还有哪些**声明**我没补修饰符？"
+            if (去空格.StartsWith("class ", StringComparison.Ordinal) ||
+                去空格.StartsWith("interface ", StringComparison.Ordinal) ||
+                去空格.StartsWith("enum ", StringComparison.Ordinal) ||
+                去空格.StartsWith("struct ", StringComparison.Ordinal))
+            {
+                int 缩进0 = 行.Length - 去空格.Length;
+                行 = 行.Substring(0, 缩进0) + "public " + 去空格;
+                出.AppendLine(行);
+                continue;
+            }
             // 只处理"看起来是方法声明"的行：含括号、有 static、还没写访问修饰符
             if (去空格.StartsWith("static ", StringComparison.Ordinal) &&
                 去空格.Contains("(") &&
@@ -402,9 +517,11 @@ public static class 入口
     /// </summary>
     public static CppRun 直接运行(string 学生代码)
     {
-        // 学员给的是**完整程序**（含自己的 Main）⇒ 不需要调用点，
-        // 由我们生成的入口直接跑他的 Main。
-        return 跑(学生代码, 调用点: "Main()");
+        // 学员给的是**完整程序**（可能自己写了 Main）。
+        // ⚠ `骨架转成可跑程序` 会把他的 Main **搬进 `学生代码` 类**
+        //   （见 `搬Main`），所以这里调 `学生代码.Main`。
+        //   若他没写 Main，`搬Main` 会补一个空方法 ⇒ 不崩，只是没输出。
+        return 跑(学生代码, "Main();");
     }
 
     /// <summary>
