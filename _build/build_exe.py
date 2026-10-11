@@ -126,6 +126,9 @@ for d in 内容:
 #     MinGW 914MB、JDK 373MB）装不进 11MB 的包，那是物理限制。
 print("  2b 预构建四条编译型课程...")
 编译型 = [
+    # ⚠ C# 那条线原来指向 `lessons`（一个演示程序）—— 现在是真正的 `cs-lessons`。
+    #   漏了它的话，界面里 C# 会因为首次构建慢而迟迟不出现。
+    ("cs-lessons",   os.path.join("csharp", "cs-lessons", "CsLessons.csproj")),
     ("c-lessons",    os.path.join("csharp", "c-lessons", "CLessons.csproj")),
     ("cpp-lessons",  os.path.join("csharp", "cpp-lessons", "CppLessons.csproj")),
     ("java-lessons", os.path.join("csharp", "java-lessons", "JavaLessons.csproj")),
@@ -140,7 +143,12 @@ else:
         if not os.path.isfile(工程):
             print("     %s: 找不到工程，跳过" % 名)
             continue
-        r = subprocess.run(["dotnet", "build", 工程, "-v", "q", "--nologo"],
+        # ⚠⚠ **明确指定 Debug**。
+        #   不指定的话，源码目录里若残留了别的配置（比如我测"自包含发布"时
+        #   留下的 `bin/Release/net8.0/win-x64/`，里面是一个 33MB 的单文件 exe），
+        #   复制 bin/obj 时会把它们一起打进包 —— 那一次产物从 12MB 涨到 110MB。
+        #   ⇒ 只发 Debug，并在复制时排除 Release。
+        r = subprocess.run(["dotnet", "build", 工程, "-c", "Debug", "-v", "q", "--nologo"],
                            cwd=ROOT, capture_output=True, timeout=900)
         if r.returncode != 0:
             print("     %s: ✗ 构建失败 —— 产物里这条线首次会现场编译" % 名)
@@ -155,7 +163,10 @@ else:
             if os.path.isdir(源):
                 目的 = os.path.join(OUTDIR, os.path.dirname(相对), 子)
                 shutil.rmtree(目的, ignore_errors=True)
-                shutil.copytree(源, 目的, ignore=shutil.ignore_patterns("*.pdb"))
+                # ⚠ 排除 Release 与 pdb：只带上"能直接跑"的 Debug 产物。
+                #   Release 里可能有自包含发布的 33MB 单文件 exe。
+                shutil.copytree(源, 目的, ignore=shutil.ignore_patterns(
+                    "*.pdb", "Release", "win-x64", "win-x86", "linux-x64"))
                 变了 += sum(len(f) for _, _, f in os.walk(目的))
         print("     %s: ✓ 预构建好了（%d 文件）" % (名, 变了))
 

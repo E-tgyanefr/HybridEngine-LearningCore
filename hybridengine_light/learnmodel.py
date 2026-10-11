@@ -37,8 +37,11 @@ from pathlib import Path
 # ── 轨道定义 ─────────────────────────────────────────────────────────────
 #: 轨道键 -> (显示名, 开箱即用?, 说明)
 轨道 = {
-    "python":   ("Python 基础", True,  "零依赖，开箱即用"),
-    "games":    ("小游戏",      True,  "用前面几课的知识写的，读得懂"),
+    "python":   ("Python 基础", True,  "8 课，从变量到类 —— 零依赖，开箱即用"),
+    # ⚠ 这两份是**完整演示程序**（没有 CHECK_，不能"检查答案"）——
+    #   它们是"读代码"材料，不是练习。标签要说清楚，
+    #   否则界面上会显示"小游戏 2 课"，看起来像 Python 只有 2 课。
+    "games":    ("小游戏（读代码）", True, "两段完整代码，读懂它们就够了"),
     "ai":       ("人工智能入门", True,  "零依赖，算法全部自己实现"),
     "embedded": ("嵌入式/单片机", True, "单片机模拟器，不需要真板子"),
     "raspi":    ("树莓派",      True,  "树莓派模拟器，不需要真板子"),
@@ -211,12 +214,20 @@ def _发现编译型(轨道键: str, root: Path) -> list[课]:
       不在这里重复实现它的 `[课程]` 特性扫描 —— 那是 C# 侧的事，
       在这里抄一遍必然两边不一致（这正是我加 C 课时踩到的坑）。
     """
-    工程名 = {"csharp": "lessons", "cpp": "cpp-lessons",
+    # ⚠ C# 用的是 `cs-lessons`（8 课真课程）。
+    #   原来指向 `lessons` —— 那是个**演示程序**（只有 Program.cs，
+    #   没有 Lessons/ 目录）⇒ 界面里 C# 显示 0 课。
+    #   作者反馈"python与c#的课程不全"时，C# 这边就是这个问题。
+    工程名 = {"csharp": "cs-lessons", "cpp": "cpp-lessons",
               "java": "java-lessons", "c": "c-lessons"}[轨道键]
     工程 = root / "csharp" / 工程名
+    # ⚠ 判据用 `Program.cs`：它是**运行器**，每门编译型课都有。
+    #   不要用 Lessons/ 目录 —— 有的线的课程文件组织形式不同。
     if not (工程 / "Program.cs").is_file():
         return []
-    答案名 = {"csharp": "csharp-answers", "cpp": "cpp-answers",
+    # ⚠ 答案目录名要与各课课程库里的常量一致：
+    #   CsCourse.答题目录 / CppCourse / JavaCourse / CCourse
+    答案名 = {"csharp": "cs-answers", "cpp": "cpp-answers",
               "java": "java-answers", "c": "c-answers"}[轨道键]
     出 = []
     for 行 in _运行课程程序(工程, [])[1].split("\n"):
