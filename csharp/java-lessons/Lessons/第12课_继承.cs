@@ -175,6 +175,25 @@ public static class 第12课
 //
 //   看这一课要干什么：dotnet run --project csharp/java-lessons 12
 //   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 12
+//
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 
+12
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 
+12
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 
+12
+//
+//   
+⚠ 检查会 new 出子类，再从**父类类型的变量**里调方法 —— 覆写有没有真的生效，看输出里是「汪」还是「……」就知道。
+//
+//   检查会把你的代码**真的编译、真的跑一遍**再逐条比对 —— 所以它红了就一定有原因，
+//   照着那段说明改就行：它一般会直接点出你写错在哪、以及正确的写法长什么样。
 """;
 
     public static string 参考答案 => """

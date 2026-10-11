@@ -244,6 +244,25 @@ public static class 第16课
 //
 //   看这一课要干什么：dotnet run --project csharp/java-lessons 16
 //   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 16
+//
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 
+16
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 
+16
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 
+16
+//
+//   
+⚠ 检查会连着调好几个方法（加、取、查、遍历），并且**数输出的行数** —— import 少写一句，第一组就会在「找不到符号：类 ArrayList」那里红。
+//
+//   检查会把你的代码**真的编译、真的跑一遍**再逐条比对 —— 所以它红了就一定有原因，
+//   照着那段说明改就行：它一般会直接点出你写错在哪、以及正确的写法长什么样。
 """;
 
     public static string 参考答案 => """

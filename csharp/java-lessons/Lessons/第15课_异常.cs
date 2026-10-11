@@ -249,6 +249,25 @@ public static class 第15课
 //
 //   看这一课要干什么：dotnet run --project csharp/java-lessons 15
 //   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 15
+//
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 
+15
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 
+15
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 
+15
+//
+//   
+⚠ 检查会逐行比对那五行的**顺序和内容** —— 尤其「出事:Index 9 out of bounds for length 3」那一行：它证明 try 里出错之后，剩下的语句全被跳过了。
+//
+//   检查会把你的代码**真的编译、真的跑一遍**再逐条比对 —— 所以它红了就一定有原因，
+//   照着那段说明改就行：它一般会直接点出你写错在哪、以及正确的写法长什么样。
 """;
 
     public static string 参考答案 => """

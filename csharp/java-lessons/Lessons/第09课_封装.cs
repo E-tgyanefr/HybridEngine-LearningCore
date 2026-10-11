@@ -173,6 +173,25 @@ public static class 第09课
 //
 //   看这一课要干什么：dotnet run --project csharp/java-lessons 09
 //   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 09
+//
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 
+09
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 
+09
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 
+09
+//
+//   
+⚠ 检查会拿不合法的值去调你的 改年龄() / 改名字() —— 看它们有没有**真的被挡住**。光写 private 不够，规矩要写在 setter 里。
+//
+//   检查会把你的代码**真的编译、真的跑一遍**再逐条比对 —— 所以它红了就一定有原因，
+//   照着那段说明改就行：它一般会直接点出你写错在哪、以及正确的写法长什么样。
 """;
 
     public static string 参考答案 => """

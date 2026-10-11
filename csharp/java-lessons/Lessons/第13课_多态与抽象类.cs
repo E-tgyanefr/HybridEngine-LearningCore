@@ -214,6 +214,25 @@ public static class 第13课
 //
 //   看这一课要干什么：dotnet run --project csharp/java-lessons 13
 //   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 13
+//
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 
+13
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 
+13
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 
+13
+//
+//   
+⚠ 检查会拿一组不同的形状放进同一个循环里 —— 面积算不算得对（圆要用 Math.PI）、多态有没有真的生效，一次全看得出来。
+//
+//   检查会把你的代码**真的编译、真的跑一遍**再逐条比对 —— 所以它红了就一定有原因，
+//   照着那段说明改就行：它一般会直接点出你写错在哪、以及正确的写法长什么样。
 """;
 
     public static string 参考答案 => """

@@ -178,6 +178,25 @@ public static class 第11课
 //
 //   看这一课要干什么：dotnet run --project csharp/java-lessons 11
 //   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 11
+//
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 
+11
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 
+11
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 
+11
+//
+//   
+⚠ 检查会造两个对象、分别给那个 static 计数器加一，再回头看它们看到的是不是同一个数 —— static 到底是「属于类」还是「属于对象」，这里藏不住。
+//
+//   检查会把你的代码**真的编译、真的跑一遍**再逐条比对 —— 所以它红了就一定有原因，
+//   照着那段说明改就行：它一般会直接点出你写错在哪、以及正确的写法长什么样。
 """;
 
     public static string 参考答案 => """
