@@ -364,32 +364,66 @@ def _make_multi_stub(lesson: Path, d: Path):
 
 
 def _stub_for(lesson: Path) -> str:
-    """给这一课生成答题模板：把课程文件里要求的函数/变量列成 TODO。"""
-    text = lesson.read_text(encoding="utf-8")
-    lines = [
-        f'"""第 {lesson.stem[:2]} 课的答案 —— 在这里写你的代码。',
+    """给这一课生成答题文件 —— **它本身就是一篇教程**。
+
+    ⚠⚠ 这里改过一次，起因是作者的一句话：「你这是教程吗，只有习题啊」。
+
+      原来只把课程文件里「要做」那一段抄进来，于是学员打开的是
+      「三行说明 + 一大片空白」的习题纸；讲解在「看课」命令里，
+      而他写代码时**手边没有可对照的东西** —— 那确实是习题，不是教程。
+
+      ⇒ 现在把**整个讲解**搬进答题文件，最后才是"轮到你了"。
+        他打开文件就能一路读下来、照着例子改，不用来回切命令。
+
+    做法：把课程文件开头的 `#` 注释块原样搬过来（去掉一个 `# `）。
+    这样「看课」与「答题文件」永远是**同一份内容**，
+    不会出现"改了一处忘了另一处"。
+    """
+    src = lesson.read_text(encoding="utf-8").splitlines()
+
+    # ① 收集讲解：课程文件开头的连续 `#` 注释块（碰到真正的代码就停）
+    讲解: list[str] = []
+    开始 = False
+    for line in src:
+        s = line.rstrip()
+        if s.startswith("#"):
+            开始 = True
+            讲解.append(s[1:].lstrip("#") if s.startswith("# ") else s[1:])
+        elif 开始 and not s:
+            讲解.append("")
+        elif 开始:
+            break
+
+    横线 = "═" * 56
+    out = [
+        # ⚠ `_title_of` 返回的**已经带**「第 09 课：」前缀了 ——
+        #   再拼一次就会出现"第 09 课：第 09 课：…"（实测）。
+        f'"""{_title_of(lesson)}',
         "",
-        f"改完运行：  {命令名()} 检查 " + lesson.stem[:2],
-        f"卡住了：    {命令名()} 答案 " + lesson.stem[:2] + "   （先自己试过再看）",
+        横线,
+        "  下面是这一课的讲解 —— 先读一遍，再照着最后的「轮到你了」写。",
+        f"  （和 `{命令名()} {lesson.stem[:2]}` 看到的是同一份内容）",
+        横线,
+    ]
+    # ⚠ 课程文件的第一行就是标题，与上面那行重复 ⇒ 去掉
+    if 讲解 and 讲解[0].strip() == _title_of(lesson):
+        讲解 = 讲解[1:]
+    out += 讲解
+    out += [
+        "",
+        横线,
+        "  怎么自己测",
+        横线,
+        f"    写代码：  {命令名()} 编辑 {lesson.stem[:2]}",
+        f"    检查：    {命令名()} 检查 {lesson.stem[:2]}",
+        f"    卡住了：  {命令名()} 答案 {lesson.stem[:2]}   （先自己试过再看）",
+        "",
+        "  现在开始写 —— 在下面空出来的地方。",
         '"""',
         "",
+        "",
     ]
-    # 从课程文件里抓 "要做：" 段落，当作 TODO 抄进来
-    grab = False
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith("# 要做"):
-            grab = True
-            continue
-        if grab:
-            if s.startswith("#") and not s.startswith("# 要做"):
-                lines.append("# " + s.lstrip("# ").rstrip())
-            elif not s:
-                lines.append("#")
-            else:
-                break
-    lines.append("")
-    return "\n".join(lines)
+    return "\n".join(out)
 
 
 def _cmd_games() -> int:
