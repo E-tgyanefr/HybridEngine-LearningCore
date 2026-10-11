@@ -154,6 +154,53 @@ class 看课命令行测试(unittest.TestCase):
                 self.assertTrue(M.看课(课们[0]).strip())
 
 
+class 每条线都能生成答题模板测试(unittest.TestCase):
+    """★ 防"分派链漏了一条线"。
+
+    ⚠⚠ 真实事故：`_确保模板()` 的分派链原本是
+          if python: …
+          elif 轨道 in ("ai", "embedded", "raspi"): …
+       —— **漏了 enginecourse**。而 `enginecourse.py` 里明明有 `_生成模板`，
+       只是没人调它。
+
+       症状：引擎线的答题文件**永远不生成**，`读答案()` 返回空字符串，
+       GUI 里"答案框一片空白"且**不报错**。最难查的那一类。
+
+       ⇒ 判据写成"**遍历这一组所有轨道**、每一个都要能生成出非空模板"，
+         而不是只测一两条 —— 只测一条的话，别的线各漏各的也照样绿。
+
+    ⚠ 范围要和**机制的适用范围**一致：只测走同一个 `_确保模板` 分派链的那组。
+      编译型（c/cpp/java/csharp）的模板是 **C# 课程程序**在第一次"检查"时
+      生成的，走另一条路；`games` 是给人读的成品，**没有"答题"这回事**。
+      我第一版把这两类也塞进来，于是判据报了假警 —— **一个漏洞只发生在
+      "共用一条分派链"的那些线里**，判据就该收在那一组。
+    """
+
+    #: 走 `_确保模板` 分派链的课程线（bug 正是出在这条链上）
+    这组 = ("python", "ai", "embedded", "raspi", "enginecourse")
+
+    def test_每条线都能生成非空的答题模板(self):
+        from hybridengine_light import learnmodel as M
+        坏 = []
+        for 轨道 in self.这组:
+            self.assertIn(轨道, M.轨道, "轨道表里没有 %s" % 轨道)
+            课们 = M.发现(轨道)
+            if not 课们:
+                坏.append("%s：一课都没发现" % 轨道)
+                continue
+            k = 课们[0]
+            try:
+                文 = M.读答案(k)
+            except Exception as e:                            # noqa: BLE001
+                坏.append("%s：读答案抛了 %s" % (轨道, e))
+                continue
+            n = len([x for x in 文.split("\n") if x.strip()])
+            if n < 10:
+                坏.append("%s：模板只有 %d 行非空（像没生成）" % (轨道, n))
+        self.assertEqual(坏, [], "以下课程线生成不出像样的答题模板：\n  "
+                                 + "\n  ".join(坏))
+
+
 class 环境体检测试(unittest.TestCase):
     def test_体检返回固定几项且不抛(self):
         出 = M.体检()

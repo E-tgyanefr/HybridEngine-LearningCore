@@ -624,8 +624,23 @@ def _确保模板(k: 课) -> None:
     if k.轨道 == "python":
         from . import run as R
         文件.write_text(R._stub_for(k.源文件), encoding="utf-8")
-    elif k.轨道 in ("ai", "embedded", "raspi"):
-        模块 = {"ai": "aicourse", "embedded": "embedded", "raspi": "raspi_course"}[k.轨道]
+    elif k.轨道 in ("ai", "embedded", "raspi", "enginecourse"):
+        # ⚠⚠ 这里原来只有 ("ai", "embedded", "raspi") —— **漏了 enginecourse**。
+        #   而 `enginecourse.py` 里明明有 `_生成模板`，只是没人调它。
+        #
+        #   症状：引擎线的答题文件**永远不会生成**。
+        #     目录 `engine-answers/` 存在却是空的；`读答案()` 走到
+        #     "文件不存在 → _确保模板 → 再读" 这条路上，
+        #     `_确保模板` 静默什么都不做，于是再读还是 OSError → **返回空字符串**。
+        #   GUI 里就是"答案框一片空白"，而且**不报错** —— 最难查的那一类。
+        #
+        #   ⚠ 为什么之前一直没发现：`.` 这条线的答题文件在仓库里是**不存在的**
+        #     （其他线的 -answers/ 里有一些旧的、能看出内容），
+        #     所以"空"看起来像"还没生成"，而不是"生成坏了"。
+        #   ⇒ 判据：**分派链要覆盖所有轨道**。加一条线时，除了 `轨道` 表，
+        #     还要回来 grep 一遍所有 `k.轨道 in (...)` 的地方。
+        模块 = {"ai": "aicourse", "embedded": "embedded",
+                "raspi": "raspi_course", "enginecourse": "enginecourse"}[k.轨道]
         m = __import__(f"hybridengine_light.{模块}", fromlist=["x"])
         文件.write_text(m._生成模板(k.源文件), encoding="utf-8")
 
