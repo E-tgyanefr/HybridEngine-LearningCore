@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 from ._paths import 命令名
+from ._stub import 答题模板
 
 import importlib.util
 import sys
@@ -133,32 +134,19 @@ def _检查(root: Path, 编号: str) -> int:
 
 
 def _生成模板(p: Path) -> str:
-    text = p.read_text(encoding="utf-8")
-    lines = [
-        f'"""第 {p.stem[:2]} 课的答案 —— 在这里写你的代码。',
-        "",
-        "改完运行：  python -m hybridengine_light 树莓派 检查 " + p.stem[:2],
-        "卡住了：    python -m hybridengine_light 树莓派 答案 " + p.stem[:2],
-        "",
-        "提示：你写的应该是一个**函数**，检查会调用它并观察模拟树莓派的状态。",
-        '"""',
-        "",
-    ]
-    grab = False
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith("# 要做"):
-            grab = True
-            continue
-        if grab:
-            if s.startswith("#"):
-                lines.append("# " + s.lstrip("# ").rstrip())
-            elif not s:
-                lines.append("#")
-            else:
-                break
-    lines.append("")
-    return "\n".join(lines)
+    """这一课的答题文件 —— **它本身就是一篇教程**（做法见 `_stub.答题模板`）。
+
+    ⚠ 原来只抄「要做」那一块，学员打开看到的是「三行说明 + 一大片空白」。
+      树莓派这条线的讲义最长（动不动一百多行），而它讲的全是**为什么**这么写
+      （程序形态、引脚不复位、I2C 地址）—— 那些正是动手时要对照的东西。
+      ⇒ 现在整块讲解都搬进来，最后才是「轮到你了」。
+    """
+    return 答题模板(
+        p,
+        命令="树莓派",
+        提示="你写的应该是**函数** —— 检查会调用它，然后看**模拟树莓派**的状态"
+             "（引脚、传感器读数、写出去的文件、时间推进）对不对。",
+    )
 
 
 def _答案(root: Path, 编号: str) -> int:

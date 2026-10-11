@@ -31,6 +31,7 @@ import sys
 from pathlib import Path
 
 from ._paths import 命令名
+from ._stub import 答题模板
 
 __all__ = ["cmd_引擎课程"]
 
@@ -154,40 +155,23 @@ def _检查(root: Path, 编号: str) -> int:
 
 
 def _生成模板(p: Path) -> str:
-    text = p.read_text(encoding="utf-8")
-    lines = [
-        f'"""第 {p.stem[:2]} 课的答案 —— 在这里写你的代码。',
-        "",
-        "改完运行：  " + 命令名() + " 引擎课程 检查 " + p.stem[:2],
-        "卡住了：    " + 命令名() + " 引擎课程 答案 " + p.stem[:2],
-        "",
-        "提示：你写的应该是一个**函数**，它把一个搭好的场景/对象**返回**出来。",
-        "      检查会拿你的返回值去跑，看它画出来什么。",
-        '"""',
-        "",
-        "from hybridengine_light import pyengine as E",
-        "from hybridengine_light.pyengine import components as C",
-        "",
-        "",
-    ]
-    # 只抄「# 要做：」那一整块，遇到第一个空行就停
-    # （讲义本身用 `引擎课程 01` 看 —— 别把两百行塞进答题文件让人翻）
-    grab = False
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith("# 要做"):
-            grab = True
-            continue
-        if grab:
-            if not s:
-                break
-            if s.startswith("#"):
-                lines.append("# " + s.lstrip("# ").rstrip())
-            else:
-                break
-    lines.append("")
-    lines.append("")
-    return "\n".join(lines)
+    """这一课的答题文件 —— **它本身就是一篇教程**（做法见 `_stub.答题模板`）。
+
+    ⚠ 原来只抄「要做」那一块，学员打开看到的是「三行说明 + 一大片空白」。
+      这条线的讲解只有三四十行，全是**为什么要这样搭**（组件、能力、每帧）——
+      整块搬进来代价很小，而它恰好是答题时唯一能对照的东西。
+      ⇒ 现在整块讲解都搬进来，最后才是「轮到你了」。
+    """
+    return 答题模板(
+        p,
+        命令="引擎课程",
+        提示="你写的应该是**函数** —— 它把搭好的场景/对象**返回**出来，"
+             "检查拿这个返回值去跑（用的是无头后端，不开窗口）。",
+        末尾代码=(
+             "from hybridengine_light import pyengine as E\n"
+             "from hybridengine_light.pyengine import components as C"
+         ),
+    )
 
 
 def _答案(root: Path, 编号: str) -> int:

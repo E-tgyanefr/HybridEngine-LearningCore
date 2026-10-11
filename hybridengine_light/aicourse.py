@@ -38,6 +38,7 @@
 
 from __future__ import annotations
 from ._paths import 命令名
+from ._stub import 答题模板
 
 import importlib.util
 import sys
@@ -170,39 +171,22 @@ def _检查(root: Path, 编号: str) -> int:
 
 
 def _生成模板(p: Path) -> str:
-    text = p.read_text(encoding="utf-8")
-    lines = [
-        f'"""第 {p.stem[:2]} 课的答案 —— 在这里写你的代码。',
-        "",
-        "改完运行：  python -m hybridengine_light AI 检查 " + p.stem[:2],
-        "卡住了：    python -m hybridengine_light AI 答案 " + p.stem[:2],
-        "",
-        "提示：你写的应该是一个**函数**（或几个），检查会拿不同的数据调用它。",
-        "      所以别把某一次的结果写死 —— 换个数据它就错了。",
-        '"""',
-        "",
-    ]
-    # 只抄「# 要做：」这一整块，**遇到第一个空行就停**。
-    #
-    # ⚠ 这里和 embedded.py 的写法有意不同：那边会一直抄到第一行不是注释的代码为止。
-    #   AI 课的讲义比嵌入式长得多，那样抄的结果是答题文件里塞了两百行讲义，
-    #   学生打开文件要翻半天才找到"我该写什么"。
-    #   讲义本身用 `python -m hybridengine_light AI 01` 看就行。
-    grab = False
-    for line in text.splitlines():
-        s = line.strip()
-        if s.startswith("# 要做"):
-            grab = True
-            continue
-        if grab:
-            if not s:
-                break
-            if s.startswith("#"):
-                lines.append("# " + s.lstrip("# ").rstrip())
-            else:
-                break
-    lines.append("")
-    return "\n".join(lines)
+    """这一课的答题文件 —— **它本身就是一篇教程**（做法见 `_stub.答题模板`）。
+
+    ⚠ 这里改过一次，起因是作者的原话：「你这是教程吗，只有习题啊」。
+
+      原来只抄「要做」那一整块，学员打开看到的是「三行说明 + 一大片空白」——
+      讲解全在 `AI 01` 里面，而他写代码时手边没有可对照的东西。
+
+      ⇒ 现在把课程文件开头的**整块讲解**搬进答题文件（和 `AI 01` 看到的是同一份），
+        最后才是「轮到你了」。课程文件改了，答题文件跟着变，不会漏。
+    """
+    return 答题模板(
+        p,
+        命令="AI",
+        提示="你写的应该是**函数**（一个或几个）—— 检查会**换一批数据**再调用一次，"
+             "所以把某一次的结果写死是过不了的。",
+    )
 
 
 def _答案(root: Path, 编号: str) -> int:
