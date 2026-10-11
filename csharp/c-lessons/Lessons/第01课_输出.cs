@@ -3,37 +3,45 @@ using System.Linq;
 using HybridEngineLight;
 using HybridEngineLight.CLessons;
 
-[课程("01", "第 01 课：输出 —— 让程序开口说话",
-    "1. 用 printf 打印一行文字：你好，C\n" +
-    "2. 定义两个 int 变量：甲 = 6、乙 = 7\n" +
-    "3. 打印它们的和。要求真的用变量相加，不要把 13 硬写死。")]
+[课程("01", "第 01 课：printf —— 让程序开口说话",
+    """
+1. 打印一行文字：你好，C
+2. 打印一个整数：42
+3. 最后一行打印：完成
+""")]
 public static class 第01课
 {
     public static string 模板 => """
-// 第 01 课：输出 —— 让程序开口说话
+// 第 01 课：printf —— 让程序开口说话
 //
-// 要做：
+// 先介绍：C 程序的骨架
+//   C 程序**一定**长这个样子，少一样都编译不过：
+//
+//       #include <stdio.h>          ← 头文件：printf 需要它（stdio = standard input/output）
+//
+//       int main(void) {            ← 主函数：程序从这里开始跑
+//           ...                     ← 你的代码
+//           return 0;               ← 告诉系统"正常结束"
+//       }
+//
+// 三件必须记住的事：
+//   ① 每条语句末尾要有**分号** ;    （漏了会报 expected ';'）
+//   ② 代码块用**花括号** { }        （C 不看缩进，看括号）
+//   ③ 打印用 printf("...")          （f = formatted，格式化输出）
+//
+// 换行要在引号里面写 \n —— 它不是"两个字符"，是一个换行符。
+//   想打「你好」再换行：   printf("你好\n");
+//
+// ─────────────────────────────────────────────────────
+//  轮到你了 —— 在下面写
+// ─────────────────────────────────────────────────────
 //   1. 打印一行文字：你好，C
-//   2. 定义 int 变量 甲 = 6，int 变量 乙 = 7
-//   3. 打印它们的和（用变量相加，不要写死 13）
+//   2. 打印一个整数：42
+//   3. 最后一行打印：完成
 //
-// 记住四件事：
-//   · 每条语句末尾要有分号 ;
-//   · 打印用 printf("格式", 值);
-//   · 换行在格式串里用 \n
-//   · **int 的格式是 %d**（用 %s 打整数是经典的错）
-//
-// 写完后运行：dotnet run --project csharp/c-lessons 检查 01
+// 提示：完整程序，要自己写 #include 和 main。
 
 // ── 在下面写你的代码 ──
-// 提示：本课是完整程序，要自己写 #include 和 main：
-
-//   #include <stdio.h>
-//
-//   int main(void) {
-//       // 在这里写
-//       return 0;
-//   }
 
 """;
 
@@ -42,83 +50,74 @@ public static class 第01课
 
 int main(void) {
     printf("你好，C\n");
-
-    int 甲 = 6;
-    int 乙 = 7;
-    printf("%d\n", 甲 + 乙);
-
+    printf("%d\n", 42);
+    printf("完成\n");
     return 0;
 }
 """;
 
-    [检查说明("程序能不能编译、能不能跑起来")]
-    public static CheckResult 检查_程序能运行(string 代码)
+
+    [检查说明("程序能编译、能跑起来")]
+    public static CheckResult 检查_1(string 代码)
     {
         var run = CppCheck.直接运行(代码);
-        if (run.Raw.CompileFailed) return CppCheck.编译失败说明(run);
-        if (run.Raw.Error != null)
-            return CheckResult.不过("程序没能正常运行：\n      " + run.Raw.Error);
-        if (run.行.Count == 0)
-            return CheckResult.不过("程序一行都没打印。\n      printf 写了吗？格式串后面要跟换行 \\n。");
-        return CheckResult.过();
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string[] 期望 = {
+            "你好，C",
+            "42",
+            "完成"
+        };
+        var 实际 = run.行;
+        if (实际.Count != 期望.Length)
+            return CheckResult.不过($"应该有 {期望.Length} 行输出，实际 {实际.Count} 行。" +
+                "\n      打印出来的：\n        " + string.Join("\n        ", 实际));
+        for (int i = 0; i < 期望.Length; i++)
+            if (实际[i].Trim() != 期望[i])
+                return CheckResult.不过(
+                    $"第 {i + 1} 行应当是「{期望[i]}」，实际是「{实际[i].Trim()}」。");
+        return CheckResult.过($"{期望.Length} 行输出全对");
     }
 
-    [检查说明("打印了「你好，C」这一行")]
-    public static CheckResult 检查_第一行文字(string 代码)
+    [检查说明("打印了 3 行，内容分别是「你好，C」「42」「完成」")]
+    public static CheckResult 检查_2(string 代码)
     {
         var run = CppCheck.直接运行(代码);
-        if (run.Raw.CompileFailed) return CppCheck.编译失败说明(run);
-        var 行 = run.行;
-        if (行.Count < 1)
-            return CheckResult.不过("一行都没打印出来。");
-        if (!行[0].Contains("你好，C"))
-            return CheckResult.不过($"第一行应该是「你好，C」，实际打印的是「{行[0]}」。\n      注意逗号是**中文逗号**，C 是大写。");
-        return CheckResult.过($"第一行 = {行[0]}");
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string[] 期望 = {
+            "你好，C",
+            "42",
+            "完成"
+        };
+        var 实际 = run.行;
+        if (实际.Count != 期望.Length)
+            return CheckResult.不过($"应该有 {期望.Length} 行输出，实际 {实际.Count} 行。" +
+                "\n      打印出来的：\n        " + string.Join("\n        ", 实际));
+        for (int i = 0; i < 期望.Length; i++)
+            if (实际[i].Trim() != 期望[i])
+                return CheckResult.不过(
+                    $"第 {i + 1} 行应当是「{期望[i]}」，实际是「{实际[i].Trim()}」。");
+        return CheckResult.过($"{期望.Length} 行输出全对");
     }
 
-    [检查说明("第二行是 13（= 6 + 7）")]
-    public static CheckResult 检查_和(string 代码)
+    [检查说明("换行写对了（用的是 \\n，不是字面的反斜杠 n）")]
+    public static CheckResult 检查_3(string 代码)
     {
         var run = CppCheck.直接运行(代码);
-        if (run.Raw.CompileFailed) return CppCheck.编译失败说明(run);
-        var 行 = run.行;
-        if (行.Count < 2)
-            return CheckResult.不过($"应该有 2 行输出，实际 {行.Count} 行。\n      是不是忘了打印和？");
-        if (行[1].Trim() != "13")
-            return CheckResult.不过($"第二行应该是 13，实际是「{行[1].Trim()}」。\n      检查：变量是 6 和 7 吗？printf 用的是 %d 吗？");
+        if (!run.编译通过) return CppCheck.编译失败说明(run);
+        string 全部 = string.Join("\n", run.行);
+        if (全部.Contains("\\\\n"))
+            return CheckResult.不过("输出里出现了「\\\\n」这几个字 —— 换行要用 \\n 转义，不能真的敲两下");
         return CheckResult.过();
     }
 
-    [检查说明("真的用了变量相加（不是把 13 写死）")]
-    public static CheckResult 检查_不是硬写(string 代码)
-    {
-        string 去注释 = 去掉注释(代码);
-        if (去注释.Contains("13"))
-            return CheckResult.不过("代码里出现了字面量 13 —— 那是把答案写死了。\n      要求用两个变量相加：printf(\"%d\\n\", 甲 + 乙);");
-        if (!去注释.Contains("+"))
-            return CheckResult.不过("没看到加法运算。要用 甲 + 乙，不是直接打印一个数。");
-        return CheckResult.过();
-    }
-
-    [检查说明("没有忘记 return 0")]
-    public static CheckResult 检查_返回值(string 代码)
-    {
-        if (!代码.Contains("return"))
-            return CheckResult.不过("main 结尾要有 return 0;（告诉系统程序正常结束）");
-        return CheckResult.过();
-    }
-
-    internal static string 去掉注释(string s)
+    private static string 去掉注释(string s)
     {
         var o = new System.Text.StringBuilder();
         bool 块 = false;
         for (int i = 0; i < s.Length; i++)
         {
             if (!块 && i + 1 < s.Length && s[i] == '/' && s[i + 1] == '/')
-            {
-                while (i < s.Length && s[i] != '\n') i++;
-                o.Append('\n'); continue;
-            }
+            { while (i < s.Length && s[i] != '\n') i++; o.Append('\n'); continue; }
             if (!块 && i + 1 < s.Length && s[i] == '/' && s[i + 1] == '*') { 块 = true; i++; continue; }
             if (块 && i + 1 < s.Length && s[i] == '*' && s[i + 1] == '/') { 块 = false; i++; continue; }
             if (!块) o.Append(s[i]);
