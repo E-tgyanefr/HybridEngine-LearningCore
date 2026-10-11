@@ -70,13 +70,13 @@ LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
         前缀="第",
     ),
     "csharp": dict(
-        数据=[],
+        数据=["_build/_cs16.txt"],
         产物目录="csharp/cs-lessons/Lessons",
         特性="课程",
         返回类型="CheckResult",
         检查类="CppCheck",
         课程类="CppLesson",
-        命名空间="HybridEngineLight.CSLessons",
+        命名空间="HybridEngineLight.CsLessons",   # ⚠ 现有课用的是 CsLessons（小写 s）
         库命名空间="HybridEngineLight",
         前缀="第",
     ),
