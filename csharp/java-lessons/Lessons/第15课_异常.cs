@@ -239,6 +239,16 @@ public static class 第15课
 // 取元素 里那句 throw 单独说：负数下标的检查在练习里不会被触发
 // （main 没传负数），但**它必须写** —— 检查会看代码里有没有这句话。
 // 这就是"自己抛异常"的样子：不是等 Java 报错，而是你主动拒绝不合理的输入。
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 15
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 15
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 15
 """;
 
     public static string 参考答案 => """

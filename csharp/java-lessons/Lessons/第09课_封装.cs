@@ -163,6 +163,16 @@ public static class 第09课
 // 判名字：值 == null || 值.trim().isEmpty() → return
 // ⚠ 注意是 || 不是 &&：两个条件中一个就拒绝。
 //   写成 && 会变成"两个都满足才拒绝"，等于几乎没检查。
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 09
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 09
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 09
 """;
 
     public static string 参考答案 => """

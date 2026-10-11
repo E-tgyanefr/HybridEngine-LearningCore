@@ -204,6 +204,16 @@ public static class 第13课
 //
 // ⚠ 说明() 里要写 Math.round(面积())，不要自己写死数字；
 //   圆 的 面积() 要写 Math.PI，不要用 3.14（那是错的算法，检查会看 Math.PI）。
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 13
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 13
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 13
 """;
 
     public static string 参考答案 => """

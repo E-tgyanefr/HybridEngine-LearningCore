@@ -234,6 +234,16 @@ public static class 第16课
 //     import java.util.ArrayList;
 //     import java.util.HashMap;
 //   忘了会报：错误: 找不到符号  类 ArrayList
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 16
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 16
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 16
 """;
 
     public static string 参考答案 => """

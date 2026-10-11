@@ -157,6 +157,16 @@ public static class 第10课
 // ⚠ 第二个构造方法里**唯一**的语句应该就是这一行：
 //     this(名字, 分数, "未分班");
 //   不要再写一遍 this.名字 = 名字; —— 那是重复劳动，也是这一课要避免的东西。
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 10
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 10
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 10
 """;
 
     public static string 参考答案 => """

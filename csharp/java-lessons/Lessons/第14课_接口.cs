@@ -179,6 +179,16 @@ public static class 第14课
 //   Java 的类类型变量里装的是**引用**（第 08 课讲过），
 //   两个变量里装的是同一个地址，所以 == 为 true。
 //   换个视角不等于换了对象。
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 14
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 14
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 14
 """;
 
     public static string 参考答案 => """

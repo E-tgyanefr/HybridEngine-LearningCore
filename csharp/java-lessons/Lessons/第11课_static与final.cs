@@ -168,6 +168,16 @@ public static class 第11课
 //
 // ⚠ 注意"一个加=3"：前面已经加过两次了，个数**不会**因为造了新对象就归零。
 //   这正是 static 的意思 —— 它属于类，跟造不造对象没关系。
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/java-lessons 检查 11
+//
+//   看这一课要干什么：dotnet run --project csharp/java-lessons 11
+//   看答案（先自己写一遍）：dotnet run --project csharp/java-lessons 答案 11
 """;
 
     public static string 参考答案 => """
