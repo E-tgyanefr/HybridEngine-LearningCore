@@ -270,15 +270,22 @@ class 主页与语言列表测试(unittest.TestCase):
         self.assertIn("载入中", 全部,
                       "编译型四条线没有先占位 —— 学员会以为界面上没有 C# / C++")
 
-    def test_Python展开后是16课(self):
+    def test_Python展开后是17课(self):
+        """⚠ 是 **17** 课：01~16 加后来补的「第 00 课：跑通第一个程序」。
+
+        改这个数之前先想清楚：课数是从 lessons/ 目录扫出来的真值，
+        不是写死的配置。加了课就要改这里 —— 这是**有意的**摩擦，
+        免得课悄悄丢了也没人发现。
+        """
         def 做(g, r):
             g.进课程学习()
             g.update()
             节 = 找节点(g.树, "Python")
             r["课数"] = len(g.树.get_children(节)) if 节 else 0
         结果 = self._走一遍(做)
-        self.assertEqual(结果.get("课数"), 16,
-                         f"Python 应当是 16 课（一课只讲一个语法），实际 {结果.get('课数')}")
+        self.assertEqual(结果.get("课数"), 17,
+                         f"Python 应当是 17 课（第 00 课 + 01~16，一课只讲一个语法），"
+                         f"实际 {结果.get('课数')}")
 
     def test_游戏编写直接展开(self):
         def 做(g, r):
