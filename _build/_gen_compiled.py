@@ -143,16 +143,46 @@ def 打印行(值表达式: str) -> str:
         不能靠"用到的时候记得改一下"——上面三次都是"忘了改一处"。
     """
     if _是CSharp():
-        return "    Console.WriteLine(%s);\n" % 值表达式
-    return '    printf("%s\\n", (%s).ToString());\n' % ("%s", 值表达式)
+        return f"    Console.WriteLine({值表达式});\n"
+    # ⚠ 用 f-string/`+` 而**不是 `%`**：值表达式里可能含 `%`
+    #   （比如数组打印用 `__v%d`），`%` 运算符会把它当占位符 ⇒
+    #       TypeError: not all arguments converted during string formatting
+    return '    printf("%s\\n", (' + 值表达式 + ").ToString());\n"
 
 
 def 打印整数(名: str, 入: str) -> str:
-    return 打印行("%s(%s)" % (名, 入))
+    """打一个整数返回值。
+
+    ⚠⚠ **整数和小数不能用"通用打印"**（那个走 `.ToString()`）——
+      **C / C++ 里没有 `.ToString()`**，只有 C# 有。
+      我第一版让整数也走 `打印行()`，于是 C++ 的骨架生成了
+          printf("%s\\n", (阶乘(5)).ToString());
+      ⇒ `error: 'class std::__cxx11::basic_string...' has no member named...`，
+         **C++ 的 12 课从全绿掉到 9/12**。
+      ⇒ 判据：**"通用"只能覆盖"两种语言都有那个写法"的部分**；
+        整数/小数有各自的原生格式符，就该各写各的。
+    """
+    值 = "%s(%s)" % (名, 入)
+    if _是CSharp():
+        return 打印行(值)
+    # ⚠ `%d` 要用 `+` 拼进去；写 `'…"%d\n"…' % 值` 会让 Python 的 `%`
+    #   把 `%d` 当占位符 ⇒ `TypeError: %d format: a real number is required, not str`
+    return '    printf("%d\\n", ' + 值 + ");\n"
+
+
+def 打印整数表达式(表达式: str) -> str:
+    """打一个**已经是完整表达式**的整数（不是 `名(入)` 那个形状）。
+
+    ⚠ `写了函数` 的第二个参数就是完整调用表达式（如 `阶乘(5)`），
+      所以不能走 `打印整数(名, 入)`（那个会拼成 `阶乘(阶乘(5))`）。
+    """
+    if _是CSharp():
+        return 打印行(表达式)
+    return '    printf("%d\\n", ' + 表达式 + ");\n"
 
 
 def 打印真假(名: str, 入: str) -> str:
-    """bool 返回值。C 那边没有直接打 bool 的办法，要自己写三目。"""
+    """bool 返回值。C / C++ 用三目，C# 里 bool 直接 WriteLine 就是 True/False。"""
     值 = "%s(%s)" % (名, 入)
     if _是CSharp():
         return 打印行(值)
@@ -160,7 +190,7 @@ def 打印真假(名: str, 入: str) -> str:
 
 
 def 打印小数(名: str, 入: str) -> str:
-    """浮点返回值。C# 定死六位小数，和期望里写的一致。"""
+    """浮点返回值。定死六位小数，和期望里写的一致。"""
     值 = "%s(%s)" % (名, 入)
     if _是CSharp():
         return 打印行('%s.ToString("F6")' % 值)
@@ -328,9 +358,11 @@ def 形_写了函数(说明, 参, 序):
     # ⚠ 不能把"调用表达式"当**值**打印：printf("%d", 加倍(0)) 对 void 函数会报
     #   void value not ignored。带参数的（如 判等级(95)）说明要看返回值。
     带参 = "(" in 调用 and 调用.split("(", 1)[1].rstrip(")") != ""
-    # ⚠ `%d` 在 Python 的 `%` 格式化里是占位符 ⇒ 要写成 `%%d`
-    #   （这一行原来直接写 `%d`，跑到这里报 "TypeError: %d format: a real number is required"）
-    语句 = ('    printf("%%d\\n", %s);\n' % 调用) if 带参 else ("    %s;\n" % 调用)
+    # ⚠ 带参数的调用（如 `判等级(95)`）说明要看返回值 ⇒ 按**整数**打印。
+    #   不能再用通用的 `打印行()` —— 那个走 `.ToString()`，而 **C / C++ 没有它**，
+    #   于是骨架里出现 `printf("%s\n", (阶乘(5)).ToString())` ⇒ 编译不过 ⇒
+    #   这条检查反而报"没找到函数"（**冤枉正确答案**）。
+    语句 = (打印整数表达式(调用)) if 带参 else ("    " + 调用 + ";\n")
     return 头(说明, f"检查_{序}") + 跑骨架(语句) + (
         "        if (!run.编译通过)\n"
         "        {\n"
@@ -368,12 +400,7 @@ def _用例核心(说明, 参, 序, 形态: str):
     名 = 参[0]
     对 = list(zip(参[1::2], 参[2::2]))
     if 形态 == "文字":
-        行 = []
-        for 入, _ in 对:
-            值 = "%s(%s)" % (名, 入)
-            行.append(("    Console.WriteLine(%s);\n" % 值) if _是CSharp()
-                      else ('    printf("%s\\n", %s);\n' % ("%s", 值)))
-        打印 = "".join(行)
+        打印 = "".join(打印行("%s(%s)" % (名, 入)) for 入, _ in 对)
     else:
         打印 = "".join(返回值打印表[形态](名, 入) for 入, _ in 对)
     return 头(说明, f"检查_{序}") + 跑骨架(打印) + (
@@ -461,7 +488,7 @@ def 形_字符串用例(说明, 参, 序):
     """
     名 = 参[0]
     对 = list(zip(参[1::2], 参[2::2]))
-    打印 = "".join('    printf("%%s\\n", %s(%s));\n' % (名, 入) for 入, _ in 对)
+    打印 = "".join(打印行("%s(%s)" % (名, 入)) for 入, _ in 对)
     return 头(说明, f"检查_{序}") + 跑骨架(打印) + (
         "        if (!run.编译通过) return {K}.编译失败说明(run);\n" +
         逐行比对([期 for _, 期 in 对], [入 for 入, _ in 对],
@@ -471,9 +498,15 @@ def 形_字符串用例(说明, 参, 序):
 def 形_指针用例(说明, 参, 序):
     名 = 参[0]
     对 = list(zip(参[1::2], 参[2::2]))
-    打印 = "".join(
-        '    int __v%d = %s;\n    %s(&__v%d);\n    printf("%%d\\n", __v%d);\n'
-        % (i, 入, 名, i, i) for i, (入, _) in enumerate(对))
+    # ⚠ 我上一版把这一行改成了 `"…%d…" % (i, 入, 名, i) + 打印行(…) % (i, 入, 名, i, i)`
+    #   —— 第二个 `%` 又作用了一次、参数还多了 ⇒
+    #       TypeError: not all arguments converted during string formatting
+    #   拼接和格式化混在一行最容易出这种事，所以拆开写。
+    行 = []
+    for i, (入, _) in enumerate(对):
+        行.append("    int __v%d = %s;\n    %s(&__v%d);\n" % (i, 入, 名, i))
+        行.append(打印行("__v%d" % i))
+    打印 = "".join(行)
     return 头(说明, f"检查_{序}") + 跑骨架(打印) + (
         "        if (!run.编译通过) return {K}.编译失败说明(run);\n" +
         逐行比对([期 for _, 期 in 对], [入 for 入, _ in 对],
@@ -503,7 +536,7 @@ def 形_数组合用例(说明, 参, 序):
         有效.append((数, 期))
         块.append("    int __a%d[] = {%s};\n" % (i, ", ".join(元素)))
         if 模式 == "返回":
-            块.append('    printf("%%d\\n", %s(__a%d, %d));\n' % (名, i, len(元素)))
+            块.append(打印行("%s(__a%d, %d)" % (名, i, len(元素))))
         else:
             块.append("    %s(__a%d, %d);\n" % (名, i, len(元素)))
             块.append('    for (int __i = 0; __i < %d; __i++) printf("%%d,", __a%d[__i]);\n'
