@@ -79,16 +79,117 @@ class 界面(tk.Tk):
         self._忙 = False
 
         self._建样式()
-        self._建布局()
+        # ⚠ 先建"主页"，学习界面等学员选了再建。
+        #   为什么不在启动时把学习界面一起建好再藏起来：
+        #   建课程树要跑 10 条线的发现逻辑（编译型那几条要起子进程）——
+        #   那是几百毫秒到几秒。主页要**立刻**能看见、能点。
+        self._容器 = tk.Frame(self, bg=背景)
+        self._容器.pack(fill="both", expand=True)
+        self.学习界面 = None
+        self._建主页()
         self.bind("<F5>", lambda e: self.点运行())
         self.bind("<Control-s>", lambda e: self.点保存())
+        self.bind("<Escape>", lambda e: self.回主页())
         self.protocol("WM_DELETE_WINDOW", self._关闭时问)
         self.after(80, self._收任务)
-        self._填课程树()
         self._开场动画()
-        # ⚠ 开场动画一结束就去后台载入编译型课程 —— 让"界面出现"
-        #   与"课程数完"分开，界面不必等那 6 秒。
-        self.after(1200, self._后台载入编译型)
+
+
+    # ══════════════════════ 主页（两个入口） ══════════════════════
+    def _建主页(self):
+        """进去之后先看到两个选项：游戏编写 / 课程学习。
+
+        ⚠ 为什么要这一层：
+          原来双击直接就是"课程树 + 编辑器 + 说明"三栏 —— 信息量很大，
+          第一次打开的人不知道该点哪。两个大按钮把"你想干什么"问清楚，
+          比一屏控件更好上手。
+
+        ⚠ 主页**不建**课程树：那要跑 10 条线的发现逻辑（编译型还要起子进程）。
+          主页必须立刻能看见、能点。
+        """
+        self._清空容器()
+        self.主页 = tk.Frame(self._容器, bg=背景)
+        self.主页.pack(fill="both", expand=True)
+
+        框 = tk.Frame(self.主页, bg=背景)
+        框.place(relx=0.5, rely=0.46, anchor="center")
+
+        tk.Label(框, text="HybridEngine-light", bg=背景, fg=文字,
+                 font=("Segoe UI", 26, "bold")).pack(pady=(0, 6))
+        tk.Label(框, text="学编程，从第一行代码看到画面", bg=背景, fg=暗文字,
+                 font=("Segoe UI", 11)).pack(pady=(0, 34))
+
+        选 = tk.Frame(框, bg=背景)
+        选.pack()
+        self._大按钮(选, "游戏编写", "自己写一个小游戏，看得见画面", self.进游戏编写).pack(
+            side="left", padx=14)
+        self._大按钮(选, "课程学习", "按编程语言挑，一课只讲一个知识点", self.进课程学习).pack(
+            side="left", padx=14)
+
+        tk.Label(框, text="（想回这里随时按 Esc）", bg=背景, fg=暗文字,
+                 font=("Segoe UI", 9)).pack(pady=(30, 0))
+
+    def _大按钮(self, 父, 标题: str, 说明: str, 命令):
+        """主页上的大按钮：标题大、说明小。"""
+        卡 = tk.Frame(父, bg=面板, highlightthickness=1,
+                     highlightbackground=高亮, bd=0)
+        内 = tk.Frame(卡, bg=面板)
+        内.pack(padx=34, pady=26)
+        tk.Label(内, text=标题, bg=面板, fg=文字,
+                 font=("Segoe UI", 17, "bold")).pack()
+        tk.Label(内, text=说明, bg=面板, fg=暗文字,
+                 font=("Segoe UI", 9)).pack(pady=(8, 0))
+        卡.bind("<Button-1>", lambda e: 命令())
+        内.bind("<Button-1>", lambda e: 命令())
+        for w in 内.winfo_children():
+            w.bind("<Button-1>", lambda e: 命令())
+            w.configure(cursor="hand2")
+        卡.configure(cursor="hand2")
+        return 卡
+
+    def _清空容器(self):
+        for w in self._容器.winfo_children():
+            w.destroy()
+
+    def 回主页(self):
+        """回到两个入口那一屏。
+
+        ⚠ 学习界面**不销毁**（下次进来秒开），只是藏起来。
+          但课程树里的编译型课程是后台补的，藏起来不影响它继续补。
+        """
+        if self.学习界面 is not None and self.学习界面.winfo_exists():
+            self.学习界面.pack_forget()
+        if self.主页 is not None and self.主页.winfo_exists():
+            self.主页.pack(fill="both", expand=True)
+            return
+        self._建主页()
+
+    def 进课程学习(self):
+        """进学习界面，并且把左边那条**语言列表**拉出来。"""
+        self._进学习界面()
+        self._填语言列表()
+        # ⚠ 编译型四条线（C# / C++ / Java / C）各要起一次子进程（约 1.5 秒），
+        #   所以先把它们显示成"载入中…"占位，再在后台补上真实的课。
+        #   （原来这次调度在 `__init__` 里；改成主页之后必须**移到这儿** ——
+        #     否则编译型会永远停在"载入中"。）
+        # ⚠ 只在**没补过**的时候调一次，避免来回切主页重复起子进程。
+        if not getattr(self, "_编译型补过", False):
+            self._编译型补过 = True
+            self.after(120, self._后台载入编译型)
+
+    def 进游戏编写(self):
+        self._进学习界面()
+        self._填语言列表(只看游戏=True)
+
+    def _进学习界面(self):
+        if self.学习界面 is None or not self.学习界面.winfo_exists():
+            self.主页.pack_forget()
+            self.学习界面 = tk.Frame(self._容器, bg=背景)
+            self.学习界面.pack(fill="both", expand=True)
+            self._建布局(self.学习界面)
+        else:
+            self.主页.pack_forget()
+            self.学习界面.pack(fill="both", expand=True)
 
     # ══════════════════════ 样式与布局 ══════════════════════
     def _建样式(self):
@@ -104,27 +205,36 @@ class 界面(tk.Tk):
         s.map("TNotebook.Tab", background=[("selected", 背景)], foreground=[("selected", 文字)])
         s.configure("TFrame", background=背景)
 
-    def _建布局(self):
+    def _建布局(self, 父):
         # 顶栏
-        顶 = tk.Frame(self, bg=面板, height=44)
+        顶 = tk.Frame(父, bg=面板, height=44)
         顶.pack(fill="x", side="top")
         顶.pack_propagate(False)
-        tk.Label(顶, text="  HybridEngine-light", bg=面板, fg=文字,
+        # ⚠ 回主页的入口要**一直在**：学员点进去之后不能迷路
+        tk.Button(顶, text="← 主页", command=self.回主页, bg=面板, fg=暗文字,
+                  bd=0, activebackground=高亮, activeforeground=文字,
+                  font=("Segoe UI", 9), padx=8, cursor="hand2").pack(side="left", pady=8)
+        tk.Label(顶, text="HybridEngine-light", bg=面板, fg=文字,
                  font=("Segoe UI", 12, "bold")).pack(side="left", pady=8)
         self.环境标签 = tk.Label(顶, text="", bg=面板, fg=暗文字, font=("Segoe UI", 9))
         self.环境标签.pack(side="right", padx=12)
         self._刷新环境标签()
 
         # 三栏
-        主体 = tk.PanedWindow(self, orient="horizontal", bg=背景,
+        主体 = tk.PanedWindow(父, orient="horizontal", bg=背景,
                              sashwidth=5, sashrelief="flat", bd=0)
         主体.pack(fill="both", expand=True)
 
-        # 左：课程树
+        # 左：**语言列表**（作者要求：课程学习处直接把所有编程语言罗列出来）
+        #
+        # ⚠ 原来是"轨道 → 课程"两层树，第一眼看到的是一堆分组名。
+        #   现在改成：第一层就是**语言**（Python / C# / C++ / Java / C ...），
+        #   点一门语言才展开它的课 —— 少一层，更接近"我想学 X 语言"的想法。
         左 = tk.Frame(主体, bg=面板)
         主体.add(左, width=260, minsize=180)
-        tk.Label(左, text="  课程", bg=面板, fg=暗文字,
-                 font=("Segoe UI", 9)).pack(anchor="w", pady=(8, 2))
+        self.语言标题 = tk.Label(左, text="  选择编程语言", bg=面板, fg=暗文字,
+                              font=("Segoe UI", 9))
+        self.语言标题.pack(anchor="w", pady=(8, 2))
         self.树 = ttk.Treeview(左, show="tree", selectmode="browse")
         self.树.pack(fill="both", expand=True, padx=6, pady=(0, 6))
         self.树.bind("<<TreeviewSelect>>", self._选课)
@@ -177,7 +287,7 @@ class 界面(tk.Tk):
         self.结果徽标 = A.结果徽标(条, 22, 17)
 
         # 底栏按钮
-        底 = tk.Frame(self, bg=面板, height=46)
+        底 = tk.Frame(父, bg=面板, height=46)
         底.pack(fill="x", side="bottom")
         底.pack_propagate(False)
         for 字, 命令, 宽 in (("保存", self.点保存, 8), ("运行  F5", self.点运行, 11),
@@ -282,7 +392,22 @@ class 界面(tk.Tk):
                   ("其它线缺：" + "、".join(缺) if 缺 else "全部工具链就绪  ")))
 
     # ══════════════════════ 课程树 ══════════════════════
-    def _填课程树(self):
+    #: 语言在列表里怎么排 —— 按"从哪门开始学"排，不是按字典序。
+    #  Python 排第一（零依赖、开箱即用），编译型的排后面。
+    _语言顺序 = ("python", "enginecourse", "games", "csharp", "cpp", "java", "c",
+                "ai", "embedded", "raspi")
+
+    def _填语言列表(self, 只看游戏: bool = False):
+        """把**所有编程语言**直接罗列出来（作者要求）。
+
+        ⚠ 层次：**第一层就是语言**，点开才是课。
+          原来第一层是"轨道分组"，学员得先理解"轨道"这个概念才能找到课。
+          少一层之后，看到的就是「Python / C# / C++ / Java / C / 人工智能 …」——
+          这正是"我想学哪门语言"这个问题的答案。
+
+        ⚠ 编译型四条线仍然**后台补**（它们要起子进程，各约 1.5 秒）：
+          先把能立刻显示的语言列出来，界面秒开；编译型的随后出现。
+        """
         """**先只填即时轨道**，编译型四条线放后台加载。
 
         ⚠⚠ 这里是启动慢的真凶（实测）：
@@ -299,29 +424,49 @@ class 界面(tk.Tk):
         self.树.delete(*self.树.get_children())
         self._树到课 = {}
         self._待填父节点 = {}
-        for 键 in M.即时轨道:
-            self._插轨道(键)
-        # 编译型：先占位，再后台加载
-        for 键 in M.编译型轨道:
-            显示, 开箱, 说明 = M.轨道[键]
-            父 = self.树.insert("", "end", text=f"  {显示}（{说明}）· 载入中…")
+
+        顺序 = [k for k in self._语言顺序 if k in M.轨道]
+        顺序 += [k for k in M.轨道 if k not in 顺序]
+
+        if 只看游戏:
+            # 「游戏编写」入口：直接**展开**那一条线，不再问一遍"挑哪个"
+            #   （学员已经选过"游戏编写"了，再让他选一次是多余的一步）
+            顺序 = [k for k in ("enginecourse", "games") if k in M.轨道]
+            self.语言标题.configure(text="  游戏编写")
+        else:
+            self.语言标题.configure(text="  选择编程语言")
+
+        for 键 in 顺序:
+            if 键 in M.即时轨道:
+                父 = self._插轨道(键, 展开=只看游戏)
+                # 「游戏编写」只有一个分组 ⇒ 直接展开，省掉一次点击
+                if 只看游戏 and 父:
+                    self.树.item(父, open=True)
+        # 编译型：先占位（就能立刻看到"这门语言在这里"），再后台补课
+        if not 只看游戏:
+            for 键 in M.编译型轨道:
+                显示, 开箱, 说明 = M.轨道[键]
+                父 = self.树.insert("", "end",
+                                  text=f"  {显示}（{说明}）· 载入中…")
+                self._待填父节点[键] = 父
             self._待填父节点[键] = 父
 
-    def _插轨道(self, 键: str, 父: str | None = None) -> int:
-        """把一条课程线插进树，返回插了几课。"""
+    def _插轨道(self, 键: str, 父: str | None = None, 展开: bool = False):
+        """把一条课程线插进树，返回它的节点 id（插不进东西时返回 0）。"""
         显示, 开箱, 说明 = M.轨道[键]
         cs = M.发现(键)
         if not cs:
             return 0
         if 父 is None:
             标 = 显示 if 开箱 else f"{显示}（{说明}）"
-            父 = self.树.insert("", "end", text=f"  {标}", open=(键 == "python"))
+            父 = self.树.insert("", "end", text=f"  {标}",
+                              open=(展开 or 键 == "python"))
         else:
             self.树.item(父, text=f"  {显示}（{说明}）")
         for k in cs:
             子 = self.树.insert(父, "end", text=f"    {k.显示()}")
             self._树到课[子] = k
-        return len(cs)
+        return 父
 
     def _后台载入编译型(self):
         """在后台线程里逐条发现编译型课程，发现一条就填一条。

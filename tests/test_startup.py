@@ -140,6 +140,8 @@ class 启动不等编译型测试(unittest.TestCase):
         M.发现 = 记账
         try:
             g = G.界面()
+            # ⚠ 课程树在「课程学习」里 —— 主页上没有它
+            g.进课程学习()
         finally:
             M.发现 = 真的
         编译型被问 = [k for k in 被问到的 if k in M.编译型轨道]
@@ -155,6 +157,8 @@ class 启动不等编译型测试(unittest.TestCase):
         """编译型四条线应当**先占位**（显示"载入中…"），而不是不出现。"""
         from hybridengine_light import learn_gui as G
         g = G.界面()
+        # ⚠ 课程树在「课程学习」里 —— 主页上没有它
+        g.进课程学习()
         try:
             self.assertTrue(hasattr(g, "_待填父节点"))
             self.assertEqual(set(g._待填父节点), set(M.编译型轨道),

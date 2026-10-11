@@ -67,7 +67,10 @@ class 界面全流程测试(unittest.TestCase):
         """用**真 mainloop** 跑一遍界面流程，返回观察到的结果。"""
         from hybridengine_light.learn_gui import 界面
         观察: dict = {}
+        # ⚠ 现在双击先进**主页**（两个入口），课程树要进了「课程学习」才存在。
+        #   实测：不加这两行会 AttributeError: 'tkapp' object has no attribute '树'
         g = 界面()
+        g.进课程学习()
 
         def 一步(序):
             if 序 == 0:
