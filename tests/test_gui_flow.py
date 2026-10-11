@@ -70,6 +70,13 @@ class 界面全流程测试(unittest.TestCase):
         # ⚠ 现在双击先进**主页**（两个入口），课程树要进了「课程学习」才存在。
         #   实测：不加这两行会 AttributeError: 'tkapp' object has no attribute '树'
         g = 界面()
+        # ⚠⚠ 但**必须关掉后台载入**：`进课程学习` 会顺手调度
+        #   `_后台载入编译型`（起 4 次 `dotnet run` 子进程，把结果塞进队列）。
+        #   这个测试原来靠"自己排的 after 链条 + destroy"首尾闭死地跑完，
+        #   后台消息一进来就把链条打乱 ⇒ **mainloop 永远不退出，表现为整组测试挂住**。
+        #   实测：加 `进课程学习()` 之后这两条从 1.7 秒变成 60 秒不返回。
+        #   ⇒ 测试不该依赖真子进程，这里直接把"补过了"标上，跳过调度。
+        g._编译型补过 = True
         g.进课程学习()
 
         def 一步(序):
@@ -80,13 +87,38 @@ class 界面全流程测试(unittest.TestCase):
             elif 序 == 1:
                 观察["遮罩没了"] = not (hasattr(g, "遮罩") and g.遮罩.winfo_exists())
                 顶 = g.树.get_children()
-                观察["课程线数"] = len(顶)
+                观察["顶层节点数"] = len(顶)
                 if not 顶:
                     观察["错"] = "课程树是空的"
                     g.destroy(); return
-                子 = g.树.get_children(顶[0])
-                观察["首线课数"] = len(子)
-                g.树.selection_set(子[0])
+
+                # ⚠⚠ 树的层次变过：现在是 **分组 → 语言 → 课**。
+                #   原来这里是"顶层就是语言、它的孩子就是课"，
+                #   而改成分组之后 `顶[0]` 是「编程语言」这个**分组**，
+                #   它的孩子是**语言**而不是课 ——
+                #   `selection_set(子[0])` 于是选中了「Python 基础」，
+                #   那是**点不出任何东西**的（语言节点没有课的内容）。
+                #   症状：流程卡在序 1，mainloop 永不退出 ⇒ 整组测试挂住。
+                #   ⇒ 递归找到**第一条真正的课**（课记在 `_树到课` 里）。
+                def 第一课(父):
+                    for i in g.树.get_children(父):
+                        if i in g._树到课:
+                            return i
+                        r = 第一课(i)
+                        if r:
+                            return r
+                    return None
+
+                年级 = 第一课("")
+                if not 年级:
+                    观察["错"] = "找不到任何一课"
+                    g.destroy(); return
+                # 语言节点 = 它的父；课数 = 那个节点下的课数
+                语言节点 = g.树.parent(年级)
+                观察["首个语言节点"] = g.树.item(语言节点, "text").strip()
+                观察["首线课数"] = len([x for x in g.树.get_children(语言节点)
+                                       if x in g._树到课])
+                g.树.selection_set(年级)
                 g.after(320, 一步, 2)
             elif 序 == 2:
                 观察["标题"] = g.编辑标题.cget("text").strip()
@@ -126,7 +158,7 @@ class 界面全流程测试(unittest.TestCase):
         观察 = self._跑流程("值 = 1\n")
         self.assertNotIn("错", 观察, 观察.get("错"))
         self.assertTrue(观察["遮罩没了"], "开场动画没被跳过")
-        self.assertGreaterEqual(观察["课程线数"], 1)
+        self.assertGreaterEqual(观察["顶层节点数"], 1)
         self.assertIn("测试课", 观察["标题"])
         self.assertGreater(观察["编辑器字数"], 0, "编辑器没填内容")
         self.assertGreater(观察["正文字数"], 0, "正文页没填内容")
@@ -144,6 +176,35 @@ class 界面全流程测试(unittest.TestCase):
         self.assertTrue(("√" in 报告) or ("✓" in 报告), f"对的答案没给出勾：{报告!r}")
         # 结果徽标应当画出东西（只在报告里有 ✓/✗ 时才弹）
         self.assertGreater(观察["徽标件数"], 0, "结果徽标没画出来")
+
+
+def 找节点(树, 片段: str):
+    """在整棵树里**递归**找第一个文字含 `片段` 的节点，返回 item id（找不到 None）。
+
+    ⚠ 为什么需要它：树的层数会变（现在是 **分组 → 语言 → 课**）。
+      判据里写死 `树.get_children()[0]` 这种"第几个"的写法，
+      一改结构就红 —— 而**结构改动是正常的**，判据该认的是"有没有那一项"。
+    """
+    def 走(父):
+        for i in 树.get_children(父):
+            if 片段 in 树.item(i, "text"):
+                return i
+            r = 走(i)
+            if r:
+                return r
+        return None
+    return 走("")
+
+
+def 全文字(树) -> str:
+    """把整棵树的所有节点文字拼起来（用来查"有没有出现某个词"）。"""
+    出 = []
+    def 走(父):
+        for i in 树.get_children(父):
+            出.append(树.item(i, "text"))
+            走(i)
+    走("")
+    return " ".join(出)
 
 
 class 主页与语言列表测试(unittest.TestCase):
@@ -183,33 +244,38 @@ class 主页与语言列表测试(unittest.TestCase):
                       if isinstance(w, __import__("tkinter").Frame))))
         self.assertGreaterEqual(r.get("按钮数", 0), 1)
 
-    def test_课程学习把所有语言罗列出来(self):
+    def test_课程学习把语言与专题分开罗列(self):
+        """⚠ 作者要求：**专题**（AI / 嵌入式 / 树莓派）要单独一类。
+
+        把它们和 Python / C# 并列，学员会以为「树莓派」是一门语言。
+        """
         def 做(g, r):
             g.进课程学习()
             g.update()
-            顶 = g.树.get_children()
-            r["语言数"] = len(顶)
-            r["文字"] = [g.树.item(x, "text") for x in 顶]
+            r["顶层"] = [g.树.item(x, "text").strip() for x in g.树.get_children()]
+            r["全部"] = 全文字(g.树)
             r["有树"] = hasattr(g, "树")
         结果 = self._走一遍(做)
         self.assertTrue(结果.get("有树"), "进了课程学习却没有课程树")
-        self.assertGreaterEqual(结果["语言数"], 6,
-                                f"罗列出来的语言太少：{结果.get('文字')}")
-        # Python 必须是第一层的一项（它在 _语言顺序 里排第一）
-        文本 = " ".join(结果["文字"])
-        self.assertIn("Python", 文本, f"语言列表里没有 Python：{结果['文字']}")
+        顶层 = 结果["顶层"]
+        self.assertTrue(any("编程语言" in x for x in 顶层),
+                        f"没有「编程语言」分组：{顶层}")
+        self.assertTrue(any("专题" in x for x in 顶层),
+                        f"没有「专题」分组 —— AI/嵌入式/树莓派 没被归为一类：{顶层}")
+        # 语言要真的在树里（不一定是第一层了）
+        全部 = 结果["全部"]
+        for 词 in ("Python", "C#", "C++", "Java"):
+            self.assertIn(词, 全部, f"语言列表里没有 {词}")
         # 编译型要先占位（显示"载入中"），而不是不出现
-        self.assertIn("载入中", 文本,
+        self.assertIn("载入中", 全部,
                       "编译型四条线没有先占位 —— 学员会以为界面上没有 C# / C++")
 
     def test_Python展开后是16课(self):
         def 做(g, r):
             g.进课程学习()
             g.update()
-            for x in g.树.get_children():
-                if "Python" in g.树.item(x, "text"):
-                    r["课数"] = len(g.树.get_children(x))
-                    break
+            节 = 找节点(g.树, "Python")
+            r["课数"] = len(g.树.get_children(节)) if 节 else 0
         结果 = self._走一遍(做)
         self.assertEqual(结果.get("课数"), 16,
                          f"Python 应当是 16 课（一课只讲一个语法），实际 {结果.get('课数')}")
@@ -220,7 +286,11 @@ class 主页与语言列表测试(unittest.TestCase):
             g.update()
             顶 = g.树.get_children()
             r["组"] = [g.树.item(x, "text") for x in 顶]
+            # 展开的可以是分组，也可以是分组下的那条线
             r["展开"] = [g.树.item(x, "text") for x in 顶 if g.树.item(x, "open")]
+            for x in 顶:
+                r["展开"] += [g.树.item(y, "text") for y in g.树.get_children(x)
+                            if g.树.item(y, "open")]
         结果 = self._走一遍(做)
         self.assertTrue(结果.get("组"), "游戏编写里什么都没有")
         self.assertTrue(结果.get("展开"), "游戏编写的分组没有展开（还得再点一次）")
