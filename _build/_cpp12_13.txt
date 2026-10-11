@@ -164,6 +164,17 @@
 模板|//        printf("%d\n", b.x);                 → 0
 模板|//
 模板|// 期望输出三行：25 / 3 / 0
+模板|
+模板|// ─────────────────────────────────────────────────────
+模板|//  怎么自己测
+模板|// ─────────────────────────────────────────────────────
+模板|//   点界面上的「检查」。命令行（在源码目录里）：
+模板|//
+模板|//       dotnet run --project csharp/cpp-lessons 检查 12
+模板|//
+模板|//   看这一课要干什么：dotnet run --project csharp/cpp-lessons 12
+模板|//   看答案（先自己写一遍）：dotnet run --project csharp/cpp-lessons 答案 12
+模板|//
 答案|// 第 12 课参考答案：结构体与类
 答案|#include <stdio.h>
 答案|
@@ -346,6 +357,17 @@
 模板|//
 模板|// ⚠ 要 include 三个头：<vector> <algorithm> <numeric>
 模板|//   （accumulate 在 <numeric> 里 —— 漏了会说"找不到 accumulate"）
+模板|
+模板|// ─────────────────────────────────────────────────────
+模板|//  怎么自己测
+模板|// ─────────────────────────────────────────────────────
+模板|//   点界面上的「检查」。命令行（在源码目录里）：
+模板|//
+模板|//       dotnet run --project csharp/cpp-lessons 检查 13
+模板|//
+模板|//   看这一课要干什么：dotnet run --project csharp/cpp-lessons 13
+模板|//   看答案（先自己写一遍）：dotnet run --project csharp/cpp-lessons 答案 13
+模板|//
 答案|// 第 13 课参考答案：vector 与常用算法
 答案|#include <stdio.h>
 答案|#include <vector>

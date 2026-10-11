@@ -173,6 +173,17 @@ public static class 第12课
 //        printf("%d\n", b.x);                 → 0
 //
 // 期望输出三行：25 / 3 / 0
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/cpp-lessons 检查 12
+//
+//   看这一课要干什么：dotnet run --project csharp/cpp-lessons 12
+//   看答案（先自己写一遍）：dotnet run --project csharp/cpp-lessons 答案 12
+//
 """;
 
     public static string 参考答案 => """

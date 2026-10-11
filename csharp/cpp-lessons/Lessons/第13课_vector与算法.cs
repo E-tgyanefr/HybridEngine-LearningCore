@@ -147,6 +147,17 @@ public static class 第13课
 //
 // ⚠ 要 include 三个头：<vector> <algorithm> <numeric>
 //   （accumulate 在 <numeric> 里 —— 漏了会说"找不到 accumulate"）
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/cpp-lessons 检查 13
+//
+//   看这一课要干什么：dotnet run --project csharp/cpp-lessons 13
+//   看答案（先自己写一遍）：dotnet run --project csharp/cpp-lessons 答案 13
+//
 """;
 
     public static string 参考答案 => """
