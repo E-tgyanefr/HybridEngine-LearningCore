@@ -84,7 +84,7 @@ int 三倍(int x) {           /* ⚠ 定义在下面 */
         var run = CppCheck.直接运行(代码);
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "15"
+            "15",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)
@@ -103,7 +103,7 @@ int 三倍(int x) {           /* ⚠ 定义在下面 */
         var run = CppCheck.直接运行(代码);
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "15"
+            "15",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)
@@ -122,11 +122,11 @@ int 三倍(int x) {           /* ⚠ 定义在下面 */
         string 去注释 = 去掉注释(代码);
         int 主 = 去注释.IndexOf("int main");
         if (主 < 0)
-            return CheckResult.不过("这一课要求写完整的 main —— 找不到 int main。");
+            return CheckResult.不过("这一课要写完整的 main —— 找不到 int main。");
         string 前 = 去注释.Substring(0, 主);
         string 后 = 去注释.Substring(主);
         if (!前.Contains("int 三倍"))
-            return CheckResult.不过("声明要写在 main **前面**（写法：int 三倍(int x); 末尾有分号），否则编译器读不到它。");
+            return CheckResult.不过("声明要写在 main **前面**，否则编译器读不到它。");
         if (!后.Contains("int 三倍"))
             return CheckResult.不过("函数定义要写在 main **后面** —— 这一课练的就是这个顺序。");
         return CheckResult.过("声明在 main 前、定义在 main 后 —— 顺序对了");

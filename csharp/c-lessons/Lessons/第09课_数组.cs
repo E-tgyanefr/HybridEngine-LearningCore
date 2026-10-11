@@ -77,9 +77,8 @@ int main(void) {
         var run = CppCheck.编译并运行(代码, 骨架);
         if (!run.编译通过)
         {
-            string 信 = run.编译信息;
-            if (信.Contains("求和"))
-                return CheckResult.不过("没找到「求和」这个函数 —— 或者它的签名和题目要求不一致。");
+            if (run.编译信息.Contains("求和"))
+                return CheckResult.不过("没找到「求和」这个函数 —— 或者签名和题目要求不一致。");
             return CppCheck.编译失败说明(run);
         }
         return CheckResult.过("「求和」可以正常调用");
@@ -111,20 +110,24 @@ int main(void) {
             "14",
             "106",
             "2",
-            "27",
+            "27"
         };
         string[] 输入 = {
             "5,3,1,2,3",
             "5,1,100",
             "5,3,-1,-2,-3",
-            "3,0,7,8,9",
+            "3,0,7,8,9"
         };
         for (int i = 0; i < 期望.Length; i++)
-            if (i >= run.行.Count || run.行[i].Trim() != 期望[i])
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
                 return CheckResult.不过(
-                    $"数组 [{输入[i]}] 处理之后应当是 [{期望[i]}]，" +
-                    $"实际是 [{(i < run.行.Count ? run.行[i].Trim() : "（没输出）")}]。\n" +
+                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
                     "      ⚠ 函数拿到的是地址 ⇒ 改的就是原数组（或返回值要对）。");
+        }
         return CheckResult.过("每一组都对");
     }
 

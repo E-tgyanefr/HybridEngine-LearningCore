@@ -686,9 +686,13 @@ public static class 入口
             //   我第一版写死了 ExplainCpp ⇒ C# 课报错里出现
             //   "C++ 区分大小写""C++ 的报错行号要往上多看一行" ——
             //   **课程自己的错，学员却会以为是自己写错了。**
+            // ⚠ 还要再分一层：**C 课不能借 C++ 的说明**。
+            //   `用C` 时把语言名传成 "C"，翻译器就会说"C 区分大小写"
+            //   而不是"C++ 区分大小写"。
+            string 语言 = CppRunner.用CSharp ? "C#" : (CppRunner.用C ? "C" : "C++");
             var 说明 = CppRunner.用CSharp
                 ? Explain.For(new Exception(run.Raw.CompileOutput))
-                : ExplainCpp.For(run.Raw.CompileOutput, run.Raw.CompileOutput, true);
+                : ExplainCpp.For(run.Raw.CompileOutput, run.Raw.CompileOutput, true, 语言);
             return CheckResult.不过(说明.TrimEnd());
         }
         return CheckResult.不过("程序没能正常运行：\n      " + (run.Raw.Error ?? "未知原因"));

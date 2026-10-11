@@ -65,7 +65,7 @@ int main(void) {
         string[] 期望 = {
             "你好，C",
             "42",
-            "完成"
+            "完成",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)
@@ -86,7 +86,7 @@ int main(void) {
         string[] 期望 = {
             "你好，C",
             "42",
-            "完成"
+            "完成",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)
@@ -106,7 +106,7 @@ int main(void) {
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string 全部 = string.Join("\n", run.行);
         if (全部.Contains("\\\\n"))
-            return CheckResult.不过("输出里出现了「\\\\n」这几个字 —— 换行要用 \\n 转义，不能真的敲两下");
+            return CheckResult.不过("输出里出现了「\\\\n」—— 换行要用 \\n 转义。");
         return CheckResult.过();
     }
 

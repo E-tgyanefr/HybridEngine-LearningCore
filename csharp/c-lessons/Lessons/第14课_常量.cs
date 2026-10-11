@@ -81,7 +81,7 @@ int main(void) {
         var run = CppCheck.直接运行(代码);
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "12.57"
+            "12.57",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)
@@ -100,7 +100,7 @@ int main(void) {
         var run = CppCheck.直接运行(代码);
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "12.57"
+            "12.57",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)

@@ -69,7 +69,7 @@ int main(void) {
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "18",
-            "7"
+            "7",
         };
         var 实际 = run.行;
         if (实际.Count != 期望.Length)

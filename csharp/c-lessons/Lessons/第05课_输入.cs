@@ -75,7 +75,7 @@ int main(void) {
     {
         var run = CppCheck.直接运行(代码);
         if (run.Raw.CompileFailed) return CppCheck.编译失败说明(run);
-        return CheckResult.过("能编译运行（这一课的程序要读输入，检查会喂一个数给它）");
+        return CheckResult.过("能编译运行（这一课的程序要读输入）");
     }
 
     private static string 去掉注释(string s)

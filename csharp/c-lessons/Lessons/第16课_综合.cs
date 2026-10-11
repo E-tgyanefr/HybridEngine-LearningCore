@@ -135,20 +135,24 @@ int main(void) {
         string[] 期望 = {
             "5 1",
             "-1 -9",
-            "7 7",
+            "7 7"
         };
         string[] 输入 = {
             "3,1,4,1,5",
             "-5,-1,-9",
-            "7",
+            "7"
         };
         for (int i = 0; i < 期望.Length; i++)
-            if (i >= run.行.Count || run.行[i].Trim() != 期望[i])
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
                 return CheckResult.不过(
-                    $"数组 [{输入[i]}] 的最大/最小应当是 {期望[i]}，" +
-                    $"实际是「{(i < run.行.Count ? run.行[i].Trim() : "（没输出）")}」。\n" +
-                    "      ⚠ 两个坑：① 初值要从第一个元素起（写 0 在全负数时就会错）② 空数组要特判");
-        return CheckResult.过("含全负数、单元素、空数组 都对");
+                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
+                    "      ⚠ 两个坑：① 初值要从第一个元素起 ② 空数组要特判");
+        }
+        return CheckResult.过("每一组都对");
     }
 
     private static string 去掉注释(string s)

@@ -81,7 +81,6 @@ int main(void) {
     int __a[] = {1, 2, 3};
     全部加一(__a, 3);
     return 0;
-    return 0;
 }
 """;
         var run = CppCheck.编译并运行(代码, 骨架);
@@ -118,19 +117,23 @@ int main(void) {
         string[] 期望 = {
             "2,3,4",
             "-4,1,6",
-            "10",
+            "10"
         };
         string[] 输入 = {
             "1,2,3",
             "-5,0,5",
-            "9",
+            "9"
         };
         for (int i = 0; i < 期望.Length; i++)
-            if (i >= run.行.Count || run.行[i].Trim() != 期望[i])
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
                 return CheckResult.不过(
-                    $"数组 [{输入[i]}] 处理之后应当是 [{期望[i]}]，" +
-                    $"实际是 [{(i < run.行.Count ? run.行[i].Trim() : "（没输出）")}]。\n" +
+                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
                     "      ⚠ 函数拿到的是地址 ⇒ 改的就是原数组（或返回值要对）。");
+        }
         return CheckResult.过("每一组都对");
     }
 

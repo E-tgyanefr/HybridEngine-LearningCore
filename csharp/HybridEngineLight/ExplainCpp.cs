@@ -23,6 +23,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace HybridEngineLight;
@@ -33,7 +34,19 @@ public static class ExplainCpp
     /// <param name="raw">编译器或程序的原始输出</param>
     /// <param name="source">学生写的源码（用来判断上下文，例如上一行有没有分号）</param>
     /// <param name="compileFailed">true=编译失败；false=运行时出错</param>
-    public static string For(string raw, string source, bool compileFailed)
+    /// <param name="语言">这门课的语言名（默认 "C++"）。
+    ///
+    /// ⚠⚠ 为什么要有这个参数：这个翻译器是给 C++ 写的，里面的说明句句都在说
+    ///   "C++ 区分大小写""C++ 的报错行号要往上多看一行"。
+    ///   而 C 课也复用它 ⇒ **C 课的学员会读到"C++ 怎么怎么样"**，
+    ///   然后怀疑自己是不是写错了语言。
+    ///
+    ///   这是"课程自己的错，学员却以为是自己写错"这一类里最冤的一种 ——
+    ///   所以我宁可加一个参数，也不让 C 课继续借 C++ 的话。
+    ///   （C 的报错确实和 C++ 高度相似，所以规则表可以直接复用，
+    ///     只需要把语言名换掉。）</param>
+    public static string For(string raw, string source, bool compileFailed,
+                             string 语言 = "C++")
     {
         var sb = new System.Text.StringBuilder();
         sb.Append('\n').Append('─', 56).Append('\n');
@@ -50,6 +63,11 @@ public static class ExplainCpp
         }
 
         var body = Rules(消息, raw, source, 行号, compileFailed);
+        // ⚠ 规则表是给 C++ 写的，句子里到处是 "C++"。
+        //   换成 C 课时把所有 "C++" 替换成 "C" —— 一次性、不遗漏。
+        //   ⚠ body 是 List<string>（一行一条），所以要逐条替换：
+        if (语言 != "C++")
+            body = body.Select(l => l.Replace("C++", 语言)).ToList();
         if (body.Count > 0)
         {
             foreach (var l in body) sb.Append(l).Append('\n');

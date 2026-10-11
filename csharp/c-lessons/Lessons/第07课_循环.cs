@@ -89,9 +89,8 @@ int main(void) {
         var run = CppCheck.编译并运行(代码, 骨架);
         if (!run.编译通过)
         {
-            string 信 = run.编译信息;
-            if (信.Contains("求和到"))
-                return CheckResult.不过("没找到「求和到」这个函数 —— 或者它的签名和题目要求不一致。");
+            if (run.编译信息.Contains("求和到"))
+                return CheckResult.不过("没找到「求和到」这个函数 —— 或者签名和题目要求不一致。");
             return CppCheck.编译失败说明(run);
         }
         return CheckResult.过("「求和到」可以正常调用");
@@ -106,10 +105,10 @@ int main(void) {
 /*学生代码*/
 
 int main(void) {
-        printf("%d\n", 求和到(5));
-        printf("%d\n", 求和到(1));
-        printf("%d\n", 求和到(0));
-        printf("%d\n", 求和到(100));
+    printf("%d\n", 求和到(5));
+    printf("%d\n", 求和到(1));
+    printf("%d\n", 求和到(0));
+    printf("%d\n", 求和到(100));
     return 0;
 }
 """;
@@ -119,22 +118,25 @@ int main(void) {
             "15",
             "1",
             "0",
-            "5050",
+            "5050"
         };
         string[] 输入 = {
             "5",
             "1",
             "0",
-            "100",
+            "100"
         };
-        if (run.行.Count < 期望.Length)
-            return CheckResult.不过($"应该打印 {期望.Length} 行，实际 {run.行.Count} 行。");
         for (int i = 0; i < 期望.Length; i++)
-            if (run.行[i].Trim() != 期望[i])
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
                 return CheckResult.不过(
-                    $"求和到({输入[i]}) 应该是 {期望[i]}，实际是「{run.行[i].Trim()}」。\n" +
+                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
                     "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
-        return CheckResult.过($"{期望.Length} 组输入全对");
+        }
+        return CheckResult.过("每一组都对");
     }
 
     private static string 去掉注释(string s)
