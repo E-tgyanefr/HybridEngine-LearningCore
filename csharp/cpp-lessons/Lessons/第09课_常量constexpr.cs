@@ -105,7 +105,6 @@ public static class 第09课
 // 提示：不用写 main。
 
 // ── 在下面写 ──
-
 """;
 
     public static string 参考答案 => """

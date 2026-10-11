@@ -123,7 +123,6 @@ public static class 第11课
 // 提示：不用写 main。
 
 // ── 在下面写你的两个函数 ──
-
 """;
 
     public static string 参考答案 => """
