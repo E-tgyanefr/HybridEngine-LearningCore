@@ -92,20 +92,44 @@ public static class CppRunner
 
     /// <summary>没找到编译器时给学生看的说明。</summary>
     public static string InstallHint =>
-        "没有找到 C++ 编译器。\n\n" +
-        "C++ 和 Python、C# 不一样 —— 它需要一个**单独安装的编译器**：\n\n" +
-        "  Windows  装 MinGW-w64（推荐用 winget）：\n" +
-        "             winget install BrechtSanders.WinLibs.POSIX.UCRT\n" +
-        "           或者装 Visual Studio 时勾选「使用 C++ 的桌面开发」\n\n" +
-        "  macOS    在终端运行：  xcode-select --install\n\n" +
-        "  Linux    用包管理器装 g++：\n" +
-        "             Ubuntu/Debian:  sudo apt install g++\n" +
-        "             Fedora:         sudo dnf install gcc-c++\n\n" +
-        "装完**重开一个终端**（让 PATH 生效），再运行这条命令。";
+        // ⚠⚠ **必须按语言说**：C 课只要 gcc，C++ 课才要 g++。
+        //   原来这里写死了"C++ 编译器 / 装 g++" ——
+        //   于是只装了 gcc 的学员在 **C 课**上会被告知"去装 g++"，
+        //   而 g++ 是同一个包里的另一个前端，装了也解决不了他"找不到 gcc"的问题
+        //   （反过来，C++ 课让他装 gcc 又编不了 C++）。
+        //   这和前面 C# 课报错说"C++"是同一类错：**课程自己的话对不上自己教的课**。
+        (用C
+            ? "没有找到 C 编译器（gcc）。\n\n" +
+              "C 和 Python 不一样 —— 它需要一个**单独安装的编译器**：\n\n" +
+              "  Windows  装 MinGW-w64（推荐用 winget）：\n" +
+              "             winget install BrechtSanders.WinLibs.POSIX.UCRT\n" +
+              "           装完之后 gcc 和 g++ 都有了（同一个包）\n\n" +
+              "  macOS    gcc 随 Xcode 命令行工具一起来：\n" +
+              "             xcode-select --install\n\n" +
+              "  Linux    Ubuntu/Debian:  sudo apt install gcc\n" +
+              "           Fedora:         sudo dnf install gcc\n\n"
+            : "没有找到 C++ 编译器。\n\n" +
+              "C++ 和 Python、C# 不一样 —— 它需要一个**单独安装的编译器**：\n\n" +
+              "  Windows  装 MinGW-w64（推荐用 winget）：\n" +
+              "             winget install BrechtSanders.WinLibs.POSIX.UCRT\n" +
+              "           或者装 Visual Studio 时勾选「使用 C++ 的桌面开发」\n\n" +
+              "  macOS    在终端运行：  xcode-select --install\n\n" +
+              "  Linux    用包管理器装 g++：\n" +
+              "             Ubuntu/Debian:  sudo apt install g++\n" +
+              "             Fedora:         sudo dnf install gcc-c++\n\n") +
+        "⚠ 装完**重开一个终端 / 重开这个程序**（让 PATH 生效）再试一次。\n" +
+        "   PATH 是进程启动时读进去的，已经开着的窗口永远看不到新装的东西 ——\n" +
+        "   这是最常见的「我明明装了」。";
 
     private static string? Find()
     {
-        foreach (var name in new[] { "g++", "g++.exe", "clang++", "clang++.exe", "c++" })
+        // ⚠ 候选表按语言分。C 课优先找 gcc：
+        //   MinGW 包里 gcc 和 g++ 都有，但别人也可能只装了其中一个前端，
+        //   而报错信息里说的是哪个名字，学员就会去装哪个。
+        var 候选 = 用C
+            ? new[] { "gcc", "gcc.exe", "clang", "clang.exe", "cc" }
+            : new[] { "g++", "g++.exe", "clang++", "clang++.exe", "c++" };
+        foreach (var name in 候选)
         {
             try
             {

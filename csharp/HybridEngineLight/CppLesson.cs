@@ -736,6 +736,35 @@ public sealed record CppCheckItem(string 名字, Func<string, CheckResult> 检�
 
 public static class CppLesson
 {
+    /// <summary>第 00 课专用：工具链到底装好了没有。
+    ///
+    /// ⚠⚠ 为什么要单独有这一条：
+    ///   没装编译器时，`CppRunner.BuildAndRun` 会把安装说明塞进 `r.Error`，
+    ///   而 `CompileFailed` 是 **false**（编译根本没发生）。
+    ///   于是 `编译失败说明` 走最后那句兜底 ——
+    ///   学员看到「程序没能正常运行：没有找到 C 编译器…」，
+    ///   **看上去像是他的代码有问题**，而不是「你还没装工具」。
+    ///   第 00 课的全部意义就是确认工具装好了，所以它必须把这件事说清楚。
+    /// </summary>
+    public static CheckResult 工具链就绪(string 代码)
+    {
+        var 缺 = new List<string>();
+        // C# 课的"编译器"就是 dotnet 自己 —— 缺了连这个程序都跑不起来，不用查
+        if (!CppRunner.用CSharp && CppRunner.Compiler == null)
+        {
+            缺.Add(CppRunner.用C ? "gcc" : "g++");
+        }
+        if (缺.Count > 0)
+        {
+            return CheckResult.不过(
+                "工具链还没装好 —— **这不是你代码的问题**。\n\n" +
+                "      现在缺：" + string.Join("、", 缺) + "\n\n" +
+                CppRunner.InstallHint);
+        }
+        return CheckResult.过("编译器和 dotnet 都在 —— 这台机器可以编 C 了");
+    }
+
+
     /// <summary>
     /// 从一个「课程定义对象」里收集检查。
     ///

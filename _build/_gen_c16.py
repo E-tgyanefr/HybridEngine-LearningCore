@@ -24,10 +24,17 @@ import sys
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
-TXT = os.path.join(LC, "_build", "_c16.txt")
+#: ⚠ 数据文件可以**多个**：`_c00.txt`（第 00 课：工具链）+ `_c16.txt`（01~16 课）。
+#   分开写是因为第 00 课的性质完全不同 —— 它不教语法，只保证"这台机器能编译"。
+#   调研里 C / C++ 两边都把"卡在装工具"列为放弃率最高的一步，
+#   所以它值得单独一个文件、单独一课，而不是塞进第 01 课的注释里。
+TXT们 = [os.path.join(LC, "_build", "_c00.txt"),
+        os.path.join(LC, "_build", "_c16.txt")]
 DST = os.path.join(LC, "csharp", "c-lessons", "Lessons")
 
 骨架头 = '#include <stdio.h>\n\n/*学生代码*/\n\nint main(void) {\n'
+#: 当前正在生成的课号（"00"、"01" …）—— 少数形态需要按课特殊处理。
+课号 = ""
 尾 = "    }\n"
 
 
@@ -84,7 +91,16 @@ def 逐行比对(期望列, 输入列, 提示: str) -> str:
 def 形_输出逐行(说明, 参, 序):
     """学生代码是**完整程序**（自带 main）⇒ 原样编译运行，逐行比。"""
     期望 = "".join(f"            {C(x)},\n" for x in 参)
-    return 头(说明, f"检查_{序}") + (
+    # ⚠⚠ 第 00 课（工具链）要多一条前置检查：**工具装好了没有**。
+    #   为什么必须插在最前面：没装 gcc 时，这条"编译运行"的检查会失败，
+    #   而它的报错是"程序没能正常运行" —— 学员会以为是自己代码的问题。
+    #   先过一条明说"这不是你代码的问题"的检查，方向才对。
+    #   （通用做法：哪个平台缺工具，这条就点名说哪个。）
+    前缀 = ""
+    if 课号 == "00":
+        前缀 = (头("工具链就绪（gcc 与 dotnet 都在）", f"检查_{序}a") +
+                "        return CppLesson.工具链就绪(代码);\n" + 尾)
+        return 前缀 + 头(说明, f"检查_{序}b") + (
         "        var run = CppCheck.直接运行(代码);\n"
         "        if (!run.编译通过) return CppCheck.编译失败说明(run);\n"
         "        string[] 期望 = {\n" + 期望 + "        };\n"
@@ -283,8 +299,8 @@ def 形_顺序(说明, 参, 序):
 }
 
 # ══════════ 解析 → 自检 → 生成 → 核对 ══════════
-文本 = io.open(TXT, encoding="utf-8").read()
 课, 当前 = {}, None
+文本 = "\n".join(io.open(f, encoding="utf-8").read() for f in TXT们)
 for 行 in 文本.split("\n"):
     if 行.startswith("@@@ "):
         当前 = 行[4:].strip()
@@ -325,6 +341,7 @@ for f in sorted(os.listdir(DST)):
         os.remove(os.path.join(DST, f))
 
 for 编号 in sorted(课):
+    课号 = 编号[:2]
     k = 课[编号]
     要求 = '"""\n' + "\n".join(k["要求"]) + '\n"""'
     检查们 = "".join(形态表[规.split("|")[1]](规.split("|")[0], 规.split("|")[2:], i)
