@@ -171,6 +171,34 @@ public sealed record JavaCheckItem(string 名字, Func<string, JavaCheckResult> 
 
 public static class JavaLesson
 {
+    /// <summary>第 00 课专用：工具链到底装好了没有。
+    ///
+    /// ⚠⚠ 为什么值得单独有这一条（和 C / C++ 那边同一个理由）：
+    ///   Java **不是**"装上就能跑"的语言 —— 它要两样东西：
+    ///     · javac  编译器（在 **JDK** 里，JRE 里没有）  ← 最常见的坑
+    ///     · java   运行时
+    ///   而没装的时候，学员看到的是一句"程序没能正常运行"，
+    ///   **看起来像他自己代码写错了**。
+    ///
+    ///   ⚠ 尤其要点名 **JDK ≠ JRE**：大量教程让人装 JRE 就够了，
+    ///     而 JRE 里**没有 javac**，于是他永远编不过，还找不到原因。
+    /// </summary>
+    public static JavaCheckResult 工具链就绪(string 代码)
+    {
+        var 缺 = new List<string>();
+        if (JavaRunner.Compiler == null) 缺.Add("javac（编译器，在 JDK 里）");
+        if (JavaRunner.Runtime == null) 缺.Add("java（运行时）");
+
+        if (缺.Count > 0)
+        {
+            return JavaCheckResult.不过(
+                "工具链还没装好 —— **这不是你代码的问题**。\n\n" +
+                "      现在缺：" + string.Join("、", 缺) + "\n\n" +
+                JavaRunner.InstallHint);
+        }
+        return JavaCheckResult.过("javac 和 java 都在 —— 这台机器可以编 Java 了");
+    }
+
     /// <summary>收集「检查_」开头的静态方法（签名固定：string → JavaCheckResult）。</summary>
     public static List<JavaCheckItem> 收集(Type 课程类型)
     {
