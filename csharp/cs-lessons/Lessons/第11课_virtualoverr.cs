@@ -307,11 +307,12 @@ class 跑车 : 汽车
         return CheckResult.过();
     }
 
-    [检查说明("隐藏：玩具狗按声明类型走")]
+    [检查说明("隐藏：玩具狗按声明类型走（new 出来的按声明类型走）")]
     public static CheckResult 检查_2(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(用声明类型取叫声(new 玩具狗("小玩具")));
+    var __t = new 学生代码.玩具狗("小玩具");
+    Console.WriteLine(__t.叫声());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
@@ -320,7 +321,7 @@ class 跑车 : 汽车
             "玩具叫"
         };
         string[] 输入 = {
-            "new 玩具狗(\"小玩具\")"
+            "var __t = new 玩具狗(\"小玩具\"); ⇒ __t.叫声()"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -333,7 +334,7 @@ class 跑车 : 汽车
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -352,19 +353,25 @@ class 跑车 : 汽车
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(用多态取叫声(new 狗("旺财")));
-    Console.WriteLine(用多态取叫声(new 动物("甲")));
+    var __d = new 学生代码.狗("旺财");
+    Console.WriteLine(__d.叫声());
+    动物 __a = new 学生代码.狗("旺财");
+    Console.WriteLine(__a.叫声());
+    动物 __b = new 学生代码.动物("甲");
+    Console.WriteLine(__b.叫声());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "汪汪",
+            "汪汪",
             "……"
         };
         string[] 输入 = {
-            "new 狗(\"旺财\")",
-            "new 动物(\"甲\")"
+            "var __d = new 狗(\"旺财\"); ⇒ __d.叫声()",
+            "动物 __a = new 狗(\"旺财\"); ⇒ __a.叫声()",
+            "动物 __b = new 动物(\"甲\"); ⇒ __b.叫声()"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -377,17 +384,18 @@ class 跑车 : 汽车
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
     }
 
-    [检查说明("隐藏：玩具狗按声明类型走")]
+    [检查说明("隐藏：玩具狗按声明类型走（new 出来的按声明类型走）")]
     public static CheckResult 检查_5(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(用声明类型取叫声(new 玩具狗("小玩具")));
+    var __t = new 学生代码.玩具狗("小玩具");
+    Console.WriteLine(__t.叫声());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
@@ -396,7 +404,7 @@ class 跑车 : 汽车
             "玩具叫"
         };
         string[] 输入 = {
-            "new 玩具狗(\"小玩具\")"
+            "var __t = new 玩具狗(\"小玩具\"); ⇒ __t.叫声()"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -409,7 +417,7 @@ class 跑车 : 汽车
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -426,8 +434,8 @@ class 跑车 : 汽车
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"甲 300 4\"",
-            "\"乙 200 8\""
+            "甲 300 4",
+            "乙 200 8"
         };
         string[] 输入 = {
             "new 跑车(\"甲\", 300, 4).简介()",

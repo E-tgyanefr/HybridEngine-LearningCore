@@ -303,8 +303,8 @@ static string 名次表(Dictionary<string, int> 表)
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"2\"",
-            "\"1\""
+            "2",
+            "1"
         };
         string[] 输入 = {
             "数满足(new List<int>{1,2,3,4}, n => n % 2 == 0)",
@@ -340,8 +340,8 @@ static string 名次表(Dictionary<string, int> 表)
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"True:90\"",
-            "\"False\""
+            "True:90",
+            "False"
         };
         string[] 输入 = {
             "int v1; ⇒ 查到了(new Dictionary<string,int>{[\"甲\"]=90}, \"甲\", out v1) + \":\" + v1",

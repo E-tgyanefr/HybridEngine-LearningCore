@@ -331,10 +331,10 @@ static List<string> 名字们(List<成绩记录> 们)
     public static CheckResult 检查_3(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(报警(new 成绩记录("", 200)));
-    Console.WriteLine(报警(new 成绩记录("甲", 200)));
-    Console.WriteLine(报警(new 成绩记录("甲", 59)));
-    Console.WriteLine(报警(new 成绩记录("甲", 60)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("", 200)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("甲", 200)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("甲", 59)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("甲", 60)));
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
@@ -379,8 +379,8 @@ static List<string> 名字们(List<成绩记录> 们)
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"86.67\"",
-            "\"甲\""
+            "86.67",
+            "甲"
         };
         string[] 输入 = {
             "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).平均",
@@ -414,8 +414,8 @@ static List<string> 名字们(List<成绩记录> 们)
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"0\"",
-            "\"\""
+            "0",
+            ""
         };
         string[] 输入 = {
             "统计(new List<成绩记录>(), 60).人数",
@@ -442,10 +442,10 @@ static List<string> 名字们(List<成绩记录> 们)
     public static CheckResult 检查_6(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(报警(new 成绩记录("", 200)));
-    Console.WriteLine(报警(new 成绩记录("甲", 200)));
-    Console.WriteLine(报警(new 成绩记录("甲", 59)));
-    Console.WriteLine(报警(new 成绩记录("甲", 60)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("", 200)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("甲", 200)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("甲", 59)));
+    Console.WriteLine(报警(new 学生代码.成绩记录("甲", 60)));
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
@@ -489,7 +489,7 @@ static List<string> 名字们(List<成绩记录> 们)
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"乙,甲\""
+            "乙,甲"
         };
         string[] 输入 = {
             "string.Join(\",\", 名字们(new List<成绩记录>{ new 成绩记录(\"甲\", 70), new 成绩记录(\"\", 99), new 成绩记录(\"乙\", 88) }))"

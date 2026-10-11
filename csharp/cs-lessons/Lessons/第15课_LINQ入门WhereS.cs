@@ -368,8 +368,8 @@ static void 演示延迟()
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"60\"",
-            "\"甲\""
+            "60",
+            "甲"
         };
         string[] 输入 = {
             "加一分(new List<成绩记录>{ new 成绩记录(\"甲\", 59) })[0].分数",
