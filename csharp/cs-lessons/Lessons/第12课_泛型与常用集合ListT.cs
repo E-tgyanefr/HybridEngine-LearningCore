@@ -52,6 +52,10 @@ public static class 第12课
 //     所以它既能帮你拦错误，又不用装箱。
 //
 //
+// ─────────────────────────────────────────────────────
+//  用法与例子
+// ─────────────────────────────────────────────────────
+
 // ══ 二、List<T> 的常用操作 ══
 //
 //       var 名单 = new List<string>();        // 空表
@@ -241,6 +245,16 @@ public static class 第12课
 //     （第 05 课讲过）—— 用 `TryGetValue` 正好天然满足。
 //
 // 写完后运行：dotnet run --project csharp/cs-lessons 检查 12
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/cs-lessons 检查 12
+//
+//   看这一课要干什么：dotnet run --project csharp/cs-lessons 12
+//   看答案（先自己写一遍）：dotnet run --project csharp/cs-lessons 答案 12
 """;
 
     public static string 参考答案 => """

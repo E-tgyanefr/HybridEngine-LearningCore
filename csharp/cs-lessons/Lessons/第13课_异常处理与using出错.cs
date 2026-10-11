@@ -78,6 +78,10 @@ public static class 第13课
 //       finally { 清理(); }        // 没有 catch ⇒ 异常继续往上传，但清理一定会做
 //
 //
+// ─────────────────────────────────────────────────────
+//  用法与例子
+// ─────────────────────────────────────────────────────
+
 // ══ 二、`throw`、`throw ex`、`throw new`：三者的堆栈差很多 ══
 //
 //   堆栈跟踪（stack trace）就是"错误是怎么一层层传上来的"那张清单。
@@ -290,6 +294,16 @@ public static class 第13课
 //     或者自己在文件顶上加一行 `using System.IO;`。
 //
 // 写完后运行：dotnet run --project csharp/cs-lessons 检查 13
+
+// ─────────────────────────────────────────────────────
+//  怎么自己测
+// ─────────────────────────────────────────────────────
+//   点界面上的「检查」。命令行（在源码目录里）：
+//
+//       dotnet run --project csharp/cs-lessons 检查 13
+//
+//   看这一课要干什么：dotnet run --project csharp/cs-lessons 13
+//   看答案（先自己写一遍）：dotnet run --project csharp/cs-lessons 答案 13
 """;
 
     public static string 参考答案 => """
