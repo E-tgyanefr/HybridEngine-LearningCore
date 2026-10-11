@@ -328,6 +328,12 @@ static double 算平均(int[] 数们)
 static int 带资源算(int 数)
 {
     // using var：作用域结束时自动 Dispose —— 出了异常也照样 Dispose
+    // ⚠ 这里原来写的是 `写手.WriteLine(...)` —— 而 `写手` 是**变量名**，
+    //   它自己的 `using var 写手 = new StringWriter();` 被删掉了，
+    //   于是这一行引用了一个不存在的名字：
+    //       error CS0103: 当前上下文中不存在名称"写手"
+    //   ⇒ 补回声明。要演示的重点是「using 和 return 能共存」。
+    using var 写手 = new StringWriter();
     写手.WriteLine("干活");
 
     // ⚠ return 不会跳过 Dispose：先算好返回值，再 Dispose，最后才返回

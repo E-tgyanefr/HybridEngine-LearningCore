@@ -327,18 +327,21 @@ static void 演示延迟()
     {
         var 调用点 = """
     Console.WriteLine(string.Join(",", 挑偶数(new int[]{1,2,3,4,5})));
-    Console.WriteLine(string.Join(",", 挑偶数(new int[]{1,3,5})));
+    Console.WriteLine(string.Join(",", 挑偶数(new int[]{0,2})));
+    Console.WriteLine(string.Join(",", 挑偶数(new int[]{2,4,6})));
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "2,4",
-            "new int[]{2,4,6}"
+            "0",
+            "2,4,6"
         };
         string[] 输入 = {
             "new int[]{1,2,3,4,5}",
-            "new int[]{1,3,5}"
+            "new int[]{0,2}",
+            "new int[]{2,4,6}"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -395,22 +398,43 @@ static void 演示延迟()
     [检查说明("延迟执行：查询定义在 Add 之前 ⇒ 99 必须出现")]
     public static CheckResult 检查_5(string 代码)
     {
-        var run = CppCheck.直接运行(代码);
+        var 调用点 = """
+    演示延迟();
+    Console.WriteLine();
+    Console.WriteLine(Console.WriteLine(2));
+    Console.WriteLine(Console.WriteLine(3));
+    Console.WriteLine(Console.WriteLine(99));
+
+""";
+        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
+            "",
             "2",
             "3",
-            "99",
+            "99"
         };
-        var 实际 = run.行;
-        if (实际.Count != 期望.Length)
-            return CheckResult.不过($"应该有 {期望.Length} 行输出，实际 {实际.Count} 行。" +
-                "\n      打印出来的：\n        " + string.Join("\n        ", 实际));
+        string[] 输入 = {
+            "演示延迟(); ⇒ ",
+            "Console.WriteLine(2)",
+            "Console.WriteLine(3)",
+            "Console.WriteLine(99)"
+        };
         for (int i = 0; i < 期望.Length; i++)
-            if (实际[i].Trim() != 期望[i])
+        {
+            // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
+            if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
                 return CheckResult.不过(
-                    $"第 {i + 1} 行应当是「{期望[i]}」，实际是「{实际[i].Trim()}」。");
-        return CheckResult.过($"{期望.Length} 行输出全对");
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
+                    $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
+                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
+            }
+        }
+        return CheckResult.过("每一组都对");
     }
 
     private static string 去掉注释(string s)

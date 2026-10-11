@@ -285,7 +285,11 @@ static (int 人数, int 及格, double 平均, string 头名) 统计(
 static bool 不及格(成绩记录 r, int 及格线)
 {
     // 模式匹配一行搞定 —— 等价于 r.分数 < 及格线
-    return r is { 分数: < 及格线 };
+    // ⚠ 这里**不能**写 `r is { 分数: < 及格线 }` —— 模式里的关系运算符
+    //   要求右边是**编译期常量**，而 及格线 是参数：
+    //       error CS9135: 类型"int"的常量值应为…
+    //   ⇒ 变量比较就用普通的 < 。
+    return r.分数 < 及格线;
 }
 
 static string 报警(成绩记录 r) => r switch
@@ -368,23 +372,20 @@ static List<string> 名字们(List<成绩记录> 们)
         return CheckResult.过("每一组都对");
     }
 
-    [检查说明("统计：人数 / 及格 / 平均（两位小数）/ 头名 都对")]
+    [检查说明("统计：人数 / 及格 / 平均 / 头名 都对")]
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(统计(new List<成绩记录>{ new 学生代码.成绩记录("甲", 90), new 学生代码.成绩记录("乙", 80), new 学生代码.成绩记录("丙", 90) }, 85).平均);
-    Console.WriteLine(统计(new List<成绩记录>{ new 学生代码.成绩记录("甲", 90), new 学生代码.成绩记录("乙", 80), new 学生代码.成绩记录("丙", 90) }, 85).头名);
+    Console.WriteLine($"({统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item1}, {统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item2}, {统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item3}, {统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item4})");
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "86.67",
-            "甲"
+            "(3, 2, 86.67, 丙)"
         };
         string[] 输入 = {
-            "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).平均",
-            "统计(new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85).头名"
+            "new List<成绩记录>{ new 成绩记录(\"甲\", 90), new 成绩记录(\"乙\", 80), new 成绩记录(\"丙\", 90) }, 85"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -397,7 +398,7 @@ static List<string> 名字们(List<成绩记录> 们)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
+                    "      ⚠ 多组输入都对才算对。");
             }
         }
         return CheckResult.过("每一组都对");
@@ -407,19 +408,16 @@ static List<string> 名字们(List<成绩记录> 们)
     public static CheckResult 检查_5(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(统计(new List<成绩记录>(), 60).人数);
-    Console.WriteLine(统计(new List<成绩记录>(), 60).头名);
+    Console.WriteLine($"({统计(new List<成绩记录>(), 60).Item1}, {统计(new List<成绩记录>(), 60).Item2}, {统计(new List<成绩记录>(), 60).Item3}, {统计(new List<成绩记录>(), 60).Item4})");
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "0",
-            ""
+            "(0, 0, 0, )"
         };
         string[] 输入 = {
-            "统计(new List<成绩记录>(), 60).人数",
-            "统计(new List<成绩记录>(), 60).头名"
+            "new List<成绩记录>(), 60"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -432,7 +430,7 @@ static List<string> 名字们(List<成绩记录> 们)
                 return CheckResult.不过(
                     $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
-                    "      ⚠ 要把每一步都跑对 —— 中间任何一步错了，后面的结果就对不上。");
+                    "      ⚠ 多组输入都对才算对。");
             }
         }
         return CheckResult.过("每一组都对");
