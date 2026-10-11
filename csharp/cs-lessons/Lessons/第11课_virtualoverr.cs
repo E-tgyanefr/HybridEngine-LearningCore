@@ -419,8 +419,8 @@ class 跑车 : 汽车
     public static CheckResult 检查_6(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(new 跑车("甲", 300, 4).简介());
-    Console.WriteLine(new 跑车("乙", 200, 8).简介());
+    Console.WriteLine(new 学生代码.跑车("甲", 300, 4).简介());
+    Console.WriteLine(new 学生代码.跑车("乙", 200, 8).简介());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));

@@ -361,8 +361,8 @@ static void 演示延迟()
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(加一分(new List<成绩记录>{ new 成绩记录("甲", 59) })[0].分数);
-    Console.WriteLine(加一分(new List<成绩记录>{ new 成绩记录("甲", 59) })[0].名字);
+    Console.WriteLine(加一分(new List<成绩记录>{ new 学生代码.成绩记录("甲", 59) })[0].分数);
+    Console.WriteLine(加一分(new List<成绩记录>{ new 学生代码.成绩记录("甲", 59) })[0].名字);
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));

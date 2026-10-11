@@ -326,19 +326,21 @@ class 计数器
     public static CheckResult 检查_4(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(new 学生("甲", 70).报告());
-    Console.WriteLine(new 学生("甲", 70).改成绩(999).报告());
+    var __s = new 学生代码.学生("甲", 70);
+    Console.WriteLine(__s.报告());
+    __s.改成绩(999);
+    Console.WriteLine(__s.报告());
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"甲 70\"",
-            "\"甲 70\""
+            "甲 70",
+            "甲 70"
         };
         string[] 输入 = {
-            "new 学生(\"甲\", 70).报告()",
-            "new 学生(\"甲\", 70).改成绩(999).报告()"
+            "var __s = new 学生(\"甲\", 70); ⇒ __s.报告()",
+            "__s.改成绩(999); ⇒ __s.报告()"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
@@ -361,19 +363,29 @@ class 计数器
     public static CheckResult 检查_5(string 代码)
     {
         var 调用点 = """
-    Console.WriteLine(new 计数器(1).值);
-    Console.WriteLine(new 计数器(1).加(3).值);
+    var __c = new 学生代码.计数器(1);
+    Console.WriteLine(__c.值);
+    __c.加(3);
+    Console.WriteLine(__c.值);
+    __c.设为(10);
+    Console.WriteLine(__c.值);
+    __c.重置();
+    Console.WriteLine(__c.值);
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "\"0\"",
-            "\"3\""
+            "0",
+            "3",
+            "10",
+            "0"
         };
         string[] 输入 = {
-            "new 计数器(1).值",
-            "new 计数器(1).加(3).值"
+            "var __c = new 计数器(1); ⇒ __c.值",
+            "__c.加(3); ⇒ __c.值",
+            "__c.设为(10); ⇒ __c.值",
+            "__c.重置(); ⇒ __c.值"
         };
         for (int i = 0; i < 期望.Length; i++)
         {
