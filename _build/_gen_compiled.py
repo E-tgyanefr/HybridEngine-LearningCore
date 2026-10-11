@@ -48,7 +48,7 @@ LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
         前缀="第",
     ),
     "cpp": dict(
-        数据=["_build/_cpp00.txt", "_build/_cpp_extra.txt"],
+        数据=["_build/_cpp00.txt", "_build/_cpp09.txt", "_build/_cpp_extra.txt"],
         产物目录="csharp/cpp-lessons/Lessons",
         特性="课程",
         返回类型="CheckResult",
