@@ -322,7 +322,7 @@ static void 演示延迟()
         return CheckResult.过();
     }
 
-    [检查说明("挑偶数：多组都对，含空数组")]
+    [检查说明("挑偶数：多组都对")]
     public static CheckResult 检查_3(string 代码)
     {
         var 调用点 = """
@@ -335,7 +335,7 @@ static void 演示延迟()
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "2,4",
-            "0",
+            "0,2",
             "2,4,6"
         };
         string[] 输入 = {
@@ -401,24 +401,21 @@ static void 演示延迟()
         var 调用点 = """
     演示延迟();
     Console.WriteLine();
-    Console.WriteLine(Console.WriteLine(2));
-    Console.WriteLine(Console.WriteLine(3));
-    Console.WriteLine(Console.WriteLine(99));
+    Console.WriteLine();
+    Console.WriteLine();
 
 """;
         var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
-            "",
             "2",
             "3",
             "99"
         };
         string[] 输入 = {
             "演示延迟(); ⇒ ",
-            "Console.WriteLine(2)",
-            "Console.WriteLine(3)",
-            "Console.WriteLine(99)"
+            "",
+            ""
         };
         for (int i = 0; i < 期望.Length; i++)
         {

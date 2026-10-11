@@ -100,6 +100,14 @@ public static class CSharpRunner
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Linq;");
         sb.AppendLine("using System.Text;");
+        // ⚠⚠ 这一行是第 13 课（using / IDisposable）要的：`StringWriter` 在 System.IO 里。
+        //   我原来只给 `CppLesson.默认骨架CSharp` 加了 `using System.IO;` ——
+        //   **但那个骨架根本没被用上**：真正拼 using 前导块的是**这里**。
+        //   ⇒ 症状是 `CS0246: 未能找到类型或命名空间名"StringWriter"`，
+        //     而报错位置指向**学员的代码**（学员会以为是自己写错了）。
+        //   ⚠ 教训：**同一个"前导块"有多处实现**（这个文件里就有两处），
+        //     改一处永远不够 —— 加 using 时要 grep 一遍。
+        sb.AppendLine("using System.IO;");
         sb.AppendLine();
         sb.AppendLine("public static class 学生代码");
         sb.AppendLine("{");
@@ -211,6 +219,14 @@ public static class CSharpRunner
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Linq;");
         sb.AppendLine("using System.Text;");
+        // ⚠⚠ 这一行是第 13 课（using / IDisposable）要的：`StringWriter` 在 System.IO 里。
+        //   我原来只给 `CppLesson.默认骨架CSharp` 加了 `using System.IO;` ——
+        //   **但那个骨架根本没被用上**：真正拼 using 前导块的是**这里**。
+        //   ⇒ 症状是 `CS0246: 未能找到类型或命名空间名"StringWriter"`，
+        //     而报错位置指向**学员的代码**（学员会以为是自己写错了）。
+        //   ⚠ 教训：**同一个"前导块"有多处实现**（这个文件里就有两处），
+        //     改一处永远不够 —— 加 using 时要 grep 一遍。
+        sb.AppendLine("using System.IO;");
         sb.AppendLine();
         sb.AppendLine(body);
         sb.AppendLine();
