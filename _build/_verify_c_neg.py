@@ -52,6 +52,20 @@ env["DOTNET_CLI_UI_LANGUAGE"] = "en"
            "        if (数们[i] > 大) 大 = 数们[i];\n"
            "        if (数们[i] < 小) 小 = 数们[i];\n    }\n"
            "    *最大 = 大; *最小 = 小;\n}\n", "初值写 0（全负数会错）", "最大最小"),
+    # ── 第 17~19 课（switch / while / 递归）──────────────────────────
+    ("17", 'char* 季节(int 月) {\n'
+           '    if (月 >= 3 && 月 <= 5) return "春";\n'
+           '    if (月 >= 6 && 月 <= 8) return "夏";\n'
+           '    if (月 >= 9 && 月 <= 11) return "秋";\n'
+           '    return "冬";\n}\n',
+     "第17课：用了 if 不是 switch", "switch"),
+    ("18", 'int 数位和(int 数) {\n    int 和 = 0;\n'
+           '    while (数 > 0) {\n        和 += 数 % 10;\n    }\n    return 和;\n}\n',
+     "第18课：忘了 数 /= 10（死循环）", "while"),
+    ("19", 'int 阶乘(int n) {\n    return n * 阶乘(n - 1);\n}\n'
+           'int 斐波那契(int n) {\n    if (n <= 1) return n;\n'
+           '    return 斐波那契(n - 1) + 斐波那契(n - 2);\n}\n',
+     "第19课：阶乘没有基准情形（栈溢出）", "递归"),
 ]
 
 shutil.rmtree(ANS, ignore_errors=True)
