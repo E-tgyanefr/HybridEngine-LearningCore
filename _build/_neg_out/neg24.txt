@@ -1,0 +1,10 @@
+﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
+At line:9 char:3
++   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   at System.Linq.ThrowHelper.ThrowNoMatchException()
+   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
+   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13

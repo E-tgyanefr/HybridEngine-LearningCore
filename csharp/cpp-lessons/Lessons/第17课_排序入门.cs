@@ -247,7 +247,7 @@ void 插入排序(int 数[], int 长度) {
         var 缺 = new List<string>();
         foreach (var 名 in new[] { "冒泡排序", "选择排序", "插入排序" })
         {
-            var run = CppCheck.编译并运行(代码, null,
+            var run = 编译并运行(代码, null,
                 "int 甲[1] = {1};\n" + 名 + "(甲, 1);\n");
             if (!run.编译通过)
             {
@@ -448,9 +448,38 @@ std::cout << "哨兵乙|" << 哨兵乙[5] << '\n';
     {
         if (上次的运行 != null && 上次的代码 == 代码) return 上次的运行;
         上次的代码 = 代码;
-        上次的运行 = CppCheck.编译并运行(代码, null, 调用点);
+        上次的运行 = 编译并运行(代码, null, 调用点);
         return 上次的运行;
     }
+
+    /// <summary>
+    /// 编译并运行，**环境抽风时重试一次**。
+    ///
+    /// ⚠ 为什么需要它（实测踩到的）：运行器每次在一个全新的临时目录里编译，
+    ///   而 `CppRunner.清理旧目录` 会把**别的进程**留下的 run* 目录删掉 ——
+    ///   这台机器上同时有好几个助手在跑各自的课程检查，于是刚建出来的目录
+    ///   会被别人的检查顺手删掉，g++ 报：
+    ///       ld.exe: cannot open output file …prog.exe: No such file or directory
+    ///       cc1plus.exe: fatal error: …main.cpp: No such file or directory
+    ///   这是**环境**问题（而且常常只发生在一次检查的第一次编译上），不是学生
+    ///   代码的问题。同一份代码重跑一次就好了 —— 不重试的话，学生看到的是
+    ///   「编译没能通过」，会一头雾水地去改本来没错的代码。
+    /// </summary>
+    private static CppRun 编译并运行(string 代码, string 骨架, string 调用点)
+    {
+        // ⚠ 这里必须写 `CppCheck.编译并运行`（课程库的那个）。
+        //   加这层包装时我顺手把这一行也替换了，于是它**调用自己** ⇒ 栈溢出、程序消失。
+        var run = CppCheck.编译并运行(代码, 骨架, 调用点);
+        if (run.编译通过) return run;
+        if (!环境抽风(run)) return run;                 // 真的是学生的错，别重试
+        System.Threading.Thread.Sleep(300);
+        var 再来 = CppCheck.编译并运行(代码, 骨架, 调用点);
+        return 再来.编译通过 ? 再来 : run;
+    }
+
+    private static bool 环境抽风(CppRun run) =>
+        run.编译信息.Contains("No such file or directory") ||
+        run.编译信息.Contains("cannot open output file");
 
     private static string 先别急着比(CppRun run)
     {
