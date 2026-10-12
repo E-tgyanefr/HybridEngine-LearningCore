@@ -461,7 +461,7 @@ int[][] 锯三 = new int[][] { new int[] { 7 } };
         return o.ToString();
     }
 
-    /// <summary>取某个方法名的「{ … }」内容（配对花括号）。找不到返回 null。</summary>
+    /// <summary>取某个方法名的"{ … }"内容（配对花括号）。找不到返回 null。</summary>
     private static string 函数体(string 净源码, string 方法名)
     {
         int 名 = 净源码.IndexOf(方法名 + "(", StringComparison.Ordinal);

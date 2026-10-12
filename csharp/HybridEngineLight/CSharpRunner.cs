@@ -63,7 +63,24 @@ public static class CSharpRunner
         lock (Gate)
         {
             if (_dir != null) return _dir;
-            string dir = Path.Combine(Path.GetTempPath(), "hybridengine_light_cs");
+            // ⚠⚠ 目录名**必须带进程号**。
+            //
+            //   原来是固定名字 `hybridengine_light_cs` —— 于是**两个进程同时跑
+            //   C# 检查时会互相覆盖 `Program.cs`**：A 刚写好学生代码，
+            //   B 就把自己的写进去，A 编译出来的却是 B 的代码。
+            //
+            //   症状（一个写课的子代理实测报的）：
+            //     同时跑两个 `_verify_compiled.py` 时报 `✓0 ✗0` ——
+            //     **检查根本没跑出结果**，看着却像"那一课的参考答案没过"。
+            //     而且失败点**每次漂移**，漂到别人的课上。
+            //
+            //   修复思路和 `CppRunner` / `JavaRunner` 一样：**一个进程一个目录**。
+            //   ⚠ 这两处都是"共用一份可变状态"的同一个毛病 ——
+            //     一个进程内的并发有 `Gate` 锁着，**跨进程的没有**。
+            //     凡是"固定路径 + 可写文件"的地方，都要问一句：两个进程同时来会怎样？
+            string dir = Path.Combine(Path.GetTempPath(),
+                                      "hybridengine_light_cs",
+                                      "run" + Environment.ProcessId);
             Directory.CreateDirectory(dir);
             File.WriteAllText(Path.Combine(dir, "run.csproj"), """
 <Project Sdk="Microsoft.NET.Sdk">
@@ -304,7 +321,7 @@ public static class CSharpRunner
     /// 从编译器输出里挑出最关键的那一行，并去掉噪音。
     ///
     /// 为什么要处理：编译器的原话长这样 ——
-    ///   C:\Users\x\AppData\Local\Temp\hybridengine_light_cs\Program.cs(10,22): error CS1002: 应输入 ;
+    ///   C:\Users\x\AppData\Local\Temp\hybridengine_light_cs\run12345\Program.cs(10,22): error CS1002: 应输入 ;
     /// 那个临时路径对学生毫无意义，还容易让人以为"我的代码跑到了奇怪的地方"。
     /// 这里只留「CS编号 + 说明」。（原始输出仍保留在 Raw 里，Explain 需要时能拿到。）
     /// </summary>

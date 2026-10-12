@@ -124,9 +124,9 @@ csharp/                       C# / C++ / Java 侧
     exams/                     题库（Python 基础 / 二级）
     tests/                     320 + 7 项测试（分两批跑）
     cpp-lessons/               C++ 课程（41 课）+ 课程作者契约.md
-    java-lessons/              Java 课程（17 → 41 课）
+    java-lessons/              Java 课程（41 课）
     c-lessons/                 C 课程（41 课）
-    cs-lessons/                C# 课程（17 → 41 课）
+    cs-lessons/                C# 课程（41 课）
     lessons/                   Python 课程（55 课，00~54）
 ```
 
@@ -139,8 +139,8 @@ csharp/                       C# / C++ / Java 侧
 | **Python** | `python -m hybridengine_light` | **55**（00~54） | GESP 一级 → **八级** |
 | **C** | `dotnet run --project csharp/c-lessons` | **41**（00~40） | GESP 一级 → **八级** |
 | **C++** | `dotnet run --project csharp/cpp-lessons` | **41**（00~40） | GESP 一级 → **八级** |
-| **Java** | `dotnet run --project csharp/java-lessons` | 17 → 41 ⏳ | 补到 C++ 同一批算法 |
-| **C#** | `dotnet run --project csharp/cs-lessons` | 17 → 41 ⏳ | 补到 C++ 同一批算法 |
+| **Java** | `dotnet run --project csharp/java-lessons` | **41**（00~40） | 按 C++ 那批算法补齐（GESP 不考 Java）|
+| **C#** | `dotnet run --project csharp/cs-lessons` | **41**（00~40） | 按 C++ 那批算法补齐（GESP 不考 C#）|
 | **嵌入式/单片机** | `python -m hybridengine_light 嵌入式` | 4 | 模拟器：按钮、闪烁、状态机、防抖 |
 | **树莓派** | `python -m hybridengine_light 树莓派` | 5 | 模拟器：传感器、数据记录、温室监测器 |
 | **人工智能** | `python -m hybridengine_light AI` | 5 | 零依赖：线性回归、感知机、梯度下降、KNN |
