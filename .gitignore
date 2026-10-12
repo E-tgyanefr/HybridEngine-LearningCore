@@ -52,3 +52,6 @@ _build/entry.py
 # the entry used to be a string built inside the build script (uneditable,
 # no git history). The template is the real file now.
 !_build/entry_template.py
+
+# C 第 25 课（文件读写）的检查会产出这个文件，是正常产物
+out.txt
