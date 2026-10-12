@@ -157,11 +157,11 @@ public static class 第03课
 //
 //     1. static string 判等级(int 分)
 //          ≥ 90 → "优秀"     ≥ 60 → "及格"     否则 → "不及格"
-//        用 if / else if / else。⚠ 注意顺序：先判 90，再判 60。
+//        用 if / else if / else。 注意顺序：先判 90，再判 60。
 //
 //     2. static string 星期几(int n)
 //          1 → "周一" … 7 → "周日"，其他（比如 8）→ "不是星期"
-//        ⚠ 这一课**要求用 switch 表达式**：
+//         这一课**要求用 switch 表达式**：
 //            n switch { 1 => "周一", …, _ => "不是星期" }
 //
 //   期望结果：
@@ -169,7 +169,7 @@ public static class 第03课
 //     判等级:  95 → 优秀   90 → 优秀   60 → 及格   59 → 不及格
 //     星期几:  1 → 周一 … 7 → 周日    8 → 不是星期
 //
-//   ⚠ 两件事：
+//    两件事：
 //     · 两个签名**都给你了**，你只写方法体
 //     · **不用写 Main、不用写 using**，入口由课程提供
 //
@@ -183,7 +183,7 @@ public static class 第03课
 //       dotnet run --project csharp/cs-lessons 03
 //       dotnet run --project csharp/cs-lessons 答案 03
 //
-//   ⚠ 常见症状对照：
+//    常见症状对照：
 //     · 90 被判成"及格"   → `>=` 写成了 `>`
 //     · 60 被判成"不及格" → 边界上用了 `>` 而不是 `>=`
 //     · 8 让程序崩（SwitchExpressionException）→ 漏了 `_ =>` 那一支

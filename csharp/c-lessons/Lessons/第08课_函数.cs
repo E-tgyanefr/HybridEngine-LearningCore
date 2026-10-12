@@ -82,7 +82,7 @@ public static class 第08课
 //          if (a > b) {
 //              return a;
 //          }
-//          return b;               /* ⚠ 这条路径也要 return */
+//          return b;               /*  这条路径也要 return */
 //      }
 //
 //  ⑤ void 函数里 `return;` 表示"提前结束"，不带值。
@@ -117,7 +117,7 @@ public static class 第08课
 //          return 0;
 //      }
 //
-//  ⚠ 为什么"函数要写在 main 前面"：编译器从上往下读，
+//   为什么"函数要写在 main 前面"：编译器从上往下读，
 //    读到 `平方(3)` 那一行时，它得**先知道**平方长什么样。
 //    写在前面它就知道了；写在后面就要先"声明"（第 13 课）。
 //
@@ -179,7 +179,7 @@ public static class 第08课
 //          #include <stdio.h>
 //
 //          int main(void) {
-//              printf("%d\n", 平方(3));     /* ⚠ 平方还没出现过 */
+//              printf("%d\n", 平方(3));     /*  平方还没出现过 */
 //              return 0;
 //          }
 //
@@ -205,12 +205,12 @@ public static class 第08课
 //
 // 提示：不用写 main。
 //
-// ⚠ 期望结果：
+//  期望结果：
 //
 //      平方(3)  ⇒ 9        平方(0)  ⇒ 0        平方(-4) ⇒ 16
 //      较大(1,2) ⇒ 2       较大(5,5) ⇒ 5       较大(-3,-7) ⇒ -3
 //
-// ⚠ 两个地方最容易丢分：
+//  两个地方最容易丢分：
 //   · 平方(-4) 要是 16 —— 负数乘负数得正数，别写成 -16。
 //   · 较大(5,5) 要是 5 —— 用 `>` 而不是 `>=` 也能过，但两条路径都要有 return。
 //
@@ -295,12 +295,16 @@ int main(void) {
         for (int i = 0; i < 期望.Length; i++)
         {
             // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
-            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
             if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
                 return CheckResult.不过(
-                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
                     "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+            }
         }
         return CheckResult.过("每一组都对");
     }
@@ -335,12 +339,16 @@ int main(void) {
         for (int i = 0; i < 期望.Length; i++)
         {
             // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
-            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
+            string 实际行 = i < run.行.Count
+                ? run.行[i].Trim().TrimEnd(',') : "";
             if (i >= run.行.Count || 实际行 != 期望[i])
+            {
+                string 这是 = i < 输入.Length ? 输入[i] : "";
                 return CheckResult.不过(
-                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
+                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
                     "      ⚠ 多组输入都对才算对 —— 只对一组可能是碰巧。");
+            }
         }
         return CheckResult.过("每一组都对");
     }

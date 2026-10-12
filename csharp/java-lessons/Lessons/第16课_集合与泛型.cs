@@ -44,7 +44,7 @@ public static class 第16课
 //  一、ArrayList 的基本用法
 // ─────────────────────────────────────────────────────
 //
-//     import java.util.ArrayList;                 ← ⚠ 要 import
+//     import java.util.ArrayList;                 ←  要 import
 //
 //     ArrayList<String> 名字们 = new ArrayList<>();
 //
@@ -120,7 +120,7 @@ public static class 第16课
 //
 //  按题目要求写几个操作 ArrayList 的方法，并按规定顺序打印。
 //  ⚠ 记住要 `import java.util.ArrayList;`（写在文件最上面）。
-//  ⚠ 检查会真的去 new 一张表、调你的方法，然后比对输出。
+//   检查会真的去 new 一张表、调你的方法，然后比对输出。
 //
 // ─────────────────────────────────────────────────────
 //  怎么自己测

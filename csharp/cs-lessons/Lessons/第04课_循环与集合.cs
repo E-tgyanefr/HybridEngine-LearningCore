@@ -90,7 +90,7 @@ public static class 第04课
 //
 // ⑤ 本课要写的两个形状
 //
-//     int 和 = 0;                                 // ⚠ 必须先初始化成 0
+//     int 和 = 0;                                 //  必须先初始化成 0
 //     foreach (var x in 数) 和 += x;               // 累加
 //
 //     var 出 = new List<int>();
@@ -133,7 +133,7 @@ public static class 第04课
 //
 // 你会看到：未处理异常 System.IndexOutOfRangeException: Index was outside the bounds of the array.
 //          （英文原文，意思是"索引超出了数组界限"）
-//          ⚠ 换成 List 越界，异常名不一样：
+//           换成 List 越界，异常名不一样：
 //            System.ArgumentOutOfRangeException: Index was out of range. Must be
 //            non-negative and less than the size of the collection. (Parameter 'index')
 // 为什么：长度 3 的数组只有 3 个格子。
@@ -161,14 +161,14 @@ public static class 第04课
 //
 //     2. static List<int> 只要偶数(List<int> 数)
 //          挑出其中的偶数，装进**新的** List 返回。
-//          ⚠ 一个偶数都没有时返回**空列表**，不是 null。
+//           一个偶数都没有时返回**空列表**，不是 null。
 //
 //   期望结果：
 //
 //     求和:     [1,2,3,4,5] → 15   空列表 → 0   [-5,5] → 0   [100] → 100
 //     只要偶数: [1,2,3,4,5,6] → 2,4,6   [1,3,5] → （空）   [-2,0,2] → -2,0,2
 //
-//   ⚠ 三件事：
+//    三件事：
 //     · 两个签名**都给你了**，你只写方法体
 //     · **0 是偶数**（`0 % 2 == 0`）
 //     · **不用写 Main、不用写 using**，入口由课程提供
@@ -183,7 +183,7 @@ public static class 第04课
 //       dotnet run --project csharp/cs-lessons 04
 //       dotnet run --project csharp/cs-lessons 答案 04
 //
-//   ⚠ 常见症状对照：
+//    常见症状对照：
 //     · 空列表结果不对 → `int 和 = 0;` 没写
 //     · 没有偶数时返回 null → 要返回 `new List<int>()`（空列表）
 //     · 报 CS1061 提到 Length → List 要用 `.Count`

@@ -47,7 +47,7 @@ public static class 第10课
 //     public string 名字 { get; }                 ← 只读：只有 getter
 //     public int 成绩 { get; private set; }       ← 外面只读，**本类**能写
 //
-// ⚠ 三档对照：
+//  三档对照：
 //
 //     public int 成绩;                    ✗ 谁都能改，没有检查
 //     public int 成绩 { get; }            ✓ 只读 —— 连本类都不能改

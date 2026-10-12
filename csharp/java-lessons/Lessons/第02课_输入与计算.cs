@@ -207,7 +207,7 @@ public static class 第02课
 //
 //       dotnet run --project csharp/java-lessons 检查 02
 //
-//   ⚠ 检查会把你的 new Scanner(System.in) **悄悄换成**一个装好数据的
+//    检查会把你的 new Scanner(System.in) **悄悄换成**一个装好数据的
 //     Scanner，所以这里**必须**写成 `new Scanner(System.in)` 这一种形式：
 //        Scanner 输入 = new Scanner(System.in);      ✓
 //        先把 System.in 存进别的变量再传给 Scanner    ✗ 换不中，读不到东西

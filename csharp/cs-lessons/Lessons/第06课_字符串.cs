@@ -70,7 +70,7 @@ public static class 第06课
 // ② 长度和单个字符
 //
 //     string s = "abc";
-//     Console.WriteLine(s.Length);         ⇒ 3     ⚠ 属性，不加括号
+//     Console.WriteLine(s.Length);         ⇒ 3      属性，不加括号
 //     Console.WriteLine(s[0]);             ⇒ a     （下标从 0 开始，类型是 char）
 //     Console.WriteLine(s.IndexOf('z'));   ⇒ -1    （找不到返回 -1，不是 0）
 //
@@ -154,7 +154,7 @@ public static class 第06课
 //   写两个方法：
 //
 //     1. static string 反转(string s)
-//          "abc" → "cba"      "" → ""（空串，⚠ 不要返回 null）
+//          "abc" → "cba"      "" → ""（空串， 不要返回 null）
 //          提示：`new string(s.Reverse().ToArray())`
 //
 //     2. static int 数元音(string s)
@@ -166,7 +166,7 @@ public static class 第06课
 //     反转:    "" → （空）   "a" → a   "abc" → cba   "你好世界" → 界世好你
 //     数元音:  "" → 0   "xyz" → 0   "Hello" → 2   "AEIOU" → 5   "Programming" → 3
 //
-//   ⚠ 三件事：
+//    三件事：
 //     · 两个签名**都给你了**，你只写方法体
 //     · 空串要返回**空串**（`new string(空数组)` 就是空串，不会报错）
 //     · 不用写 Main、不用写 using，入口由课程提供
@@ -181,7 +181,7 @@ public static class 第06课
 //       dotnet run --project csharp/cs-lessons 06
 //       dotnet run --project csharp/cs-lessons 答案 06
 //
-//   ⚠ 常见症状对照：
+//    常见症状对照：
 //     · 反转后还是原串 → 忘了接住返回值
 //     · "AEIOU" 数出 0 → 忘了 `ToLower()`
 //     · 报 CS1955 提到 Length → 写成了 `s.Length()`

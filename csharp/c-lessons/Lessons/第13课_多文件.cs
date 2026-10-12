@@ -116,7 +116,7 @@ public static class 第13课
 //          #include <stdio.h>
 //
 //          int main(void) {
-//              printf("%d\n", 三倍(5));     /* ⚠ 三倍 还没出现过 */
+//              printf("%d\n", 三倍(5));     /*  三倍 还没出现过 */
 //              return 0;
 //          }
 //
@@ -137,7 +137,7 @@ public static class 第13课
 //  ⚠ 坑 2：声明末尾忘了分号（写成了定义的样子）
 //
 //      错误写法：
-//          int 三倍(int x)             /* ⚠ 想让它是声明，但少了分号 */
+//          int 三倍(int x)             /*  想让它是声明，但少了分号 */
 //
 //          int main(void) { ... }
 //
@@ -166,7 +166,7 @@ public static class 第13课
 //              return 0;
 //          }
 //
-//          int 三倍(int x) {               /* ⚠ 定义是 int */
+//          int 三倍(int x) {               /*  定义是 int */
 //              return x * 3;
 //          }
 //
@@ -192,7 +192,7 @@ public static class 第13课
 //   2. 在 main **后面**写 `int 三倍(int x) { return x * 3; }`（定义）
 //   3. main 里调用它并打印
 //
-// ⚠ 期望输出（一行）：
+//  期望输出（一行）：
 //
 //      15
 //

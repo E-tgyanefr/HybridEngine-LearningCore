@@ -59,7 +59,7 @@ public static class 第11课
 //         public override string 叫声() { return "汪汪"; }
 //     }
 //
-// ⚠ 两条规矩：
+//  两条规矩：
 //
 //     父类方法要写 `virtual`，子类才能 override（不写就改不了）
 //     子类重写要写 `override`（不写就变成 new，悄悄藏起来）

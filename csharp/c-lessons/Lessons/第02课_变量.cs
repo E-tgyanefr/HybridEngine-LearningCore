@@ -45,7 +45,7 @@ public static class 第02课
 //
 // 这一课只用 int（整数）。小数（float/double）在第 04 课。
 //
-// ⚠ 常见的错：
+//  常见的错：
 //     年龄 = 18;              ❌ 没写类型 ⇒ 报 undeclared identifier
 //     int 年龄 = 18           ❌ 漏了分号 ⇒ 报 expected ';'
 //     int 年龄 = 18;          ✅
@@ -165,7 +165,7 @@ public static class 第02课
 //   2. int 变量 学号 = 7
 //   3. 分两行打印它们
 //
-// ⚠ 期望输出（两行，一字不差）：
+//  期望输出（两行，一字不差）：
 //
 //      18
 //      7

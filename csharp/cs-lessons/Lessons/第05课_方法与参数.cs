@@ -67,7 +67,7 @@ public static class 第05课
 //     static void 加倍(ref int x) { x = x * 2; }
 //
 //     int a = 5;
-//     加倍(ref a);            // ⚠ 调用时也必须写 ref
+//     加倍(ref a);            //  调用时也必须写 ref
 //     Console.WriteLine(a);   ⇒ 10
 //
 //   ⚠ `ref` **两边都要写**：声明处写，调用处也写。
@@ -163,7 +163,7 @@ public static class 第05课
 //     试着转成整数: "42"→True 且 值=42    "-7"→True 且 值=-7
 //                   "abc"→False           ""→False
 //
-//   ⚠ 三件事：
+//    三件事：
 //     · 三个签名**都给你了**，你只写方法体
 //     · ⚠ **负负得正**：(-3) × (-3) = 9，不用特判负数
 //     · 不用写 Main、不用写 using，入口由课程提供
@@ -178,7 +178,7 @@ public static class 第05课
 //       dotnet run --project csharp/cs-lessons 05
 //       dotnet run --project csharp/cs-lessons 答案 05
 //
-//   ⚠ 常见症状对照：
+//    常见症状对照：
 //     · 加倍 之后外面没变 → 参数上少了 `ref`（声明处或调用处）
 //     · 报 CS1620 → 调用时忘了写 ref
 //     · 报 CS0177 → out 参数在某条路径上没赋值

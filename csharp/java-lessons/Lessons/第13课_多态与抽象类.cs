@@ -49,7 +49,7 @@ public static class 第13课
 //         }
 //     }
 //
-// ⚠ 两个后果：
+//  两个后果：
 //
 //     abstract 类**不能 new** —— `new 形状()` 编译不过（它还不完整）
 //     子类**必须**实现所有 abstract 方法，否则子类也得标 abstract

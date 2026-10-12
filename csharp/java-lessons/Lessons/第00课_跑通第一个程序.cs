@@ -160,7 +160,7 @@ public static class 第00课
 public class Main {
     public static void main(String[] args) {
         System.out.println("工具链就绪");
-        /* ⚠ 先故意把下面这一行的分号删掉，检查一次，看看 javac 怎么说。
+        /*  先故意把下面这一行的分号删掉，检查一次，看看 javac 怎么说。
            读完报错再把分号补回来。 */
         System.out.println("我准备好学 Java 了");
         System.out.println("类 → main → 语句");

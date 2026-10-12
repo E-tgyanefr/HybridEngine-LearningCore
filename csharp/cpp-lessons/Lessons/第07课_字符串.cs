@@ -138,7 +138,7 @@ public static class 第07课
 //
 //    1. int 字节数(std::string s)              返回 s.size()
 //    2. char 首字符(std::string s)             第一个字符；空串时返回 '\0'
-//       ⚠ 返回类型必须是 char，不是 std::string
+//        返回类型必须是 char，不是 std::string
 //    3. int 单引号大小()                       用 sizeof 量 'A'
 //    4. int 双引号大小()                       用 sizeof 量 "A"
 //    5. std::string 拼接(std::string a, std::string b)    用 + 连起来

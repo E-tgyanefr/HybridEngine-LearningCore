@@ -79,7 +79,7 @@ public static class 第01课
 //     std::cout << 甲 + 乙 << std::endl;       ⇒ 13     ← 直接算
 //     甲 = 甲 + 1;                              ← 也能改
 //
-// ⚠ 三件容易搞错的：
+//  三件容易搞错的：
 //
 //     int 甲 = 6;               ✓ 类型不能省
 //     甲 = 6;                   ✗ error: '甲' was not declared in this scope
