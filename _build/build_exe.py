@@ -282,6 +282,34 @@ if 已存在:
 shutil.move(OUTDIR, 发布子)
 print("     %s  %s" % (发布子, "（替换了旧的一份）" if 已存在 else "（新建）"))
 
+# ── 6b 兜底：万一是"目录套目录"，就地拍平 ─────────────────────────────
+#   ⚠⚠ 为什么要这一步：上面那句 `rmtree` 是**应该**能防住的，
+#     但实测还是出现过一次嵌套（`发布子\HybridEngine-light\_internal\...`），
+#     外层只剩一个 exe + 一个 13 文件的 `_internal` 空壳，
+#     自检报「缺 base_library.zip」。
+#     而我**没能复现出 rmtree 为什么没生效**（可能是删除时的瞬时占用），
+#     所以不赌它 —— 搬完直接检查一次实际形状，是嵌套就拍平。
+#
+#   这段的真价值不在"修一次"，而在：**脚本自己能发现自己做错了**，
+#   而不是把问题留给用户双击"没反应"。
+嵌套 = os.path.join(发布子, APP)
+if os.path.isdir(嵌套) and os.path.exists(os.path.join(嵌套, "_internal")):
+    print("     ⚠ 检测到目录套目录，就地拍平…")
+    # ⚠⚠ 先把**外层空壳**整个删掉 —— 它里面也有 `HybridEngine-light.exe`
+    #   和 `_internal`，直接按名字往上传会撞名：
+    #       FileExistsError: [WinError 183] 当文件已存在时，无法创建该文件
+    #   实测就是这个错。空壳里的东西**本来就不完整**（那份 `_internal` 只有 13 个文件），
+    #   没有任何值得保留的 —— 所以不是"合并"，是"丢掉壳、把真产物提上来"。
+    存 = os.path.join(发布, "_拍平暂存")
+    shutil.rmtree(存, ignore_errors=True)
+    shutil.move(嵌套, 存)                     # 真产物先挪出去
+    shutil.rmtree(发布子, ignore_errors=True)  # 连壳一起删
+    os.makedirs(发布子, exist_ok=True)
+    for 名 in os.listdir(存):
+        shutil.move(os.path.join(存, 名), os.path.join(发布子, 名))
+    shutil.rmtree(存, ignore_errors=True)
+    print("     拍平完成")
+
 # ── 7 自检：产物**真的能跑**吗 ────────────────────────────────────────
 #   ⚠⚠ 这一步是这次翻车的直接补丁。
 #     我上一轮改完脚本后，只看了"文件数 1055→1071"就以为成功 ——
