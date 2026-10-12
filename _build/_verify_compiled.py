@@ -147,10 +147,35 @@ def 验一条(键: str) -> tuple[int, int, int]:
                 文件 = 新文件
             写答案()
 
-        r = subprocess.run(["dotnet", "run", "--project", "csharp/" + 参["工程"],
-                            "检查", 编号],
-                           cwd=ROOT, env=env, capture_output=True, timeout=600)
-        out = (r.stdout + r.stderr).decode("utf-8", "replace")
+        # ⚠⚠ 跑检查这一步**也要重试** —— 别的脚本会 `rmtree(answers)` 清场。
+        #
+        #   实测（一个写 C 课的子代理报的）：两个验证脚本同时跑时，
+        #   `c-answers` 在 40 秒内被清空 **11 次**。
+        #   症状是某几课报 `✓0 ✗0` —— **一条检查都没输出**，
+        #   因为课程程序发现答题文件不存在，就重建了模板然后返回，
+        #   根本没进到"跑检查"那一步。而失败点**每次漂移**（漂到别人的课上），
+        #   看起来像"那几课的参考答案有问题"，其实它们一个字都没错。
+        #
+        #   ⇒ 判据：输出里**一个 ✓ 和 ✗ 都没有** ⇒ 那不是"检查没过"，
+        #     是"检查没跑"。补写答题文件再跑一次，最多 5 轮。
+        def 跑检查():
+            return subprocess.run(["dotnet", "run", "--project", "csharp/" + 参["工程"],
+                                   "检查", 编号],
+                                  cwd=ROOT, env=env, capture_output=True, timeout=600)
+
+        out = ""
+        for 轮 in range(5):
+            r = 跑检查()
+            out = (r.stdout + r.stderr).decode("utf-8", "replace")
+            if out.count("✓") or out.count("✗"):
+                break                      # 真跑出结果了
+            if 轮 < 4:
+                # 文件被清了 —— 重建再写一次
+                os.makedirs(ANS, exist_ok=True)
+                现 = [x for x in os.listdir(ANS) if x.startswith(编号)]
+                if 现:
+                    文件 = 现
+                写答案()
         过 = "全部通过" in out
         通过数 += 1 if 过 else 0
         n过 = out.count("✓")
