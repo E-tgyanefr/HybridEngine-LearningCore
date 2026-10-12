@@ -286,13 +286,13 @@ int main(void) {
 int main(void) {
     int __v0 = 5;
     加倍(&__v0);
-    printf("%s\n", (__v0).ToString());
+    printf("%d\n", __v0);
     int __v1 = 0;
     加倍(&__v1);
-    printf("%s\n", (__v1).ToString());
+    printf("%d\n", __v1);
     int __v2 = -3;
     加倍(&__v2);
-    printf("%s\n", (__v2).ToString());
+    printf("%d\n", __v2);
     return 0;
 }
 """;

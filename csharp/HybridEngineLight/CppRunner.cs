@@ -174,7 +174,7 @@ public static class CppRunner
         // Windows 偶尔还锁着（杀软/句柄延迟）就抛异常，**正确的代码被判成 ✗**。
         //
         // 带进程号之后，"新目录本来就是空的"这个前提重新成立。
-        string dir = Path.Combine(Path.GetTempPath(),
+        string dir = Path.Combine(临时根目录(),
                                   CppRunner.用C ? "hybridengine_light_c" : "hybridengine_light_cpp",
                                   $"run{Environment.ProcessId}_{seq}");
         Directory.CreateDirectory(dir);
@@ -326,6 +326,52 @@ public static class CppRunner
     public static CSharpResult DumpBank(string bankSource) =>
         CSharpRunner.DumpOutput(bankSource, "CppBank.Dump");
     /// <summary>
+    /// 编译产物放哪 —— **必须是全 ASCII 的路径**。
+    ///
+    /// ⚠⚠ 为什么较这个真：**MinGW 的 <c>ld.exe</c> 写不进含中文的输出路径。**
+    ///   实测（一个写课的子代理报的）：
+    ///     源文件放哪都能读，`g++` 编译那一步没问题；
+    ///     **只有链接器写 exe 时会栽**，报的是
+    ///       ld.exe: cannot open output file …: No such file or directory
+    ///   同一个 m.cpp：输出到 `D:\…\引擎\…` 失败，输出到 `C:\lc_tmpx\` 成功。
+    ///
+    ///   而**这个项目的根目录里就有「引擎」两个字** ——
+    ///   所以任何"把编译产物放在项目目录下"的做法都会踩到。
+    ///
+    ///   平时走的是 <c>%TEMP%</c>，在多数机器上是 ASCII，所以看不出问题。
+    ///   但 **Windows 用户名含中文时 `%TEMP%` 就带中文了**
+    ///   （`C:\Users\张三\AppData\Local\Temp`）——
+    ///   那时链接器会栽，而学生看到的又是「编译没能通过」＋他的代码没错。
+    ///   ⇒ 先检查 `%TEMP%`；不干净就退到系统盘上自己建一个纯 ASCII 的目录。
+    /// </summary>
+    private static string 临时根目录()
+    {
+        string 首选 = Path.GetTempPath();
+        if (是全ASCII(首选)) return 首选;
+
+        // 退路：系统盘根目录下的固定名字（一定是 ASCII）
+        try
+        {
+            string 退路 = Path.Combine(
+                Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\",
+                "hybridengine_light_tmp");
+            Directory.CreateDirectory(退路);
+            if (是全ASCII(退路)) return 退路;
+        }
+        catch { /* 建不出来就还是用 %TEMP% */ }
+
+        return 首选;   // 都不行就照旧 —— 至少不比原来差
+    }
+
+    /// <summary>路径里全是 ASCII 吗（有任何一个非 ASCII 字符就不算）。</summary>
+    private static bool 是全ASCII(string s)
+    {
+        foreach (char c in s)
+            if (c > 127) return false;
+        return true;
+    }
+
+    /// <summary>
     /// 只保留最近几个运行目录 —— 每次编译一个目录会越堆越多。
     /// 清理失败不算错（可能有别的进程占着），静默忽略。
     /// </summary>
@@ -333,7 +379,7 @@ public static class CppRunner
     {
         try
         {
-            string root = Path.Combine(Path.GetTempPath(),
+            string root = Path.Combine(临时根目录(),
                                        CppRunner.用C ? "hybridengine_light_c" : "hybridengine_light_cpp");
             if (!Directory.Exists(root)) return;
             foreach (var d in Directory.GetDirectories(root))
@@ -345,15 +391,37 @@ public static class CppRunner
                 int 序号 = 0;
                 if (段.Length == 2) int.TryParse(段[1], out 序号);
                 else int.TryParse(段[0], out 序号);
-                // ⚠ 两条规则分开写，别合成一个复合条件 ——
+                // ⚠ 三条规则分开写，别合成一个复合条件 ——
                 //   我第一版就是那么写的（`!本进程的 && 段.Length == 1 && …`），
                 //   而新命名的段长是 2，那个条件恒为假，于是**本进程正在用的目录被删掉**，
                 //   g++ 报 `main.cpp: No such file or directory`，测试全线崩。
                 //
                 //   规则一：本进程的目录**只删很旧的**（还在用的绝不能碰）
-                //   规则二：别的进程留下的一律可清（那些再也不会被用到）
+                //   规则二：**最近 10 分钟动过的一律不删** —— 不管它是谁的
+                //   规则三：其余（又旧、又不是本进程的）可清
+                //
+                // ⚠⚠ 规则二是后来补的，因为规则二原来那条注释写的是
+                //   「别的进程留下的一律可清（那些再也不会被用到）」——
+                //   **这个假设是错的：只要那个进程还活着，它就会用到。**
+                //
+                //   实测（一个写课的子代理报的）：机器上同时有几个进程在跑课程检查时，
+                //   A 刚建出来的编译目录，被 B 的第一次检查顺手删掉，
+                //   g++ 报 `ld.exe: cannot open output file …: No such file or directory`。
+                //   他做了个探针：在 %TEMP% 下建目录然后盯着看 ——
+                //   **第 1 次打印还在，800 毫秒后就没了**（同时建的 `aaa_test1` 一直好好的，
+                //   说明删的只针对 `run*` 名字）。
+                //
+                //   危害不是"偶尔失败"，而是**学生看到「编译没能通过」而他的代码一个字都没错**
+                //   —— 正是这个项目一直想避免的那类反馈。
                 bool 本进程的 = 段.Length == 2 && 段[0] == Environment.ProcessId.ToString();
                 if (本进程的 && 序号 > current - 6) continue;
+                try
+                {
+                    // 10 分钟 = 足够覆盖任何一次正常的编译+运行，又不至于攒下垃圾
+                    if (DateTime.UtcNow - Directory.GetLastWriteTimeUtc(d) < TimeSpan.FromMinutes(10))
+                        continue;
+                }
+                catch { continue; }      // 读不到时间就别删（宁可留着）
                 try { Directory.Delete(d, recursive: true); } catch { /* 占着就算了 */ }
             }
         }

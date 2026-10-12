@@ -250,13 +250,13 @@ int main(void) {
 
 int main(void) {
     int __a0[] = {5, 3, 1, 2, 3};
-    printf("%s\n", (求和(__a0, 5)).ToString());
+    printf("%d\n", 求和(__a0, 5));
     int __a1[] = {5, 1, 100};
-    printf("%s\n", (求和(__a1, 3)).ToString());
+    printf("%d\n", 求和(__a1, 3));
     int __a2[] = {5, 3, -1, -2, -3};
-    printf("%s\n", (求和(__a2, 5)).ToString());
+    printf("%d\n", 求和(__a2, 5));
     int __a3[] = {3, 0, 7, 8, 9};
-    printf("%s\n", (求和(__a3, 5)).ToString());
+    printf("%d\n", 求和(__a3, 5));
     return 0;
 }
 """;

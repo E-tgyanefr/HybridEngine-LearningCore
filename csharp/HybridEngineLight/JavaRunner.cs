@@ -471,8 +471,33 @@ public static class JavaRunner
             {
                 string name = Path.GetFileName(d);
                 if (!name.StartsWith("run", StringComparison.Ordinal)) continue;
-                if (!int.TryParse(name.Substring(3), out int n)) continue;
-                if (n > current - 保留目录数) continue;
+
+                // ⚠⚠ 两处修正（都是后来发现的真问题）：
+                //
+                // ① **解析要认新命名 `run{进程号}_{序号}`。**
+                //    目录名早就改成带进程号了（见 运行目录()），
+                //    而这个清理函数还在用老的 `int.TryParse(name.Substring(3))` ——
+                //    对 `run12345_6` 解析失败，走到 `continue`，
+                //    于是**Java 的临时目录一个都清不掉**，只会越攒越多。
+                //    同一份代码里命名和清理对不上，是很容易漏的那种不一致。
+                //
+                // ② **加一档「最近 10 分钟动过的一律不删」。**
+                //    CppRunner 那边实测撞到过：多进程并行时，
+                //    一个进程刚建出来的编译目录被另一个进程顺手删掉，
+                //    g++/javac 报 `cannot open output file …: No such file or directory`，
+                //    而**学生的代码一个字都没错** —— 那是最坏的一类反馈。
+                var 段 = name.Substring(3).Split('_');
+                int 序号;
+                if (段.Length == 2) { if (!int.TryParse(段[1], out 序号)) continue; }
+                else { if (!int.TryParse(段[0], out 序号)) continue; }
+
+                if (序号 > current - 保留目录数) continue;
+                try
+                {
+                    if (DateTime.UtcNow - Directory.GetLastWriteTimeUtc(d) < TimeSpan.FromMinutes(10))
+                        continue;
+                }
+                catch { continue; }      // 读不到时间就别删（宁可留着）
                 try { Directory.Delete(d, recursive: true); } catch { /* 占着就算了 */ }
             }
         }

@@ -273,7 +273,7 @@ long long 铺地砖(int n) {
             "          long long 铺地砖(int n)");
     }
 
-    [检查说明("爬楼梯：0、1、2、3、5、10、30 都要对")]
+    [检查说明("爬楼梯：0、1、2、3、5、10、40 都要对")]
     public static CheckResult 检查_爬楼梯(string 代码)
     {
         var run = 跑一次(代码);

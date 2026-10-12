@@ -111,8 +111,41 @@ def 验一条(键: str) -> tuple[int, int, int]:
             跳过 += 1
             print("  ??  %s 建不出答题文件（**没验到**）" % 编号)
             continue
-        io.open(os.path.join(ANS, 文件[0]), "w", encoding="utf-8",
-                newline="").write(答案文 + "\n")
+
+        # ⚠⚠ 答案写进去之后**要确认它还在**，否则重写。
+        #
+        #   为什么：这个脚本和别的验证脚本会**共用同一个 answers 目录**，
+        #   而它们都会 `rmtree(ANS)` 清场。两个脚本同时跑时会出现这个时序：
+        #       我：建目录 → 让课程程序生成模板 → 写好参考答案
+        #       别人：rmtree(ANS)                       ← 把我的答案删了
+        #       我：跑检查 → 课程程序发现文件不存在 → 重建**模板** → 编译失败
+        #   症状是「参考答案跑不通」，而**参考答案本身没问题** ——
+        #   实测就是这个：一个写课的子代理报 `_verify_compiled.py` 连续三次
+        #   报 31/41、31/41、27/41，失败点每次都漂移，而同一批课单独重跑全过。
+        #
+        #   ⇒ 写完读回来对一下：内容不对就重建目录、重写一次（最多 3 轮）。
+        def 写答案():
+            io.open(os.path.join(ANS, 文件[0]), "w", encoding="utf-8",
+                    newline="").write(答案文 + "\n")
+
+        写答案()
+        for _ in range(3):
+            try:
+                回读 = io.open(os.path.join(ANS, 文件[0]),
+                               encoding="utf-8").read().strip()
+            except OSError:
+                回读 = ""
+            if 回读 == 答案文.strip():
+                break
+            # 被别人删了或覆盖了 —— 重建再写
+            os.makedirs(ANS, exist_ok=True)
+            subprocess.run(["dotnet", "run", "--project", "csharp/" + 参["工程"],
+                            "检查", 编号],
+                           cwd=ROOT, env=env, capture_output=True, timeout=300)
+            新文件 = [x for x in os.listdir(ANS) if x.startswith(编号)]
+            if 新文件:
+                文件 = 新文件
+            写答案()
 
         r = subprocess.run(["dotnet", "run", "--project", "csharp/" + 参["工程"],
                             "检查", 编号],
