@@ -372,16 +372,12 @@ int main(void) {
         for (int i = 0; i < 期望.Length; i++)
         {
             // ⚠ 骨架打印的是 "%d,"（带尾逗号）⇒ 比较前去尾逗号
-            string 实际行 = i < run.行.Count
-                ? run.行[i].Trim().TrimEnd(',') : "";
+            string 实际行 = i < run.行.Count ? run.行[i].Trim().TrimEnd(',') : "";
             if (i >= run.行.Count || 实际行 != 期望[i])
-            {
-                string 这是 = i < 输入.Length ? 输入[i] : "";
                 return CheckResult.不过(
-                    $"输入 [{这是}] 应当是 [{期望[i]}]，" +
+                    $"输入 [{(i < 输入.Length ? 输入[i] : "")}] 应当是 [{期望[i]}]，" +
                     $"实际是 [{(i < run.行.Count ? 实际行 : "（没输出）")}]。\n" +
                     "      ⚠ 两个坑：① 初值要从第一个元素起 ② 空数组要特判");
-            }
         }
         return CheckResult.过("每一组都对");
     }
