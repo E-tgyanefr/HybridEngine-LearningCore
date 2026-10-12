@@ -121,25 +121,55 @@ csharp/                       C# / C++ / Java 侧
         JavaLesson.cs          Java 课程用的检查辅助
         Exam.cs                考试：按语言分派判分
         BankLoader.cs          运行时加载题库
-    exams/                     C# 20 题 + C++ 16 题
-    tests/                     74 项测试
-    cpp-lessons/               C++ 课程（8 课）+ 课程作者契约.md
-    java-lessons/              Java 课程（8 课）
-    c-lessons/                 C 课程（8 课）
+    exams/                     题库（Python 基础 / 二级）
+    tests/                     320 + 7 项测试（分两批跑）
+    cpp-lessons/               C++ 课程（41 课）+ 课程作者契约.md
+    java-lessons/              Java 课程（17 → 41 课）
+    c-lessons/                 C 课程（41 课）
+    cs-lessons/                C# 课程（17 → 41 课）
+    lessons/                   Python 课程（55 课，00~54）
 ```
 
-## 七条课程线（41 课，全部逐课验收通过）
+## 课程线（全部逐课验收通过）
 
 一个入口看全部：`python -m hybridengine_light`
 
-| 课程线 | 命令 | 课数 | 说明 |
+| 课程线 | 命令 | 课数 | 覆盖 |
 |---|---|---|---|
-| **Python** | `python -m hybridengine_light` | 2 | 变量、模块化 |
-| **C++** | `dotnet run --project csharp/cpp-lessons` | 8 | 输出 → 指针与引用 |
-| **Java** | `dotnet run --project csharp/java-lessons` | 8 | 输出 → 类与对象 |
-| **嵌入式/单片机** | `python -m hybridengine_light 嵌入式` | 5 | 模拟器：按钮、闪烁、状态机、防抖 |
+| **Python** | `python -m hybridengine_light` | **55**（00~54） | GESP 一级 → **八级** |
+| **C** | `dotnet run --project csharp/c-lessons` | **41**（00~40） | GESP 一级 → **八级** |
+| **C++** | `dotnet run --project csharp/cpp-lessons` | **41**（00~40） | GESP 一级 → **八级** |
+| **Java** | `dotnet run --project csharp/java-lessons` | 17 → 41 ⏳ | 补到 C++ 同一批算法 |
+| **C#** | `dotnet run --project csharp/cs-lessons` | 17 → 41 ⏳ | 补到 C++ 同一批算法 |
+| **嵌入式/单片机** | `python -m hybridengine_light 嵌入式` | 4 | 模拟器：按钮、闪烁、状态机、防抖 |
 | **树莓派** | `python -m hybridengine_light 树莓派` | 5 | 模拟器：传感器、数据记录、温室监测器 |
 | **人工智能** | `python -m hybridengine_light AI` | 5 | 零依赖：线性回归、感知机、梯度下降、KNN |
+| **引擎课程** | `python -m hybridengine_light 引擎课程` | 5 | 场景、组件、输入相机、运行时造物 |
+
+⚠ **课数是从目录扫出来的真值，不是写死的配置** ——
+`tests/test_gui_flow.py` 里那条断言比的就是"界面课数 == 目录课数"。
+
+### 「做到最高等级」是按 CCF GESP 考纲来的
+
+每一条考纲要求对到哪一课，见 **[`docs/GESP考纲对照.md`](docs/GESP考纲对照.md)**。
+那份文档**逐级列出缺口** —— 留白的地方就是还没写的课。
+
+⚠ 两点如实说明：
+
+· **GESP 只考 C++ 和 Python**。Java / C# 没有对应的等级考试，
+  它们按"C++ 那批算法内容"补齐，不是按考纲。
+· **官方考纲 PDF 我没能直接读**（工具不支持 PDF）。一到八级的内容是从
+  两个可读来源整理的，链接在对照文档开头。**有原文的话值得核一遍。**
+
+### 每加一课都要过这三关
+
+    ① 参考答案全过     `python _build/_verify_compiled.py <线>`
+    ② 错答案被拒       每课至少 3 个"偷懒但输出对"的答案必须被抓住
+    ③ 数据源↔产物一致  `python _build/_audit_drift.py`
+
+第 ③ 条是**踩过坑才加的**：生成式的四条线（C/C++/Java/C#）里，
+产物 `.cs` 和数据源会分叉 —— 而"重新生成看变没变"这个判据会把
+"我手改过产物"和"数据源本来就对"混为一谈。所以审计**比内容**。
 
 每条线都是同一个循环：**看课程 → 写答案 → 自动检查 → 拿到具体反馈**。
 
@@ -228,7 +258,7 @@ dotnet run --project csharp/c-lessons 答案 01      # 参考答案
 
 ```bash
 python -m unittest discover -s tests -v      # 79 项
-dotnet run --project csharp/tests            # 74 项
+python _build/run_tests.py                     # 320 + 7 项
 python tests/smoke_canvas.py                 # 验证画布真的能渲染
 ```
 
