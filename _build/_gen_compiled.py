@@ -35,18 +35,29 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
 
 #: 四条线的参数表
+#
+# ⚠⚠ **这里没有 `"c"`** —— C 线请用 `_build/_gen_c16.py`。
+#
+#   原来这里有一条 `"c"`（数据 `_c00.txt` + `_c16.txt`，产物同一目录），
+#   而 `_gen_c16.py` 也在生成同一批文件 —— **两个生成器抢同一批产物，
+#   后跑的那个说了算**。
+#
+#   后果实测：`_gen_compiled.py` 用的是**共享的** `打印行()`，
+#   而那个函数对 C/C++ 会产出 `printf("%s\n", (…).ToString())` ——
+#   **C 里根本没有 `.ToString()`**。于是这一条会把 `_gen_c16.py`
+#   刚生成好的正确产物**覆盖成编译不过的版本**：
+#
+#       python _gen_c16.py                        → c 41/41 ✓
+#       python _gen_c16.py && python _gen_compiled.py c  → c 39/41 ✗
+#                                                            （09、11 课挂）
+#
+#   症状特别容易误判：报的是「编译没能通过」，看着像学生代码的问题，
+#   而学生一个字都没错。而且**先生成对了、后生成又坏了**，
+#   所以"我刚才跑过是好的"完全不成立。
+#
+#   ⇒ 一个产物目录**只能有一个生成器**。C 有自己那份更完整的生成器
+#     （41 课、14 种检查形态、数据自检），就用它。
 线表 = {
-    "c": dict(
-        数据=["_build/_c00.txt", "_build/_c16.txt"],
-        产物目录="csharp/c-lessons/Lessons",
-        特性="课程",
-        返回类型="CheckResult",
-        检查类="CppCheck",
-        课程类="CppLesson",
-        命名空间="HybridEngineLight.CLessons",
-        库命名空间="HybridEngineLight",
-        前缀="第",
-    ),
     "cpp": dict(
         数据=["_build/_cpp00.txt", "_build/_cpp09.txt", "_build/_cpp_extra.txt",
               "_build/_cpp12_13.txt", "_build/_cpp14_15.txt"],
@@ -901,6 +912,15 @@ if __name__ == "__main__":
     目标 = sys.argv[1:] or list(线表)
     总 = 0
     for 键 in 目标:
+        # ⚠ 明确拒绝 `c`，而不是只把它从 `线表` 里删掉 ——
+        #   删掉的话，别人（或旧的脚本、旧的肌肉记忆）传 `c` 会得到一个
+        #   `KeyError: 'c'` 的traceback，看着像脚本坏了；
+        #   这里给一句能照着做的提示。
+        if 键 == "c":
+            print("  ⚠ C 线不归这个生成器管 —— 请跑：python _build/_gen_c16.py")
+            print("     （原因见文件开头 `线表` 上方的注释：两个生成器抢同一批产物，")
+            print("       而这里的共享 `打印行()` 会给 C 产出 `.ToString()`，编译不过。）")
+            sys.exit(1)
         n = 生成一线(键)
         if n < 0:
             sys.exit(1)
