@@ -1,0 +1,12 @@
+{
+  "对": "二进制文字 = '1011'\n它的十进制 = int(二进制文字, 2)\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return bin(数).count('1')\n",
+  "错": [
+    ["二进制文字没加引号", "二进制文字 = 1011\n它的十进制 = 1011\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return bin(数).count('1')\n"],
+    ["int 丢了进制参数", "二进制文字 = '1011'\n它的十进制 = int(二进制文字)\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return bin(数).count('1')\n"],
+    ["十六进制少了 0x 前缀", "二进制文字 = '1011'\n它的十进制 = int(二进制文字, 2)\n十进制数 = 255\n它的十六进制 = 'ff'\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return bin(数).count('1')\n"],
+    ["转十进制没用第二个参数", "二进制文字 = '1011'\n它的十进制 = int(二进制文字, 2)\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return bin(数).count('1')\n"],
+    ["转二进制文字没去掉前缀", "二进制文字 = '1011'\n它的十进制 = int(二进制文字, 2)\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)\n\n\ndef 数几个1(数):\n    return bin(数).count('1')\n"],
+    ["数几个1数成了长度", "二进制文字 = '1011'\n它的十进制 = int(二进制文字, 2)\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return len(bin(数))\n"],
+    ["数几个1去数 0b 里的 0", "二进制文字 = '1011'\n它的十进制 = int(二进制文字, 2)\n十进制数 = 255\n它的十六进制 = hex(十进制数)\n\n\ndef 转十进制(文字, 进制):\n    return int(文字, 进制)\n\n\ndef 转二进制文字(数):\n    return bin(数)[2:]\n\n\ndef 数几个1(数):\n    return bin(数).count('0')\n"]
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "对": "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = [x * x for x in 数字]\n偶数表 = [x for x in 数字 if x % 2 == 0]\n\n\ndef 翻倍(数字们):\n    return [x * 2 for x in 数字们]\n\n\ndef 摊平(二维表):\n    return [x for 行 in 二维表 for x in 行]\n",
+  "错": [
+    ["平方表算成了 x + x", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = [x + x for x in 数字]\n偶数表 = [x for x in 数字 if x % 2 == 0]\n\n\ndef 翻倍(数字们):\n    return [x * 2 for x in 数字们]\n\n\ndef 摊平(二维表):\n    return [x for 行 in 二维表 for x in 行]\n"],
+    ["偶数表漏了筛子", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = [x * x for x in 数字]\n偶数表 = [x for x in 数字]\n\n\ndef 翻倍(数字们):\n    return [x * 2 for x in 数字们]\n\n\ndef 摊平(二维表):\n    return [x for 行 in 二维表 for x in 行]\n"],
+    ["偶数表留了奇数", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = [x * x for x in 数字]\n偶数表 = [x for x in 数字 if x % 2 == 1]\n\n\ndef 翻倍(数字们):\n    return [x * 2 for x in 数字们]\n\n\ndef 摊平(二维表):\n    return [x for 行 in 二维表 for x in 行]\n"],
+    ["翻倍改了原列表", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = [x * x for x in 数字]\n偶数表 = [x for x in 数字 if x % 2 == 0]\n\n\ndef 翻倍(数字们):\n    for i in range(len(数字们)):\n        数字们[i] = 数字们[i] * 2\n    return 数字们\n\n\ndef 摊平(二维表):\n    return [x for 行 in 二维表 for x in 行]\n"],
+    ["摊平只写了一层", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = [x * x for x in 数字]\n偶数表 = [x for x in 数字 if x % 2 == 0]\n\n\ndef 翻倍(数字们):\n    return [x * 2 for x in 数字们]\n\n\ndef 摊平(二维表):\n    return [行 for 行 in 二维表]\n"],
+    ["全程用 for 没用解析", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = []\nfor x in 数字:\n    平方表.append(x * x)\n偶数表 = []\nfor x in 数字:\n    if x % 2 == 0:\n        偶数表.append(x)\n\n\ndef 翻倍(数字们):\n    出 = []\n    for x in 数字们:\n        出.append(x * 2)\n    return 出\n\n\ndef 摊平(二维表):\n    出 = []\n    for 行 in 二维表:\n        for x in 行:\n            出.append(x)\n    return 出\n"],
+    ["忘了方括号变成生成器", "数字 = [1, 2, 3, 4, 5, 6]\n平方表 = (x * x for x in 数字)\n偶数表 = (x for x in 数字 if x % 2 == 0)\n\n\ndef 翻倍(数字们):\n    return (x * 2 for x in 数字们)\n\n\ndef 摊平(二维表):\n    return (x for 行 in 二维表 for x in 行)\n"]
+  ]
+}

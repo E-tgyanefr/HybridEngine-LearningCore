@@ -1,0 +1,25 @@
+{
+ "对": "\"\"\"第 53 课参考答案 —— 单源最短路。\"\"\"\n\nimport heapq\n\n\ndef 最短路(图, 起点):\n    最短 = {点: float(\"inf\") for 点 in 图}      # ⚠ 每个点都要有键，走不到的就是 inf\n    最短[起点] = 0\n    堆 = [(0, 起点)]                            # 堆里放 (距离, 点)\n    while 堆:\n        距离, 点 = heapq.heappop(堆)\n        if 距离 > 最短[点]:\n            continue                            # 过期的记录，跳过\n        for 邻, 权 in 图[点]:\n            if 距离 + 权 < 最短[邻]:\n                最短[邻] = 距离 + 权\n                heapq.heappush(堆, (最短[邻], 邻))\n    return 最短\n\n\ndef 朴素最短路(图, 起点):\n    # Bellman-Ford：把每条边松弛 V-1 轮。慢，但负边也算得对。\n    最短 = {点: float(\"inf\") for 点 in 图}\n    最短[起点] = 0\n    边们 = [(甲, 邻, 权) for 甲 in 图 for 邻, 权 in 图[甲]]\n    for _ in range(len(图) - 1):\n        for 甲, 邻, 权 in 边们:\n            if 最短[甲] + 权 < 最短[邻]:\n                最短[邻] = 最短[甲] + 权\n    return 最短\n",
+ "错": [
+  [
+   "不可达写-1",
+   "\"\"\"错答案：走不到的点写成了 -1。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"53\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最短路(图, 起点):\n    最短 = {点: -1 for 点 in 图}                # ❌ 走不到应该是 float(\"inf\")\n    最短[起点] = 0\n    堆 = [(0, 起点)]\n    while 堆:\n        距离, 点 = heapq.heappop(堆)\n        if 距离 > 最短[点]:\n            continue\n        for 邻, 权 in 图[点]:\n            if 最短[邻] == -1 or 距离 + 权 < 最短[邻]:\n                最短[邻] = 距离 + 权\n                heapq.heappush(堆, (最短[邻], 邻))\n    return 最短\n"
+  ],
+  [
+   "不用堆",
+   "\"\"\"错答案：用列表每次扫最小值（答案对，但没用到 heapq）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"53\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最短路(图, 起点):\n    最短 = {点: float(\"inf\") for 点 in 图}\n    最短[起点] = 0\n    定下 = set()\n    while len(定下) < len(图):\n        剩下 = [点 for 点 in 图 if 点 not in 定下]\n        点 = min(剩下, key=lambda p: 最短[p])       # ❌ 这里是 O(n)，该用小根堆\n        定下.add(点)\n        if 最短[点] == float(\"inf\"):\n            break\n        for 邻, 权 in 图[点]:\n            if 最短[点] + 权 < 最短[邻]:\n                最短[邻] = 最短[点] + 权\n    return 最短\n"
+  ],
+  [
+   "忘了推进堆",
+   "\"\"\"错答案：更新了字典却忘了把新距离推进堆，后面的点就扩不出去了。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"53\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最短路(图, 起点):\n    最短 = {点: float(\"inf\") for 点 in 图}\n    最短[起点] = 0\n    堆 = [(0, 起点)]\n    while 堆:\n        距离, 点 = heapq.heappop(堆)\n        if 距离 > 最短[点]:\n            continue\n        for 邻, 权 in 图[点]:\n            if 距离 + 权 < 最短[邻]:\n                最短[邻] = 距离 + 权       # ❌ 少了 heapq.heappush(堆, (最短[邻], 邻))\n    return 最短\n"
+  ],
+  [
+   "朴素只扫一轮",
+   "\"\"\"错答案：朴素最短路只松弛一轮，负边就绕不过来了。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"53\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 朴素最短路(图, 起点):\n    最短 = {点: float(\"inf\") for 点 in 图}\n    最短[起点] = 0\n    边们 = [(甲, 邻, 权) for 甲 in 图 for 邻, 权 in 图[甲]]\n    for 甲, 邻, 权 in 边们:            # ❌ 只扫一轮；要扫 len(图)-1 轮\n        if 最短[甲] + 权 < 最短[邻]:\n            最短[邻] = 最短[甲] + 权\n    return 最短\n"
+  ],
+  [
+   "漏掉走不到的点",
+   "\"\"\"错答案：返回的字典里漏掉了走不到的点。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"53\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最短路(图, 起点):\n    最短 = {起点: 0}\n    堆 = [(0, 起点)]\n    while 堆:\n        距离, 点 = heapq.heappop(堆)\n        if 距离 > 最短[点]:\n            continue\n        for 邻, 权 in 图[点]:\n            if 邻 not in 最短 or 距离 + 权 < 最短[邻]:\n                最短[邻] = 距离 + 权\n                heapq.heappush(堆, (最短[邻], 邻))\n    return 最短                     # ❌ 只能走到的点才有键，走不到的整个不见了\n"
+  ]
+ ]
+}

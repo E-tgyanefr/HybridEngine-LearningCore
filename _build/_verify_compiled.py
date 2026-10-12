@@ -1,4 +1,4 @@
-# 编译型四条线（C / C++ / Java / C#）的**统一验证器**。
+﻿# 编译型四条线（C / C++ / Java / C#）的**统一验证器**。
 #
 # ════════════════════════════════════════════════════════════════════
 #  为什么要统一
@@ -60,15 +60,21 @@ def 验一条(键: str) -> tuple[int, int, int]:
         t = io.open(os.path.join(Lessons, f), encoding="utf-8").read()
         # ⚠ 特性名按语言取：Java 是 [Java课程(，其余是 [课程(
         m = re.search(r'\[%s\("(\d+)"\s*,\s*"((?:[^"\\]|\\.)*)"' % 参["特性"], t)
-        # ⚠⚠ 这个正则必须**在第一个 `""";` 就收住**。
-        #    原来是 `\n""";` —— 参考答案末尾只要多一个空行，`\n""";` 就匹配不上，
-        #    于是 `.*?` 一路吃到**下一个**满足条件的 `"""`，
-        #    把后面的 C# 代码也当成答案喂进编译器 ⇒ 报"编译没能通过"，
-        #    而错误说明指向模板里的行号，看着完全不相干。
-        #    实测：C 的第 09、11 课就是这样挂的（工作区里它们的答案末尾有空行）。
-        #    ⇒ 用 `\s*""";`，并把结尾的空白一起去掉。
-        ans = re.search(r'public static string 参考答案 => """\n(.*?)\s*""";', t, re.S)
-        if not (m and ans):
+        # ⚠⚠ 这个正则要同时满足三件事（我前两版各栽过一次）：
+        #    ① **在第一个 `"""` 就收住** —— 否则参考答案末尾多一个空行时，
+        #       `.*?` 会一路吃到**下一个** `"""`，把后面的 C# 代码也当答案
+        #       喂进编译器 ⇒ 报「编译没能通过」，而报错行号指向模板，
+        #       看着完全不相干。实测 C 的第 09、11 课就是这样挂的。
+        #    ② **`"""` 后面不能强制要求 `\n`** —— 有一批课的答案是
+        #       `参考答案 => """` 紧跟代码（同一行换行都没有）。
+        #       我第一版改成 `"""\n(.*?)\s*""";` 就漏掉了这些课，
+        #       表现为「解析不出参考答案（没验到）」，C++ 04/05/16 全中。
+        #    ③ 结尾的空白要去掉（`(.*?)` 收在 `"""` 前，可能带回车）。
+        #    ⇒ 用最朴素的 `"""(.*?)""";` 再 `.strip()`。C# 原始字符串里
+        #      本来就不会出现三个连续双引号，所以这样是安全的。
+        ans = re.search(r'public static string 参考答案 => """(.*?)""";', t, re.S)
+        答案文 = ans.group(1).strip() if ans else ""
+        if not (m and 答案文):
             # ⚠ **不静默跳过** —— 明确报出来，否则会误以为"验过了"
             跳过 += 1
             print("  ??  %-30s 解析不出编号/参考答案（**没验到**）" % f[:30])
@@ -82,7 +88,7 @@ def 验一条(键: str) -> tuple[int, int, int]:
         shutil.rmtree(ANS, ignore_errors=True)
         os.makedirs(ANS, exist_ok=True)
         subprocess.run(["dotnet", "run", "--project", "csharp/" + 参["工程"],
-                        "--no-build", "检查", 编号],
+                        "检查", 编号],
                        cwd=ROOT, env=env, capture_output=True, timeout=300)
         文件 = [x for x in os.listdir(ANS) if x.startswith(编号)]
         if not 文件:
@@ -90,10 +96,10 @@ def 验一条(键: str) -> tuple[int, int, int]:
             print("  ??  %s 建不出答题文件（**没验到**）" % 编号)
             continue
         io.open(os.path.join(ANS, 文件[0]), "w", encoding="utf-8",
-                newline="").write(ans.group(1) + "\n")
+                newline="").write(答案文 + "\n")
 
         r = subprocess.run(["dotnet", "run", "--project", "csharp/" + 参["工程"],
-                            "--no-build", "检查", 编号],
+                            "检查", 编号],
                            cwd=ROOT, env=env, capture_output=True, timeout=600)
         out = (r.stdout + r.stderr).decode("utf-8", "replace")
         过 = "全部通过" in out

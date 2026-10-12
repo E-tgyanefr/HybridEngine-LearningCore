@@ -1,0 +1,25 @@
+{
+ "对": "\"\"\"第 51 课参考答案 —— 排列组合。\"\"\"\n\nimport math\n\n\ndef 排列数(n, k):\n    # ⚠ k 越界是「不可能」，返回 0；不挡的话算阶乘会抛\n    #   ValueError: factorial() not defined for negative values\n    if n < 0 or k < 0 or k > n:\n        return 0\n    结果 = 1\n    for i in range(k):\n        结果 *= n - i          # 只乘 k 个数：P(5,2) = 5 × 4\n    return 结果\n\n\ndef 组合数(n, k):\n    if n < 0 or k < 0 or k > n:\n        return 0\n    # 先按顺序挑（排列），再除掉 k 个的全排列\n    return 排列数(n, k) // math.factorial(k)\n\n\ndef 乘法原理(各组数量):\n    结果 = 1                   # ⚠ 空列表返回 1：一步都不做，也算一种方案\n    for 数 in 各组数量:\n        结果 *= 数\n    return 结果\n\n\ndef 加法原理(各类数量):\n    和 = 0\n    for 数 in 各类数量:\n        和 += 数\n    return 和\n\n\ndef 杨辉三角(层数):\n    if 层数 <= 0:\n        return []\n    三角 = [[1]]\n    for i in range(1, 层数):\n        上行 = 三角[-1]\n        新行 = [1]\n        for j in range(1, i):\n            新行.append(上行[j - 1] + 上行[j])      # 正上方两个数之和\n        新行.append(1)\n        三角.append(新行)\n    return 三角\n",
+ "错": [
+  [
+   "乘法从0起",
+   "\"\"\"错答案：乘法原理拿 0 做初始值，空列表算出来是 0。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"51\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 乘法原理(各组数量):\n    结果 = 0                    # ❌ 乘法要拿 1 起头，空列表才是「一种方案」\n    for 数 in 各组数量:\n        结果 *= 数\n    return 结果\n"
+  ],
+  [
+   "排列乘到1",
+   "\"\"\"错答案：排列数直接用了 n 的阶乘（P(5,2) 算成 120）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"51\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 排列数(n, k):\n    if n < 0 or k < 0 or k > n:\n        return 0\n    return math.factorial(n)            # ❌ 应该是 n × (n-1) × … 只乘 k 个\n"
+  ],
+  [
+   "杨辉三角全填1",
+   "\"\"\"错答案：杨辉三角每行全填 1，形状对但中间的数不对。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"51\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 杨辉三角(层数):\n    if 层数 <= 0:\n        return []\n    return [[1] * (i + 1) for i in range(层数)]     # ❌ 中间的数应当是上一行两数之和\n"
+  ],
+  [
+   "组合不挡越界",
+   "\"\"\"错答案：组合数用阶乘硬算，没挡 k > n，负的阶乘直接崩。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"51\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 组合数(n, k):\n    # ❌ 少了 if not 0 <= k <= n: return 0 —— k > n 时 n - k 是负数\n    return math.factorial(n) // (math.factorial(k) * math.factorial(n - k))\n"
+  ],
+  [
+   "组合除以k",
+   "\"\"\"错答案：组合数忘了除掉 k!（只除了 k）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"51\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 组合数(n, k):\n    if n < 0 or k < 0 or k > n:\n        return 0\n    if k == 0:\n        return 1\n    return 排列数(n, k) // k             # ❌ C(n,k) 要除以 k!，不是除以 k\n"
+  ]
+ ]
+}

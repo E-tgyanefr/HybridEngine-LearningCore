@@ -17,6 +17,7 @@ import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -25,6 +26,14 @@ LC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, LC)
 os.chdir(LC)
 from hybridengine_light import learnmodel as M  # noqa: E402
+
+# ⚠⚠ 必须先清掉答题目录的字节码缓存，否则**会报假绿**（实测撞上）：
+#   `importlib` 认 `__pycache__/*.pyc` 的判据是「源文件的 mtime（秒）+ 大小」。
+#   连着喂两个**字节数相同**的答案（例如 `[x * x …]` 和 `[x + x …]`，
+#   只差一个字符），而它们落在同一秒里 ⇒ 第二个答案被当成第一个加载，
+#   于是错答案显示「4/4 全过」。真相是检查根本没见过那段错代码。
+#   ⇒ 两条一起用：先删缓存，再禁止写新缓存（删了不加才是干净）。
+shutil.rmtree(os.path.join(LC, "lessons", "answers", "__pycache__"), ignore_errors=True)
 
 
 def 答案路径(轨道, 号):
@@ -51,10 +60,16 @@ def main():
         M.读答案([k for k in M.发现(轨道) if k.编号 == 号][0])   # 生成模板
     数据 = json.loads(io.open(用例, encoding="utf-8").read())
     备份 = io.open(P, encoding="utf-8").read() if P.is_file() else None
-    env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    # ⚠ PYTHONDONTWRITEBYTECODE：见文件开头 —— 让每个用例都从源码重新加载
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONDONTWRITEBYTECODE="1")
+
+    def 写(代码):
+        """写完**立刻关**（不 close 时靠引用计数碰运气，时序上不可靠）。"""
+        with io.open(P, "w", encoding="utf-8", newline="") as f:
+            f.write(代码)
 
     def 跑(代码):
-        io.open(P, "w", encoding="utf-8", newline="").write(代码)
+        写(代码)
         r = subprocess.run([sys.executable, "-m", "hybridengine_light", "检查", 号],
                            cwd=LC, env=env, capture_output=True, timeout=300)
         return (r.stdout + r.stderr).decode("utf-8", "replace")
