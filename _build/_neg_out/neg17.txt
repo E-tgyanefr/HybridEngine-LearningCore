@@ -1,10 +1,26 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  OK  三个排序函数都在，签名也对
+  OK  冒泡排序：普通、重复元素、只给 1 个、长度 0
+  OK  选择排序：普通、重复元素、只给 1 个、长度 0
+  OK  插入排序：普通、重复元素、只给 1 个、长度 0
+  XX  ★ 不许拿 std::sort 之类的现成排序交差
+        源码里用到了现成的排序：std::sort、sort(
+              它的输出当然是对的，但**这一课要的不是输出，是手写的过程**：
+                  冒泡  两层循环 + 比较相邻两个 + 交换
+                  选择  外层定位置、内层找最小的下标、一轮换一次
+                  插入  把第 i 个插进前面已经排好的那一段
+              三种写法的循环边界都不一样 —— 那才是这一课要练的东西。
+              （std::sort 是第 13 课的内容，要排现成的数据用它没问题；
+                但**先得会手写**，不然考场上不给用库函数时就没辙了。）
+  XX  ★ 三个函数体里各自都要有你自己写的循环
+        检查了去掉注释后的源码，发现问题：
+              冒泡排序：这个函数体里一个循环都没有
+              选择排序：这个函数体里一个循环都没有
+              插入排序：这个函数体里一个循环都没有
+              排序的本质是「反复比较、反复交换」，所以一定有一层或两层循环：
+                  冒泡  for (i…) for (j…) if (数[j] > 数[j+1]) 交换
+                  选择  for (i…) { for (j…) 找最小; 交换 }
+                  插入  for (i…) { while (j >= 0 && 数[j] > 拿着) 右挪 }
+              如果输出是几个赋值语句拼出来的，数字碰巧对也不算学会 ——
+              检查里换一组数据（含重复元素的那组）立刻就错了。
+  OK  数组没有被改坏（排序只动该动的）
+== 5/7 ==

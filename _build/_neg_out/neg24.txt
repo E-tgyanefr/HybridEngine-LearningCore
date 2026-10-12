@@ -1,10 +1,51 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  OK  两个函数都在，签名也对
+  XX  素数个数：1、2、10、100、1000、10000 都要对
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:/Users/etgya/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3608_3\prog.exe: No such file or directory
+        collect2.exe: error: ld returned 1 exit status
+  XX  ★ 素数个数(1000000) 必须在时限内算完 —— 试除法要 50 秒
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:/Users/etgya/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3608_5\prog.exe: No such file or directory
+        collect2.exe: error: ld returned 1 exit status
+  XX  是质数：小数字和大数字都要对
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:/Users/etgya/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3608_3\prog.exe: No such file or directory
+        collect2.exe: error: ld returned 1 exit status
+  OK  ★ 素数个数里要真的是筛法（嵌套循环 + 标记数组）
+== 2/5 ==

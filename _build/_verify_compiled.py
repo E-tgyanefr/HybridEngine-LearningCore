@@ -1,4 +1,4 @@
-﻿# 编译型四条线（C / C++ / Java / C#）的**统一验证器**。
+# 编译型四条线（C / C++ / Java / C#）的**统一验证器**。
 #
 # ════════════════════════════════════════════════════════════════════
 #  为什么要统一
@@ -38,6 +38,22 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env = dict(os.environ)
 env["DOTNET_CLI_UI_LANGUAGE"] = "en"
 env["PYTHONIOENCODING"] = "utf-8"
+# ⚠⚠ 把 C++ 编译的临时目录指到一个**私有**的 TEMP（ASCII 路径）。
+#   两个原因，都是实测踩出来的：
+#     ① `CppRunner.清理旧目录` 会删掉**别的进程**留下的 run* 目录 ——
+#        这台机器上同时有好几个助手各自跑课程检查，于是刚建出来的编译目录
+#        会被别人的检查顺手删掉，g++ 报
+#           ld.exe: cannot open output file …prog.exe: No such file or directory
+#        学生看到的是"编译没能通过"，其实他的代码一个字都没错。
+#     ② MinGW 的 ld.exe **无法把 exe 写进含中文的路径**（项目根目录里就有中文），
+#        同一个错误换到这里来。
+私有TEMP = r"C:\lc_tmpx"
+try:
+    os.makedirs(私有TEMP, exist_ok=True)
+    env["TEMP"] = 私有TEMP
+    env["TMP"] = 私有TEMP
+except OSError:
+    pass
 
 
 def 验一条(键: str) -> tuple[int, int, int]:

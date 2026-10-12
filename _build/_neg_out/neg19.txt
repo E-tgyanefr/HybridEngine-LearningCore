@@ -1,10 +1,45 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  XX  三个函数都在，签名也对（都要 long long）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3428_3\main.cpp: In function 'int main()':
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3428_3\main.cpp:28:24: warning: unused variable '\U00004e22\U00005f03' [-Wunused-variable]
+        C:/Users/etgya/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3428_3\prog.exe: No such file or directory
+        collect2.exe: error: ld returned 1 exit status
+  XX  三份答案都是 1+2+…+n（小 n 时三份必须一样）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:/Users/etgya/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run3428_5\prog.exe: No such file or directory
+        collect2.exe: error: ld returned 1 exit status
+  OK  平方和(20000) 必须算对而且要跑得完
+  XX  ★ 平方和里要真的有两层循环，而且不许去调用 公式/一重和
+        检查了去掉注释后的源码：
+              平方和：只数到 0 个循环，这一课要的是**两层**（O(n²)）
+              平方和：里面调用了 公式 / 一重和 —— 那就不是 O(n²) 了，这一课要你亲手写出那个慢
+              这一课要你**故意写一个慢算法**，这样三份代码的差距才看得见：
+                  一重和   O(n)    加了 n 次
+                  平方和   O(n²)   外面白跑 n 遍（两层循环套着）
+                  公式     O(1)    一次算术
+              写法就是老老实实套两层 for，内层里做一次加法 —— 简单，但慢得真实。
+== 1/4 ==

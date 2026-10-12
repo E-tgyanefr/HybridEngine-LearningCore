@@ -1,10 +1,104 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  XX  三个函数都在，签名也对
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        出在这里：第 14 行
+        
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_1\main.cpp: In function 'long long int \U00006700\U00005927\U0000516c\U00007ea6\U00006570(long long int, long long int)':
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_1\main.cpp:14:17: error: 'gcd' is not a member of 'std'
+           14 |     return std::gcd(a, b);
+              |                 ^~~
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_1\main.cpp: In function 'int main()':
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_1\main.cpp:31:24: warning: unused variable 'a' [-Wunused-variable]
+           31 |     volatile long long a = 最大公约数(12, 18);
+              |                        ^
+  XX  最大公约数：普通、互质、0 在边上的情况、负数
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        出在这里：第 14 行
+        
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_2\main.cpp: In function 'long long int \U00006700\U00005927\U0000516c\U00007ea6\U00006570(long long int, long long int)':
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_2\main.cpp:14:17: error: 'gcd' is not a member of 'std'
+           14 |     return std::gcd(a, b);
+              |                 ^~~
+  XX  ★ 最小公倍数：先除后乘，大数也不能错（会溢出成一团乱）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        出在这里：第 14 行
+        
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_2\main.cpp: In function 'long long int \U00006700\U00005927\U0000516c\U00007ea6\U00006570(long long int, long long int)':
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_2\main.cpp:14:17: error: 'gcd' is not a member of 'std'
+           14 |     return std::gcd(a, b);
+              |                 ^~~
+  XX  三个数的最大公约数
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        出在这里：第 14 行
+        
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_2\main.cpp: In function 'long long int \U00006700\U00005927\U0000516c\U00007ea6\U00006570(long long int, long long int)':
+        C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run21776_2\main.cpp:14:17: error: 'gcd' is not a member of 'std'
+           14 |     return std::gcd(a, b);
+              |                 ^~~
+  XX  ★ 不许用 std::gcd / __gcd，要自己写辗转相除
+        源码里用到了现成的：std::gcd
+              它们的答案当然对，但这一课要你亲手写出那两行：
+                  if (b == 0) { return a; }
+                  return 最大公约数(b, a % b);
+              为什么值得手写：
+                · 这是「为什么能换小」的最好练习 —— {a,b} 和 {b,a%b} 的公约数集合完全相同；
+                · `std::gcd` 是 C++17 才有的，很多考场环境不给；
+                · 扩展欧几里得、中国剩余定理都是从这两行长出来的。
+  XX  ★ 最大公约数里要用到 %（辗转相除的本质是取余）
+        「最大公约数」的函数体里没有见到 `%`。
+              辗转相除的本质就是「大数换小数、小数换余数」，没有取余就不是它了：
+                  while (b != 0) { long long 余 = a % b; a = b; b = 余; }
+                  return a;
+              或者递归写法：
+                  if (b == 0) { return a; }
+                  return 最大公约数(b, a % b);
+              如果写的是「从 1 试到小的那个」那种笨办法，也能过用例，
+              但数字一大（10^9）就慢得没法用了 —— 那不是这一课要教的。
+== 0/6 ==

@@ -1,10 +1,92 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  XX  四个函数都写了吗（签名对不对）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        C:/Users/etgya/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/../lib/gcc/x86_64-w64-mingw32/16.1.0/../../../../x86_64-w64-mingw32/bin/ld.exe: cannot open output file C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run14436_2\prog.exe: No such file or directory
+        collect2.exe: error: ld returned 1 exit status
+  XX  按行打印：一行一行，每行 4 个数
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        cc1plus.exe: fatal error: C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run14436_4\main.cpp: No such file or directory
+        compilation terminated.
+  XX  ★ 按列打印：一列一列，方括号里还是 格[i][j]（不是 格[j][i]）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        cc1plus.exe: fatal error: C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run14436_4\main.cpp: No such file or directory
+        compilation terminated.
+  XX  ★ 主对角线和：两个下标一起走（长方形取短边，换一份数据也要对）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        cc1plus.exe: fatal error: C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run14436_4\main.cpp: No such file or directory
+        compilation terminated.
+  XX  ★ 矩阵最大：整张表里最大的那个（不能被哨兵值 -1 骗到）
+        
+        ────────────────────────────────────────────────────────
+        编译没能通过
+        ────────────────────────────────────────────────────────
+        这个错误我没有内置解释（规则表里没有它）。
+        
+        通用的排查办法：
+          1. 先看**第一条** error —— 后面的往往是它引起的连锁反应
+          2. 分号、括号、引号有没有配对上（尤其看报错那一行的**上一行**）
+          3. 把报错原文复制去搜索（下面就是原文，方便复制）
+        
+        原始报错（老师或搜索需要用到的原文）：
+        ────────────────────────────────────────────────────────
+        cc1plus.exe: fatal error: C:\Users\etgya\AppData\Local\Temp\hybridengine_light_cpp\run14436_4\main.cpp: No such file or directory
+        compilation terminated.
+  XX  真的是两层的循环（不是把答案写死）
+        检查了去掉注释后的源码，发现问题：
+              打印每行：一个循环都没找到
+              打印每列：一个循环都没找到
+              这一课要练的正是**两层循环的方位感**：
+                  按行  for (int i = 0; i < 行数; i++)
+                            for (int j = 0; j < 列数; j++)  用 格[i][j]
+                  按列  for (int j = 0; j < 列数; j++)
+                            for (int i = 0; i < 行数; i++)  还是 格[i][j]
+              如果输出是几个写死的 std::cout 拼出来的，数字碰巧对也不算学会 ——
+              换一张表格（检查里就换了）立刻就错了。
+== 0/6 ==

@@ -1,10 +1,22 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  XX  ★ 真的从 data.in 里读：换三份不同的输入，答案要跟着变
+        换了输入之后结果不对：
+              第 2 份输入（10 11 12 13 14 15 16 / ）：data.out 里是 2，应该是 4
+              第 3 份输入（1 3 5 7 / ）：data.out 里是 2，应该是 0
+              检查会换三份内容不同的 data.in 各跑一遍，所以**把答案写死是过不了的**。
+              正确流程：
+                  std::ifstream 入("data.in");
+                  int 数, 偶数个数 = 0;
+                  while (入 >> 数) { if (数 % 2 == 0) 偶数个数++; }
+                  std::ofstream 出("data.out");
+                  出 << 偶数个数 << '\n';
+              ⚠ 文件名必须是 data.in 和 data.out，一个字都不能差。
+  XX  源码里用了 ifstream / ofstream（不是 freopen 之外的歪门邪道）
+        源码里少了这些：
+              std::ifstream（读文件）
+              这一课要练的就是这两个类：
+                  std::ifstream 入("data.in");    读文件（用法和 std::cin 一样）
+                  std::ofstream 出("data.out");   写文件（用法和 std::cout 一样）
+              ⚠ `<iostream>` 里**没有**文件流 —— 必须再 `#include <fstream>`，
+                否则报 `variable 'std::ofstream …' has initializer but incomplete type`。
+  OK  程序能正常跑完（没有崩、没有死循环）
+== 1/3 ==

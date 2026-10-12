@@ -1,10 +1,16 @@
-﻿dotnet : Unhandled exception. System.InvalidOperationException: Sequence contains no matching element
-At line:9 char:3
-+   dotnet run --no-build -- "第$n课" $f.FullName $dll 2>&1 | Out-File -E ...
-+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (Unhandled excep...atching element:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-   at System.Linq.ThrowHelper.ThrowNoMatchException()
-   at System.Linq.Enumerable.First[TSource](IEnumerable`1 source, Func`2 predicate)
-   at P.Main(String[] argv) in C:\Users\etgya\AppData\Local\Temp\refl16\Program.cs:line 13
+  OK  两个函数都在，签名也对
+  OK  二分查找：第一格、最后一格、找不到、重复元素都要对
+  OK  下界：比所有数都小/都大、命中、重复元素
+  OK  ★ 大数组也要对（10 万个元素，二分只要约 17 次）
+  XX  ★ 必须是真二分：函数体里要有「折半」的写法
+        检查了去掉注释后的源码：
+              二分查找：函数体里没有看到折半的写法（`/ 2`）
+              下界：函数体里没有看到折半的写法（`/ 2`）
+              二分的灵魂就是**每次把范围砍掉一半**：
+                  int 中 = 低 + (高 - 低) / 2;      ← 取中间
+                  … 根据 数[中] 和 目标 比大小，扔掉一半 …
+              如果是从头到尾扫一遍（`for (i = 0; i < 长度; i++)`），
+              答案虽然也对，但那不是二分 —— 100 万个数时它要 100 万次，
+              二分只要 20 次。这一课要练的正是「砍一半」这个想法。
+  OK  ★ 不许用 std::lower_bound / binary_search 交差
+== 5/6 ==
