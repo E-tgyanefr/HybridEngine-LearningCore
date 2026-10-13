@@ -752,7 +752,24 @@ window.onerror = function (m, u, l) {
   //   我看到的一直是**卡住的旧值**（还以为点击没生效，白绕一轮）。
   //   ⇒ 加个计数器，强制它每次都变。
   var 帧 = 0;
-  if (String(location.search).indexOf("%E8%87%AA%E6%A3%80") >= 0 ||
+  //: ⚠⚠ **第三个触发方式：`localStorage["hel-自检"] = "1"`。**
+  //:
+  //:   为什么加这条：原来的两条都要**改 URL**（`?自检=1`），
+  //:   而 `MainActivity` 加载的是**写死的** `file://…/index.html` ——
+  //:   发布包里**没法从外面加 query**（`am start -d` 它也不认）。
+  //:   ⇒ 于是"在真机上看 DOM 状态"这件事只能靠**改代码重建**，
+  //:     而我为此试了三次、每次 1~2 分钟，还不稳。
+  //:
+  //:   ⇒ 这一条**不用重建就能开**：
+  //:     ```
+  //:     adb shell am start -n <组件> --es hel 自检开     # 把开关写进 localStorage
+  //:     # 然后正常启动 ⇒ 标题每秒变一次 ⇒ logcat 里就是自检字符串
+  //:     ```
+  //:   ⚠ 开关**默认关**（`= "1"` 才算），所以正常使用零影响。
+  var 开关 = false;
+  try { 开关 = localStorage.getItem("hel-自检") === "1"; } catch (e) {}
+  if (开关 ||
+      String(location.search).indexOf("%E8%87%AA%E6%A3%80") >= 0 ||
       String(location.search).indexOf("自检") >= 0 ||
       String(location.search).indexOf("check") >= 0) {
     setInterval(function () {
