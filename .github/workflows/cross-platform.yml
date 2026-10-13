@@ -1,0 +1,134 @@
+# ============================================================================
+# 三平台 CI —— **让 Linux / macOS 真的跑一遍**
+#
+# ## 为什么要有这个文件
+#
+# 作者的目标里有一条「上述所有项目要移植到 windows / linux / macos 上」。
+#
+# ⚠⚠ **但开发机只有 Windows，没有 WSL、没有 Linux、没有 macOS。**
+#    `_build/_check_platform.py` 和 `_build/build_linux_packages.sh` /
+#    `build_macos_app.sh` 都写好了，**在真 Linux/macOS 上一次都没跑过** ——
+#    这一点在 `docs/跨平台.md` 里如实标注着。
+#
+#    ⇒ 这个 CI 就是补上那一半的**唯一**办法：
+#      让 GitHub 的 runner（真的 Ubuntu / 真的 macOS）去跑那些检查。
+#
+# ## 它跑什么（刻意只跑**不需要联网、不需要第三方依赖**的东西）
+#
+#    ① `_build/_check_platform.py`   —— 平台自检（它退出码 0/1 明确）
+#    ② `_build/run_tests.py`         —— 全套 351 + 7
+#
+# ⚠ **不跑**打包装（PyInstaller / AppImage / .deb / .app）：
+#   那些要装一堆东西、耗时长，而且**本仓一条发布流程都还没走过**。
+#   先把"能不能跑"这一步验了，打包另说。
+#
+# ## ⚠ tkinter：Linux 上必须装
+#
+# Ubuntu 的 python3 默认**不带 tkinter**（它是单独的 `python3-tk` 包）。
+# 而这个项目的两个图形界面都靠它。⇒ 用 `apt-get install -y python3-tk`。
+#
+# ⚠ 但 `actions/setup-python` 装的那个 Python **自带 tkinter**（它是
+#   python-build-standalone 的构建，带 Tk）。所以下面那步 apt 是**兜底**，
+#   不是必需 —— 加了更稳，代价是几秒。
+#
+# ⚠ macOS runner **没有显示器**，但 Tk 在 macOS 上不需要 X —— 
+#   建窗口会成功（只是没人看得见）。所以 macOS 那边不用 xvfb。
+# ============================================================================
+
+name: 三平台
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  #: ⚠ 手动触发 —— 改了平台相关代码之后想立刻验一次，不用等 push
+  workflow_dispatch:
+
+jobs:
+  检查:
+    name: ${{ matrix.名字 }}
+    runs-on: ${{ matrix.系统 }}
+    strategy:
+      #: ⚠ 不要让一个平台挂了把别的取消掉 —— 三个平台的结果**要各自看到**
+      fail-fast: false
+      matrix:
+        include:
+          - 名字: Windows
+            #: ⚠ 钉死的标签，不是 `windows-latest`
+            #:   （`-latest` 会自己换 OS，那种红看起来像"代码坏了"）
+            #:   2026-10-13 查上游：windows-latest == Windows Server 2025
+            系统: windows-2025
+          - 名字: Linux
+            #: 2026-10-13 查上游：ubuntu-latest == Ubuntu 24.04
+            #:   而 26.04 已可用、迁移窗口 2026-10-19~11-19 ⇒ 钉住
+            系统: ubuntu-24.04
+          - 名字: macOS
+            #: 2026-10-13 查上游：macos-latest == macOS 26 **arm64**
+            系统: macos-26
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Python ────────────────────────────────────────────────────────
+      #: ⚠ 3.12 —— 和开发机同版本（Python 3.12.10）。
+      #:   本项目用的语法（`match` / PEP 604 联合类型 / `list[str]`）在 3.9+ 都行，
+      #:   但**锚定开发机版本**能少一类"只有某个版本才炸"的意外。
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # ── Linux 专属：tkinter ───────────────────────────────────────────
+      - name: 装 tkinter（Linux）
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb
+
+      # ── 诊断：这一跑到底拿到了什么环境 ────────────────────────────────
+      #
+      # ⚠ 这一节**不是装饰** —— 平台相关的红最难查的就是"到底是代码坏了，
+      #   还是 runner 换了"。把版本打出来，下次红的时候一眼能分辨。
+      #   （和 `HybridEngine/.github/workflows/ci.yml` 里同一个取向。）
+      - name: 环境（诊断）
+        run: |
+          python -c "import sys, platform; print('Python', sys.version)"
+          python -c "import sys; print('平台', sys.platform, platform.machine())"
+          python -c "import tkinter; print('Tk', tkinter.TkVersion)"
+        shell: bash
+
+      # ── ① 平台自检 ────────────────────────────────────────────────────
+      #
+      # ⚠ 这是本 CI 的**主判据**：它检查
+      #   平台 / 版本 / 38 个子模块导入 / tkinter / 内容根 / 编码 /
+      #   大小写冲突 / Windows 假设扫描 / 工具链 / shell 脚本
+      - name: 平台自检
+        run: python _build/_check_platform.py
+
+      # ── ② 全套测试 ────────────────────────────────────────────────────
+      #
+      # ⚠ 退出码就是判据（`run_tests.py` 已经按批次聚合）。
+      # ⚠ Linux 上套 `xvfb-run` —— 它的第二批要真开 tkinter 窗口，
+      #   而无头 runner 没有 X。`xvfb-run -a` 给一个虚拟显示。
+      #   ⚠ `-a` 是"自动挑一个没被占的 display 号"，不加会撞车。
+      - name: 全套测试（Linux，带虚拟显示）
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python _build/run_tests.py
+
+      - name: 全套测试（Windows / macOS）
+        if: runner.os != 'Linux'
+        run: python _build/run_tests.py
+
+      # ── 失败时留下的东西 ─────────────────────────────────────────────
+      - name: 收集日志
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 日志-${{ matrix.名字 }}
+          #: ⚠ 这些是**运行期产物**（不在 .gitignore 里也没关系 ——
+          #:   artifact 是打包上传，不碰 git）
+          path: |
+            _build/_log_*.txt
+            _build/报告/**
+          if-no-files-found: ignore
+          retention-days: 7
