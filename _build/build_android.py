@@ -229,6 +229,36 @@ if not os.path.isdir(JDK):
     print("        error XA0030: Building with JDK version 25.0.3 is not supported.")
     sys.exit(1)
 
+#: ⚠⚠⚠ **`obj/` 缓存：每次真构建**都清掉 —— 2026-10-13 真机事故换来的。
+#:
+#:   事故：APK 装上去**启动即崩**（SIGABRT），原生栈是：
+#:       Abort message: 'Invalid compressed assembly descriptor index 36'
+#:       #01 … /lib/arm64/libmonodroid.so (xamarin::android::Helpers::abort_…)
+#:   ⇒ `.NET Android` 运行时读**程序集存储**时索引越界 ——
+#:     **没到我们的 C# 代码**（logcat 里连一行 `HybridEngineLight` 都没有）。
+#:
+#:   真因：**`android/app/obj/` 里的程序集存储是旧的**。
+#:   `build_android.py` 同步时**排除了 `obj`/`bin`**（那是对的 —— 路径变了旧产物会失效），
+#:   于是构建区里**留着上一次的 `obj`** ⇒ 程序集清单和实际 dll 对不上 ⇒ 索引越界。
+#:
+#:   ⚠⚠ 最坑的是**它跟代码无关**：我把 `Diag.cs` 回退到干净的 git HEAD、
+#:     全新构建、全新安装，**一样崩** ⇒ 我为此连试了五轮，**全在错的前提上**。
+#:
+#:   ⇒ **不按时间戳判断，直接清。** 理由两条：
+#:     ① 这个缓存**没有任何需要保留的价值** —— 它就是中间产物，
+#:        重建的代价只是几十秒，而"带着坏缓存构建"的代价是**一小时的排查 + 一个坏发布物**
+#:     ② 我第一版写的是"比时间戳，旧了就删" —— ⚠ 那**防不住**
+#:        （`obj` 存在但内容不对时，时间戳看着是新的 ⇒ 照旧中招）
+#:   ⚠ 也**不是**删构建区 `C:\lc_android` —— 那是全量重建（几分钟）；
+#:     只删 `obj`/`bin` 就够（几十秒），因为坏的就是程序集存储。
+if "--go" in sys.argv:
+    import shutil as _sh2
+    for _d in ("obj", "bin"):
+        _p = os.path.join(LC, "android", "app", _d)
+        if os.path.isdir(_p):
+            _sh2.rmtree(_p, ignore_errors=True)
+    print("    已清 android/app/obj 与 bin（⚠ 不清会中\"程序集描述符越界\"那个坑）")
+
 if "--go" not in sys.argv:
     print()
     print("  （检查通过。加 --go 才真构建）")
