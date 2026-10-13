@@ -253,6 +253,11 @@ class 界面(tk.Tk):
                    self.进游戏编写).pack(side="left", padx=T.间_小)
         self._大按钮(选, "课程学习", "按编程语言挑，一课只讲一个知识点",
                    self.进课程学习, 主=True).pack(side="left", padx=T.间_小)
+        #: ⚠ 第三个入口：**不用先选什么**，点开就是一个能跑的空白页。
+        #:   原来只有前两个，而两个都要求你**先选**（选语言 / 选游戏线）——
+        #:   "我想随便写两句试试"这个最自然的动作**没有入口**。
+        self._大按钮(选, "自己试试", "不用选课，打开就能写、按 F5 就跑",
+                   self.进自由练习).pack(side="left", padx=T.间_小)
 
         tk.Label(框, text="想回这里随时按 Esc", bg=背景, fg=更暗文字,
                  font=字体界面(T.字_小)).pack(pady=(T.间_巨大, 0))
@@ -370,6 +375,79 @@ class 界面(tk.Tk):
     def 进游戏编写(self):
         self._进学习界面()
         self._填语言列表(只看游戏=True)
+
+    def 进自由练习(self):
+        """「自己试试」—— 打开一个**能直接写的页**，不用先选课。
+
+        ## 作者原话
+
+            「**就是在自己尝试中来一个入口就行**」
+
+        ## 做了什么
+
+        · 进学习界面，但**不填课程树**（自由练习和课程体系无关）
+        · 造一个空课（`M.新建自由课()`），把它接到现有那套机制上
+          ⇒ 于是**运行 / 保存 / 打开文件夹全都直接能用**，一行都不用改
+        · 编辑器里放 `gamekit.模板()`（一个能跑的接方块），
+          并且**只在文件还不存在时**才放 —— 学员改过的东西不能被覆盖
+
+        ## ⚠⚠ 三条"不许"
+
+        **① 不许覆盖学员已经写过的东西。** 先读文件，有内容就用文件的内容。
+        **② 不许当成课程记进度。** 不调任何 `进度.记()`。
+        **③ 不许进课程树。** 它不在 `_树到课` 里，学员不会以为"这是第几课"。
+        """
+        self._进学习界面()
+
+        #: 左边清空 —— 自由练习不选课。
+        #: ⚠ 只清树、不重建：右边那套布局（编辑器/结果/演示）要留着，
+        #:   重建会闪一下，而且会丢掉编辑器里已经写的东西。
+        try:
+            self.树.delete(*self.树.get_children())
+            self._树到课.clear()
+        except Exception:
+            pass
+
+        #: 上一课的互动演示要收掉 —— 它是**有状态的控件**，留着会盖在新内容上
+        if getattr(self, "当前演示", None) is not None:
+            try:
+                self.当前演示.停()
+                self.当前演示.框.destroy()
+            except Exception:
+                pass
+            self.当前演示 = None
+
+        self._清空编辑器()
+        k = M.新建自由课()
+        self.当前课 = k
+        try:
+            self.空状态.place_forget()
+        except Exception:
+            pass
+        self.编辑标题.configure(text="自己试试")
+        self.课副标题.configure(
+            text="不用选课 · 按 F5 跑 · Ctrl-S 存到 games/我的游戏.py")
+
+        #: ⚠ 已有文件就用**文件的内容** —— 绝不覆盖学员写过的东西。
+        #:   只有"文件还不存在"时才放模板。
+        已有 = ""
+        try:
+            if k.答题文件.is_file():
+                已有 = k.答题文件.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            已有 = ""
+        if 已有.strip():
+            self._设文本(self.代码, 已有)
+            self.状态.configure(text="接着上次写 · 按 F5 跑，Ctrl-S 保存")
+        else:
+            self._设文本(self.代码, _自由练习模板())
+            self.脏 = True          # 放进去的是模板 ⇒ 提示"还没存"
+            self.状态.configure(text="模板已经放好了 · 按 F5 就能玩")
+        self._重高亮()
+        try:
+            self.页.select(0)       # 回到「代码」那一页（演示页对自由练习没意义）
+        except Exception:
+            pass
 
     def _进学习界面(self):
         if self.学习界面 is None or not self.学习界面.winfo_exists():
@@ -1436,8 +1514,50 @@ class contextlib_suppress:
     """`contextlib.suppress` 的最小替代（免得为一行 import 整个模块）。"""
     def __enter__(self):
         return self
+
     def __exit__(self, *a):
         return True
+
+
+def _自由练习模板() -> str:
+    """「自己试试」放进去的第一份代码。
+
+    ## ⚠ 为什么不自己写一份
+
+    作者已经写好了一份更好的：`gamekit.模板("接方块")`（100 行、能跑、
+    带「你可以改①②③」的注释，还写着"每次改一处，改完运行看效果"）。
+
+    **再写一份就是重复**，而且两份会慢慢不一致 ——
+    学员从"自己试试"进去看到的和从文档里看到的不一样。
+
+    ## 做了什么改动（只改一处）
+
+    模板原文里写的是 `把它存成 games/接方块.py`。而这里是**自由练习**，
+    存到哪儿由界面上那个 Ctrl-S 决定（`games/我的游戏.py`）。
+    ⇒ 只把那句话改成实话 —— **代码一行没动**。
+    """
+    from . import gamekit as GK
+    try:
+        t = GK.模板("接方块")
+    except Exception:
+        #: ⚠ 兜底：`gamekit` 万一出问题，也不能给学员一个空白页
+        #:   （"点了按钮什么都没发生"比"看到一句说明"糟得多）
+        return ("# 自己试试 —— 随便写点什么，按 F5 跑。\n"
+                "#\n"
+                "# 例子：\n"
+                "#   from hybridengine_light import Stage\n"
+                "#   Stage().dot(50, 50, r=20, color=\"红\").wait()\n"
+                "#\n"
+                "# ⚠ gamekit 模板没能加载，所以这里只有最小示例。\n")
+    #: 只改"存到哪"那句话，其余原样
+    t = t.replace("python games/接方块.py", "按 F5（或 python games/我的游戏.py）")
+    t = (t.rstrip("\n")
+         + "\n\n# ════ 关于这个文件 ════\n"
+           "#   这是「自己试试」—— 不是课程，没有对错，也不会记进度。\n"
+           "#   按 F5 跑，Ctrl-S 存（存到 games/我的游戏.py）。\n"
+           "#   写坏了不要紧：左边「主页」→「自己试试」能再拿一份这份模板，\n"
+           "#   但**只有在你把这个文件删掉之后**才会给新的 —— 它不会覆盖你写的。\n")
+    return t
 
 
 def main() -> int:

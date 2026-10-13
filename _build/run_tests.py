@@ -73,7 +73,8 @@ env["PYTHONDONTWRITEBYTECODE"] = "1"
      #   ⇒ 显式列出模块。反正就这 15 个，列出也更清楚。
      [sys.executable, "-m", "unittest"] + [
          "tests.test_ai", "tests.test_anim", "tests.test_courselines",
-         "tests.test_editor", "tests.test_exam", "tests.test_games",
+         "tests.test_editor", "tests.test_exam", "tests.test_free_play",
+         "tests.test_games",
          "tests.test_gui_model", "tests.test_hybridengine_light",
          "tests.test_lessons", "tests.test_mcu", "tests.test_pause",
          "tests.test_pyengine", "tests.test_raspi", "tests.test_startup",
