@@ -122,8 +122,17 @@ def _grade_code(q: Question, src: str) -> tuple[bool, str]:
     if not src.strip():
         return False, "没有写任何代码"
     ns: dict = {}
+    #: ⚠⚠ **看门狗**：考试里学员写个死循环，没有它就是**永远不返回**。
+    #:   ⚠ 尤其手机上：安卓起不了子进程做超时兜底（PEP 738），
+    #:     死循环 = 应用卡死。见 `watchdog.py` 开头那段。
+    from .watchdog import 超时 as _看门狗超时, 看门狗 as _看门狗
     try:
-        exec(compile(src, "<你的答案>", "exec"), ns)      # noqa: S102 —— 这是本地教学工具，学生写的就是要跑的
+        with _看门狗():
+            exec(compile(src, "<你的答案>", "exec"), ns)   # noqa: S102 —— 这是本地教学工具，学生写的就是要跑的
+    except _看门狗超时 as e:
+        #: ⚠ 单独一条：**"停不下来"不是"有语法错误"**，提示语完全不同，
+        #:   混在一起学员会去找一个不存在的错。
+        return False, str(e)
     except Exception as e:                                # noqa: BLE001
         return False, f"代码跑不起来：{type(e).__name__}: {e}"
 

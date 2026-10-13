@@ -852,9 +852,23 @@ def _code_run(args: dict) -> dict:
 
     ⚠ 进程内 `exec`，与 `examrun._grade_code` 同一个思路。
       好处：快，而且 stdout 被 StringIO 抓住 ⇒ 物理上不可能污染协议流。
-      代价：**没有超时/杀不掉**（见 docs/控制协议.md 的"未做的部分"）。
+
+    ⚠⚠ **超时：原来这里写的是「没有超时/杀不掉」—— 那个缺口已经填上了**（2026-10-13）。
+
+        现在用 `watchdog.看门狗`（`sys.settrace` + 数行数）：
+        `while True:` 之类**停不下来的纯 Python 代码会在 10 秒内被打断**。
+
+        ⚠ 为什么必须填：这不是"桌面版体验问题"，是**手机上的致命问题** ——
+          安卓不允许执行应用自己的可执行文件（PEP 738）⇒ 起不了子进程做超时兜底，
+          Python 就嵌在应用主进程里。
+          ⇒ 学员写个死循环，**整个应用卡死，只能强杀**。
+
+        ⚠ 它**拦不住**的情况（如实说）：死循环发生在 **C 扩展**内部时,
+          `settrace` 不会被调用。（本项目的学员代码都是纯 Python。）
+          另外 `settrace` 会让代码慢一些，所以取 10 秒这种"正常代码绝用不到"的量级。
     """
     from .explain import explain
+    from .watchdog import 默认秒 as _看门狗默认秒
 
     源码 = args.get("source", args.get("代码", args.get("src")))
     if 源码 is None:
@@ -862,6 +876,11 @@ def _code_run(args: dict) -> dict:
     if not isinstance(源码, str):
         raise 参数错("source 必须是字符串")
 
+    #: ⚠ 单次 `code.run` 的预算。
+    #:   · 正常学员代码是毫秒级 —— 10 秒绝用不到
+    #:   · 但**死循环一定撞得上** ⇒ 这是"正常代码绝用不到、停不下来的一定撞上"的量级
+    #:   ⚠ 允许调用方覆盖（`args["timeout"]`），给以后"跑大计算"留门
+    超时秒 = float(args.get("timeout") or _看门狗默认秒)
     ns: dict = {"__name__": "__hybridengine_light_ctl__"}
     buf = io.StringIO()
     err = io.StringIO()
@@ -870,7 +889,12 @@ def _code_run(args: dict) -> dict:
     with _工作目录(项目根()):
         with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
             try:
-                exec(compile(源码, "<hybridengine_light-ctl>", "exec"), ns)   # noqa: S102
+                #: ⚠⚠ **必须带看门狗** —— 这是"跑学员代码"的入口之一。
+                #:   没有它，`code.run` 收到一个 `while True:` 就**永远不返回**：
+                #:   手机上这就是应用卡死（安卓起不了子进程做超时兜底）。
+                from .watchdog import 看门狗 as _看门狗
+                with _看门狗(秒=超时秒):
+                    exec(compile(源码, "<hybridengine_light-ctl>", "exec"), ns)   # noqa: S102
             except BaseException as e:              # noqa: BLE001 —— SystemExit 也要收
                 出错 = e
     用_秒 = time.time() - t0
@@ -882,13 +906,29 @@ def _code_run(args: dict) -> dict:
         "seconds": round(用_秒, 4),
     }
     if 出错 is not None:
-        if isinstance(出错, SyntaxError):
+        #: ⚠⚠ **看门狗打断**要单独一条分支 —— 见下面那句注释。
+        from .watchdog import 超时 as _看门狗超时
+        if isinstance(出错, _看门狗超时):
+            #: ⚠ 为什么不走下面那条通用分支：
+            #:   · 它会把类型名打成 `超时: ...`（学员不知道"超时"是什么类）
+            #:   · 它会给一份 traceback —— 而**这份 traceback 毫无意义**：
+            #:     去看 `settrace` 抛出来的位置，只会看到 tracer 自己
+            #:   · **这不是 bug，是学员的代码停不下来** ⇒ 说人话就够了
+            返回["error"] = str(出错)
+            返回["explain"] = (
+                "你的代码跑了太久还没结束。最常见的原因：\n"
+                "  · 有个循环的终止条件永远不成立（比如 `while True:` 没写 break）\n"
+                "  · 有个递归忘了写终止条件\n"
+                "  · 读输入时一直在等一个永远不会来的东西")
+            返回["timeout"] = True
+        elif isinstance(出错, SyntaxError):
             返回["error"] = f"{type(出错).__name__}: {出错.msg}（第 {出错.lineno} 行）"
         else:
             返回["error"] = f"{type(出错).__name__}: {出错}"
-        # ⚠ 本产品的**核心卖点**就是"报错说人话" —— 协议层当然要带上翻译
-        返回["explain"] = explain(出错)
-        if not isinstance(出错, (SystemExit, KeyboardInterrupt)):
+            # ⚠ 本产品的**核心卖点**就是"报错说人话" —— 协议层当然要带上翻译
+            返回["explain"] = explain(出错)
+        if 出错 is not None and not isinstance(
+                出错, (_看门狗超时, SystemExit, KeyboardInterrupt)):
             返回["traceback"] = "".join(
                 traceback.format_exception(type(出错), 出错, 出错.__traceback__))
     return 返回

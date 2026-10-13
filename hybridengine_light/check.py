@@ -111,8 +111,31 @@ def load_module(path: Path, name: str | None = None):
     return mod
 
 
-def run_checks(lesson_mod, answer_mod) -> Report:
-    """跑课程模块里所有的 CHECK_* 函数。"""
+def run_checks(lesson_mod, answer_mod, 秒上限: float | None = None) -> Report:
+    """跑课程模块里所有的 CHECK_* 函数。
+
+    ⚠⚠ **每条检查都有超时保护**（`watchdog.看门狗`）—— 这**不是**防御性编程：
+
+        检查函数会**调用学员写的代码**。学员写个 `while True` 就永远不返回。
+        桌面版一直有兜底（`learnmodel.运行` 用 `subprocess.run(timeout=20)`），
+        ⚠ **但手机版没有**：安卓不允许执行应用自己的可执行文件（PEP 738）
+        ⇒ 起不了子进程 ⇒ **没有"杀掉那个进程"这个选项**，
+        而 Python 就嵌在应用主进程里（`Py_Initialize`），
+        桥的方法还跑在 WebView 的 JS 线程上。
+
+        ⇒ **学员在手机上写一个死循环，整个应用就卡死了 —— 只能强杀。**
+
+    ⚠ 超时后**继续跑剩下的检查**（不是整个放弃）——
+      这样学员一次就能看到"哪几条有问题"，而不是修一条跑一次。
+
+    ⚠ 为什么"每条检查"各给一份预算，而不是整个判分给一份：
+      课程里有 3~8 条检查，正常总共几十毫秒。**按整体给预算**的话，
+      一条死循环会把后面所有检查的预算烧光 ⇒ 学员看到一堆"超时"，
+      分不清是哪一条的锅。
+    """
+    from .watchdog import 超时 as _超时, 看门狗 as _看门狗, 默认秒 as _默认秒
+
+    上限 = _默认秒 if 秒上限 is None else float(秒上限)
     rep = Report(lesson=lesson_mod.__name__)
 
     checks = [(n, f) for n, f in vars(lesson_mod).items()
@@ -125,7 +148,15 @@ def run_checks(lesson_mod, answer_mod) -> Report:
     for name, fn in checks:
         title = name[len("CHECK_"):]
         try:
-            out = fn(answer_mod)
+            #: ⚠ 看门狗只包 `fn(...)` 这一句 ——
+            #:   别把 `rep.results.append` 也包进去（那是我们自己的代码，不需要看）。
+            with _看门狗(秒=上限):
+                out = fn(answer_mod)
+        except _超时 as e:
+            #: ⚠ 单独一条分支：**"停不下来"和"报了个错"是两件事**，
+            #:   给学员的提示语完全不同。混在一起他会去找一个不存在的语法错误。
+            rep.results.append(Result(title, False, "停不下来：%s" % e))
+            continue
         except Exception as e:                       # noqa: BLE001
             # 检查函数自己崩了 —— 说明学生的代码让检查没法进行（例如缺函数导致 AttributeError）
             rep.results.append(Result(title, False, f"检查无法进行：{type(e).__name__}: {e}"))
