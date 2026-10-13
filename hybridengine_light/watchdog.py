@@ -78,6 +78,34 @@
           之后再无一行，也没有写出协议响应文件）——
           但这只能说明"**看门狗没打断它**"，不能说明"界面卡死"。
 
+    ## ⭐ 真机能力探测（2026-10-13，实测一行读完）—— 下一个人**不用重探**
+
+        用真机实验台跑（`--es hel run --es src <base64>`）：
+
+            ver=3.12.7 || xxsub=YES || SIGALRM=True || _thread=YES
+                       || switchinterval=0.005 || trace_ok=True || settrace_callable=YES
+
+        **两个关键发现**：
+
+        · ⭐ **`SIGALRM = True`** —— **安卓有 SIGALRM！**
+          ⚠ 我原先排除 `signal.setitimer` 的理由是"**Windows 没有 SIGALRM**" ——
+            那是**桌面推理，没在安卓上验**。现在验了：**它有**。
+          ⇒ `signal.setitimer(ITIMER_REAL, 秒)` 是 **stdlib**、
+            **不需要 tracing**（信号在字节码边界被 CPython 检查）、
+            而且能打断 `while True` ⇒ **这是最有希望的一条路**。
+          ⚠ 但有个**技术障碍**：`signal.signal()` **只能在主线程**调，
+            而这三处调用点都在各自的线程里跑 Python ⇒ 会抛 `ValueError`。
+            要么改到主线程装 handler，要么用别的路。**下一轮先解决这个。**
+        · **`_xxsubinterpreters` 可用**（`xxsub=YES`）—— 子解释器那条路也在。
+          ⚠ 只验了"能 import"，**没验能跑**。
+
+        ⚠⚠ **`settrace_callable=YES` 而 tracer 一次都不回调** ——
+          这条对比本身是个教训：**"能调这个 API"和"它真的生效"是两件事。**
+          别只看 `hasattr` / `callable` 就以为行。
+
+        ⚠ 这三条路（SIGALRM / 子解释器 / 异步异常注入）**这一轮都没验成** ——
+          所以上面只写"能力存在"，**不写"方案可行"**。
+
     ## ⇒ 那手机怎么办？**必须换机制**
 
         手机要的是"**能杀掉的执行单元**"：
