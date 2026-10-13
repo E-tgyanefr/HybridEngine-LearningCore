@@ -1,8 +1,18 @@
 # Linux 版 —— 四种形态、怎么装、哪些能在 Windows 上做
 
 > **一句话**：源码包**已经做好并验过**；另外三种（PyInstaller tar.gz /
-> AppImage / .deb）的脚本**已写好、语法和逻辑验过**，但**只能在 Linux 上真打** ——
-> 原因不是懒，是物理限制（下面第二节）。
+> AppImage / .deb）的脚本**已写好、语法（`bash -n`）与"平台闸门"验过**，
+> 但**只能在 Linux 上真打** —— 原因不是懒，是物理限制（下面第二节）。
+>
+> ⚠ **"语法和闸门验过" ≠ "打包逻辑验过"** —— 组 AppDir / 调 appimagetool /
+> `dpkg-deb --build` 那几段**一次都没在 Linux 上执行过**。
+> 详见 **`docs/跨平台.md`**（那里有一张逐项的「实测 / 半验 / 未验」表）。
+>
+> 任何平台都能先跑一遍跨平台自检，退出码必须是 0：
+>
+> ```sh
+> python3 _build/_check_platform.py
+> ```
 
 ---
 
@@ -152,6 +162,17 @@ dpkg-deb                      （打 .deb 用，Debian 系才有）
 glibc 版本、Tk 版本、字体、桌面环境都可能不一样。
 我在 Windows 上能验的只有"脚本语法对、逻辑对"，**包本身一次都没在 Linux 上跑过**。
 
+### 打之前/之后都该跑一遍的跨平台自检
+
+```sh
+python3 _build/_check_platform.py        # 退出码 0 = 本平台这一关过了
+```
+
+它查：Python 版本 · **38 个子模块能不能导入** · tkinter · 内容根与课数 ·
+**文件编码（源码必须 UTF-8）** · **大小写冲突**（Linux 上会直接覆盖）·
+**硬编码 Windows 假设扫描**（清单外的命中 = 失败）· 工具链 · **`bash -n`**。
+⚠ 跳过项会**明说「跳过，不算通过」**，不会静默当绿。
+
 ### 四门编译型课程要装什么
 
 ```
@@ -173,7 +194,11 @@ Fedora            sudo dnf install dotnet-sdk-8.0 gcc-c++ java-17-openjdk-devel
 | AppImage / .deb 能不能装 | 工具是 Linux 原生的 |
 | 各发行版的兼容性 | 同上 —— **必须真机验，脚本只能保证"打出来了"** |
 | `.deb` 的依赖声明对不对 | 没打过真包，`Depends:` 是按常识写的 |
+| `_check_platform.py` 在 Linux 上的实际输出 | 脚本在 Windows 上跑过（退出码 0），**Linux 上一次没跑** |
+| 组 AppDir / appimagetool / `dpkg-deb` 那几段 | ⚠ 本轮只验了 `bash -n` 与"在非 Linux 上会明确拒绝"（退出码 2）；**打包逻辑本身从没执行过** |
 
 ⇒ 这些都是**同一类限制**：这台机器不是 Linux。
    如果你有 Linux 机器（或愿意 `wsl --install -d Ubuntu`），
    上面每一条都能在几分钟内验完。
+
+> 完整的逐项状态（含 **macOS** 那一栏）见 **`docs/跨平台.md`**。

@@ -2,6 +2,7 @@
 import os
 import subprocess
 import sys
+import tempfile
 import time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -20,10 +21,14 @@ for k in M.编译型轨道:
 print("  ---- 全部发现完：%.2f 秒 ----" % (time.time() - t0))
 '''.format(lc=LC)
 
-open(os.path.join(os.environ["TEMP"], "_cold.py"), "w", encoding="utf-8").write(代码)
+# ⚠ 原来写 `os.environ["TEMP"]` —— 那是 Windows 专有的变量名，Linux/macOS 上
+#   是 `TMPDIR` ⇒ 直接 KeyError。`tempfile.gettempdir()` 跨平台，Windows 上
+#   返回的就是 %TEMP%（行为逐位不变）。
+_临时 = tempfile.gettempdir()
+open(os.path.join(_临时, "_cold.py"), "w", encoding="utf-8").write(代码)
 for i in (1, 2):
     print("  === 第 %d 次（冷启动）===" % i)
-    r = subprocess.run([sys.executable, os.path.join(os.environ["TEMP"], "_cold.py")],
+    r = subprocess.run([sys.executable, os.path.join(_临时, "_cold.py")],
                        capture_output=True, timeout=300)
     print((r.stdout + r.stderr).decode("utf-8", "replace").rstrip())
     print()

@@ -29,6 +29,8 @@
 """
 from __future__ import annotations
 
+import sys
+
 # ── 背景层次（从深到浅，三层就够）──────────────────────────────────────
 #: 最底层：窗口背景、编辑器背景
 底 = "#181a1d"
@@ -139,19 +141,72 @@ from __future__ import annotations
 #
 # ⇒ 界面文字用 **"Microsoft YaHei UI"**（Win10+ 自带，中英文都它管，
 #   而且比"微软雅黑"多了 UI 优化的小字距）。
-#   ⚠ 跨平台：Linux/macOS 上没有它，Tk 会回退到系统默认 —— 可接受，
-#     因为这个项目的主要交付面是 Windows。
-界 = "Microsoft YaHei UI"
-#: 代码一律等宽。Consolas 在 Windows 上最稳，后面几个是跨平台兜底。
-码 = "Consolas"
+#
+# ⚠⚠ 跨平台修正（2026-10-13）：原来这里**只写死了 Windows 的族名**，
+#    而 `Microsoft YaHei UI` / `Consolas` 在 Linux / macOS 上**都不存在**
+#    —— Tk 会**静默回退**到系统默认，中文可能没有字形（方框）或很难看，
+#    而且**不报错**（和"规则静默失效"是同一类毛病）。
+#
+# ⇒ 现在按平台给**候选表**，再由 `_挑族()` 在"已经存在 Tk root"时用
+#   `tkfont.families()` 挑第一个**系统真的装了**的。
+#   ⚠ Windows 分支的**第一候选**就是原来的两个名字
+#     ⇒ **Windows 上取值与改动前逐字相同**。
+#   ⚠ `_挑族()` **不新建 Tk root**（只看 `tkinter._default_root`）——
+#     命令行路径（`python -m hybridengine_light 课程`）import 本模块时
+#     不会因此多出一个 root，也不会碰到 Tk 的线程检查。
+if sys.platform == "win32":
+    _界候选 = ["Microsoft YaHei UI", "Microsoft YaHei", "SimHei"]
+    _码候选 = ["Consolas", "Courier New"]
+elif sys.platform == "darwin":
+    _界候选 = ["PingFang SC", "Hiragino Sans GB", "Heiti SC", "STHeiti"]
+    _码候选 = ["Menlo", "Monaco", "Courier New"]
+else:
+    _界候选 = ["Noto Sans CJK SC", "Source Han Sans SC", "WenQuanYi Micro Hei",
+               "Droid Sans Fallback", "DejaVu Sans"]
+    _码候选 = ["DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono CJK SC"]
+
+#: 挑好的族名缓存（探测一次就够）
+_挑好的: dict[str, str] = {}
+
+
+def _挑族(候选: "list[str]", 类别: str) -> str:
+    """从候选里挑第一个**系统真的装了**的族名；挑不到就用第一候选。
+
+    ⚠ 只在**已经有 Tk root** 时探测 —— 本函数**绝不新建 root**。
+    """
+    if 类别 in _挑好的:
+        return _挑好的[类别]
+    族 = 候选[0]
+    try:
+        import tkinter
+        r = getattr(tkinter, "_default_root", None)
+        if r is not None:
+            from tkinter import font as _tkfont
+            装了 = set(_tkfont.families(r))
+            族 = next((f for f in 候选 if f in 装了), 候选[0])
+    except Exception:
+        族 = 候选[0]        # 探测本身出问题也不影响界面（用第一候选）
+    _挑好的[类别] = 族
+    return 族
+
+
+#: 兼容旧名字：模块级常量（**不探测**，给"没有 Tk root"的场合用）。
+#: ⚠ `flow.py` 里 `tkfont.Font(family=T.界/T.码)` 读的就是这两个，
+#:   所以它们只能是**静态**的平台默认值；探测版走 `界面字体()`/`等宽字体()`。
+界 = _界候选[0]
+#: 代码一律等宽。
+码 = _码候选[0]
+
 
 #: Tk 的字体参数要的是"族名 字号"这种串，或者元组。统一从这里取。
 def 界面字体(号: int = 字_正文, 粗: bool = False):
-    return (界, 号, "bold") if 粗 else (界, 号)
+    f = _挑族(_界候选, "界")
+    return (f, 号, "bold") if 粗 else (f, 号)
 
 
 def 等宽字体(号: int = 字_正文, 粗: bool = False):
-    return (码, 号, "bold") if 粗 else (码, 号)
+    f = _挑族(_码候选, "码")
+    return (f, 号, "bold") if 粗 else (f, 号)
 
 
 # ── 对比度（给测试用）──────────────────────────────────────────────────

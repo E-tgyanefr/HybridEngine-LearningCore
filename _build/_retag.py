@@ -24,7 +24,10 @@ import urllib.request
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 API = "https://api.github.com/repos/E-tgyanefr/HybridEngine-light"
-ASSETS = os.path.join(os.environ["TEMP"], "hel_ver_assets")
+# ⚠ 原来写 `os.environ["TEMP"]`（Windows 专有）⇒ Linux/macOS 上 KeyError。
+#   `tempfile.gettempdir()` 跨平台，Windows 上取到的就是 %TEMP%。
+import tempfile
+ASSETS = os.path.join(tempfile.gettempdir(), "hel_ver_assets")
 
 out = subprocess.run(["git", "credential", "fill"],
                      input=b"protocol=https\nhost=github.com\n\n",

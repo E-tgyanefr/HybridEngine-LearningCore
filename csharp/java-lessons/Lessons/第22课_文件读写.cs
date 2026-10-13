@@ -315,7 +315,28 @@ static int 数行数(String 路径) throws Exception {
         if (体 == null)
             return JavaCheckResult.不过("没找到 数行数 的函数体 —— 先确认这个方法写全了（花括号配对）。");
 
-        if (!体.Contains("try") || !体.Contains("("))
+        // ⚠ 判据要**真的核对资源写在 `try (` 的圆括号里**（文件头「检查设计说明」② 写的就是
+        //    「必须出现 `try (`」）—— 只问「`try` / `(` 这两个词出现过吗」不够：
+        //    资源在 try **外面** new、try 里只留一个空 finally 的写法，那两个词照样都有，
+        //    而且它能编译 ⇒ 旧判据会把这一条判 ✓（实测见 _build/_probe_weakchecks.py）。
+        //    括号里怎么写都行，按**深度配对**扫出来 —— 单个正则匹配不了任意层嵌套，
+        //    而资源天生带括号：`new BufferedReader(new FileReader(路径))` 就是两层。
+        string 资源 = null;
+        var 起 = Regex.Match(体, @"\btry\s*\(");
+        if (起.Success)
+        {
+            int 头 = 起.Index + 起.Length, 深 = 1;
+            for (int i = 头; i < 体.Length; i++)
+            {
+                if (体[i] == '(') 深 += 1;
+                else if (体[i] == ')')
+                {
+                    深 -= 1;
+                    if (深 == 0) { 资源 = 体.Substring(头, i - 头); break; }
+                }
+            }
+        }
+        if (资源 == null || !Regex.IsMatch(资源, @"\w"))
             return JavaCheckResult.不过(
                 "数行数 里没有 try-with-resources。\n" +
                 "      这一课的正题就是它：**用完一定要关的资源**要写在 try 后面的圆括号里：\n" +

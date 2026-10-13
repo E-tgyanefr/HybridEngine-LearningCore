@@ -268,6 +268,39 @@ namespace HybridEngineLight.Android
             }
         }
 
+        /// <summary>
+        /// ⚠⚠ **诊断台**（调试用，界面上没有入口）：`桥.Dia('bare','')`。
+        ///
+        /// 为什么要有它：前 5 轮排查每换一个假设**都要重新构建 + 装 APK + 重启**，
+        /// 一轮几分钟，而且"上一次到底怎么试的"只能靠注释记。
+        /// 有了这个入口，**每个假设是一个参数**，冷启动一个进程只跑一个：
+        ///
+        ///     python _build/_cdp.py "桥.Dia('bare','')"        # 只有 Py_Initialize
+        ///     python _build/_cdp.py "桥.Dia('global','')"      # 先 RTLD_GLOBAL 再初始化
+        ///     python _build/_cdp.py "桥.Dia('who','0x711b60eaf8')"
+        ///     python _build/_cdp.py "桥.Dia('dump','')"        # 捞上一次的 stderr
+        ///
+        /// ⚠ 方法名和参数名**故意用 ASCII** —— 本项目通篇中文标识符，
+        ///   而 Java 侧能调到的中文参数名会进 LLVM IR 把构建搞挂
+        ///   （`error XA3006`，见 csproj 里 `AndroidEnableMarshalMethods` 那段）。
+        ///   这个入口不值得再冒一次那个风险。
+        /// </summary>
+        [JavascriptInterface]
+        [Java.Interop.Export("Dia")]
+        public string Dia(string step, string arg)
+        {
+            try
+            {
+                string 家 = System.IO.Path.GetDirectoryName(素材根) ?? 素材根;
+                return Diag.跑实验(step, arg, 家, 素材根);
+            }
+            catch (Exception e)
+            {
+                Log.Error(标签, "Dia 抛异常：" + e);
+                return "Dia 抛异常：" + e.GetType().Name + ": " + e.Message;
+            }
+        }
+
         /// <summary>JSON 字符串转义 —— 手写，不引序列化库（少一个依赖）。</summary>
         internal static string 引号(string s)
         {

@@ -17,7 +17,11 @@ import sys
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 LC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))   # 仓库根（从 __file__ 推，别再写死）
-OUT = os.path.join(os.environ["TEMP"], "hel_ver_assets")
+# ⚠ 原来写 `os.environ["TEMP"]` —— 那是 **Windows 专有**的变量名，
+#   Linux/macOS 上是 `TMPDIR`，直接 KeyError（连"跑不起来"都算不上，是崩）。
+#   `tempfile.gettempdir()` 三个平台都对，而且 Windows 上返回的就是 %TEMP%。
+import tempfile
+OUT = os.path.join(tempfile.gettempdir(), "hel_ver_assets")
 
 计划 = [
     ("v0.1.0", "d0667d3", "改名完成（无编辑器）"),

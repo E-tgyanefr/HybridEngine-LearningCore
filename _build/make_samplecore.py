@@ -516,6 +516,18 @@ for _名 in sorted(os.listdir(LC)):
     ("hybridengine_light/progress.py",
      '文件名 = ".学习进度.json"',
      '文件名 = ".示例进度.json"      #: ⚠ 和 LearningCore 分开记'),
+    #: ② ⚠⚠ **这是两个产品唯一的"界面分叉点"** —— 作者定的：
+    #:   「学习内核与样本内核是两个不同的程序，UI 应该分别重新设计」，
+    #:   而且明确选了「**完全不共用，各写一份**」。
+    #:
+    #:   ⇒ LearningCore 开 `learn_gui`（学习界面：课程树 + 检查 + 参考答案）
+    #:     SampleCore   开 `sample_gui`（游戏开发 IDE：组件面板 + 场景树 + 代码 + 运行窗）
+    #:
+    #:   ⚠ 两个界面文件**互不 import**（只在 `run.py` 这一行按名字选）。
+    #:     所以"完全不共用"不是口号，它体现在 import 图上。
+    ("hybridengine_light/run.py",
+     '图形界面模块 = "hybridengine_light.learn_gui"',
+     '图形界面模块 = "hybridengine_light.sample_gui"'),
 ]
 
 

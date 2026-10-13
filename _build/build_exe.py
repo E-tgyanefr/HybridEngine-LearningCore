@@ -381,10 +381,60 @@ if os.path.isdir(嵌套) and os.path.exists(os.path.join(嵌套, "_internal")):
 #     是用户双击"没反应"才暴露的。
 #     ⇒ **判据必须验证"能不能跑"，不是"文件数对不对"。**
 print("  7 自检：真跑一次…")
+# ⚠⚠ 运行库的名字**按平台不同**，而且原来这里写死了 `"python3" + "12.dll"`
+#     和 `APP + ".exe"` —— 于是 Linux / macOS 上自检**必然报
+#     「缺关键运行时文件」**，明明产物是好的。
+#     这是**假失败**，比不检查更坏：它会让在 Linux 上打包的人以为构建坏了。
+#     （同一个文件上面第 39~55 行已经做了平台自适应，这里当初漏了。）
+#   ⇒ 版本从**当前解释器**推（不再写死 12），后缀按平台给，
+#     再留一个 glob 兜底（各发行版的 .so 后缀不一定一样）。
+_py = "%d.%d" % sys.version_info[:2]                    # 例如 3.12
+if 是WIN:
+    _运行库名 = "python%s.dll" % _py.replace(".", "")    # python312.dll
+elif 是MAC:
+    _运行库名 = "libpython%s.dylib" % _py                # libpython3.12.dylib
+else:
+    _运行库名 = "libpython%s.so.1.0" % _py               # libpython3.12.so.1.0
+
+
+def _找运行库(目录: str) -> str | None:
+    """找解释器动态库。精确名不在就 glob 兜底（各平台后缀不同）。"""
+    p = os.path.join(目录, _运行库名)
+    if os.path.exists(p):
+        return p
+    import glob as _glob
+    for 模式 in ("libpython%s.so*" % _py,
+                 "libpython%s*.dylib" % _py,
+                 "python%s*.dll" % _py.replace(".", "")):
+        命中 = _glob.glob(os.path.join(目录, 模式))
+        if 命中:
+            return 命中[0]
+    return None
+
+
 必查 = [os.path.join(发布子, "_internal", "base_library.zip"),
-        os.path.join(发布子, "_internal", "python3" + "12.dll"),
-        os.path.join(发布子, APP + ".exe")]
+        os.path.join(发布子, 可执行名)]
 缺 = [os.path.basename(p) for p in 必查 if not os.path.exists(p)]
+# ⚠⚠ 运行库找不到时，**只敢在 Windows 上判失败**。
+#
+#   理由：`python312.dll` 这个名字在 Windows 上是**实测**过的（本机构建产物里
+#   确实叫这个）。而 macOS 上 PyInstaller 可能放 `libpython3.12.dylib`、
+#   也可能整包成 `Python.framework` —— **本机没有 macOS，验不了**。
+#   如果我在这里对所有平台一律 `sys.exit(1)`，就等于**凭空发明了一个
+#   "macOS 上必然失败"**的假判据（和"假失败"同类，且会挡住真正能用的构建）。
+#   ⇒ Windows：硬失败（保持原行为，已实测）；其他平台：**大声警告但不拦**，
+#     让对方自己看一眼 `_internal/` 并把实际情况记下来。
+_运行库 = _找运行库(os.path.join(发布子, "_internal"))
+if _运行库 is None:
+    if 是WIN:
+        缺.append(_运行库名)
+    else:
+        print("     ⚠ 在 _internal/ 里没找到运行库（找的名字：%s，也试了 glob）" % _运行库名)
+        print("        ⚠ **这不一定是坏的** —— 这个平台上的实际名字/布局本机没验过")
+        print("          （macOS 可能打包成 Python.framework 而不是 libpython*.dylib）。")
+        print("          请自己 `ls _internal/ | grep -i python` 看一眼，并把结果记下来。")
+else:
+    print("     ✓ 运行库：%s" % os.path.basename(_运行库))
 if 缺:
     print("     ✗ 缺关键运行时文件：%s" % "、".join(缺))
     print("       ⇒ 这个产物**起不来**，不要发布。")
@@ -400,7 +450,7 @@ if 缺:
 #     自检进程必须**跑完就退**，绝对不能留下一个活着的窗口进程。
 自检环境 = {**os.environ, "HYBRIDENGINE_LIGHT_CLI": "1"}
 自检环境.pop("PROMPT", None)
-r = subprocess.run([os.path.join(发布子, APP + ".exe"), "__诊断__"],
+r = subprocess.run([os.path.join(发布子, 可执行名), "__诊断__"],
                    capture_output=True, cwd=发布子, timeout=120, env=自检环境)
 出 = (r.stdout + r.stderr).decode("utf-8", "replace")
 if r.returncode != 0 or "frozen      = True" not in 出:
@@ -415,16 +465,34 @@ print("     ✓ 自检通过（exe 真的能跑，且进程已退出）")
 
 # ⚠ 再确认一次：自检**没有留下活着的进程**。
 #   留一个就会锁住产物，害得下一轮构建搬一半 —— 正是上一轮的事故。
+#
+# ⚠⚠ 这一步原来**只写了 Windows 的 `tasklist`**。Linux/macOS 上没有这个
+#   命令 ⇒ FileNotFoundError ⇒ 被下面的 `except` 吃掉 ⇒
+#   **"查不到"被当成了"没问题"**（和"没跑到也算过"是同一类毛病）。
+#   ⇒ 按平台分流，并且把"没有这个工具"**说出来**，不静默跳过。
 try:
     import subprocess as _sp
-    q = _sp.run(["tasklist", "/FI", "IMAGENAME eq " + APP + ".exe"],
-                capture_output=True, timeout=30)
-    qs = (q.stdout + q.stderr).decode("utf-8", "replace")
-    if APP + ".exe" in qs and "没有运行的任务" not in qs and "No tasks are running" not in qs:
+    if 是WIN:
+        查 = _sp.run(["tasklist", "/FI", "IMAGENAME eq " + 可执行名],
+                     capture_output=True, timeout=30)
+        出 = (查.stdout + 查.stderr).decode("utf-8", "replace")
+        还在 = (可执行名 in 出
+                and "没有运行的任务" not in 出
+                and "No tasks are running" not in 出)
+        结束提示 = "taskkill /IM %s /F" % 可执行名
+    else:
+        #: POSIX：按**产物全路径**匹配，免得误伤同名的别的进程
+        查 = _sp.run(["pgrep", "-f", os.path.join(发布子, 可执行名)],
+                     capture_output=True, timeout=30)
+        还在 = 查.returncode == 0 and bool(查.stdout.strip())
+        结束提示 = "pkill -f %s" % 可执行名
+    if 还在:
         print("     ✗ 自检留下了活着的进程（会锁住产物，害得下轮构建搬一半）")
-        print("       请先结束它：taskkill /IM %s.exe /F" % APP)
+        print("       请先结束它：%s" % 结束提示)
         sys.exit(1)
     print("     ✓ 确认没有残留进程")
+except FileNotFoundError:
+    print("     ⚠ 本平台没有 tasklist / pgrep —— **跳过**残留进程检查（不算通过）")
 except Exception:
     pass            # 查不到就算了，不因为查不到而挡住构建
 
@@ -441,7 +509,7 @@ for 命令, 期望 in ((["引擎"], "贪吃蛇"),
                   (["引擎课程"], "用组件拼游戏"),
                   (["引擎课程", "01"], "场景与对象")):
     try:
-        q = subprocess.run([os.path.join(发布子, APP + ".exe"), *命令],
+        q = subprocess.run([os.path.join(发布子, 可执行名), *命令],
                            capture_output=True, cwd=发布子, timeout=120, env=自检环境)
         qs = (q.stdout + q.stderr).decode("utf-8", "replace")
     except Exception as e:

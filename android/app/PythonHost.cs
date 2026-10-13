@@ -187,7 +187,34 @@ namespace HybridEngineLight.Android
         ///   PYTHONPATH  我们的引擎和课程在哪
         ///   PYTHONDONTWRITEBYTECODE  不写 .pyc —— 见下面「为什么不写」
         /// </summary>
-        public static void 启动(string 素材根)
+        public static void 启动(string 素材根) => 初始化(素材根, 旧路径: false);
+
+        /// <summary>
+        /// ⚠⚠ **这一版修掉了 5 轮都没找到的那个死因**（下面 `路径` 那几行）。
+        ///
+        /// 旧写法把 `PYTHONPATH` 只设成 `python-app`（我们自己的引擎），
+        /// 而**标准库在 `python-stdlib`**。于是 `Py_Initialize()` 走到
+        /// `init_fs_encoding`（要 `import encodings`）时 **sys.path 上根本没有它**：
+        ///
+        ///     Fatal Python error: init_fs_encoding: failed to get the Python codec
+        ///     of the filesystem encoding
+        ///     ModuleNotFoundError: No module named 'encodings'
+        ///
+        /// 而**这句报错是写给 stderr 的，安卓应用的 fd 2 指向 /dev/null**
+        /// ⇒ 一行都看不到。看到的只有进程退出时 .NET 拆锁引发的
+        /// `FORTIFY: pthread_mutex_lock called on a destroyed mutex` ——
+        /// 那是**收尸的噪音**，被当成了死因，一查就是 5 轮。
+        ///
+        /// ⚠ 关键点：**`sys.path` 必须在 `Py_Initialize()` 之前就对** ——
+        ///   初始化过程中（`init_fs_encoding`）就要 import `encodings`，
+        ///   而 `PyRun_SimpleStringFlags` 是初始化**之后**才跑得上的，
+        ///   那时候再 `sys.path.insert` 已经晚了。
+        ///   ⇒ 只能靠 `PYTHONPATH` 环境变量（初始化前设，初始化时被 getpath 收进去）。
+        ///
+        /// ⚠ `dyn` 是真的 `lib-dynload/<abi>/` 那一层 —— 旧写法少了 `<abi>`，
+        ///   扩展模块（`_io`/`math`/`_locale`）根本不在那个目录里。
+        /// </summary>
+        public static void 初始化(string 素材根, bool 旧路径)
         {
             lock (锁)
             {
@@ -196,14 +223,22 @@ namespace HybridEngineLight.Android
 
                 string std = Path.Combine(素材根, "python-stdlib");
                 string app = Path.Combine(素材根, "python-app");
-                string dyn = Path.Combine(素材根, "lib-dynload");
+                string dyn根 = Path.Combine(素材根, "lib-dynload");
+                string dyn = Path.Combine(dyn根, "arm64-v8a");
+                if (!Directory.Exists(dyn)) dyn = dyn根;
 
                 // ⚠ PYTHONHOME 指向**标准库的上一级**还是标准库本身？
                 //   CPython 的约定是：PYTHONHOME 下应当有 `lib/python3.12/`。
                 //   我们解出来的结构是扁平的一份（stdlib 内容直接在 python-stdlib 下），
                 //   所以**不能**直接用 PYTHONHOME —— 会找不到 encodings。
                 //   ⇒ 用 `PYTHONPATH` + 在代码里显式设 sys.path，更可控。
-                Environment.SetEnvironmentVariable("PYTHONPATH", app);
+                //
+                // ⚠⚠ 但"显式设 sys.path"只能管**初始化之后**；初始化**之内**
+                //   就要 import `encodings`。所以 PYTHONPATH 里必须**已经有标准库**。
+                string 路径 = 旧路径
+                    ? app                                   // ← 旧行为（复现崩溃用，别删）
+                    : string.Join(new string(Path.PathSeparator, 1), new[] { std, app, dyn });
+                Environment.SetEnvironmentVariable("PYTHONPATH", 路径);
                 Environment.SetEnvironmentVariable("PYTHONNOUSERSITE", "1");
                 // ⚠ 不写字节码：写 __pycache__ 需要额外的文件操作，
                 //   而我们的标准库**本来就是 .pyc**（stdlib-pyc.zip），
@@ -254,12 +289,66 @@ namespace HybridEngineLight.Android
         }
 
         /// <summary>
+        /// ⚠⚠ **跑学员代码并拿回 print 的内容** —— 判分的地基。
+        ///
+        /// 原实现只能回答"成没成功"（`PyRun_SimpleStringFlags` 的返回值），
+        /// **拿不回 print 写过什么**。而判分、看输出、报错都要它。
+        ///
+        /// 做法：**不碰 C 侧的 `PySys_SetObject`**（那要自己实现一个 Python
+        /// 可调用对象，坑多），而是让 Python 自己把 `sys.stdout/stderr`
+        /// 换成 `io.StringIO`，跑完再写进两个文件，C# 读文件。
+        ///
+        /// ⚠ 学员代码用 **base64** 传进去，而不是拼进字符串字面量 ——
+        ///   学员代码里引号、反斜杠、换行、中文什么都有，
+        ///   拼字符串是**跨语言转义的经典事故点**（本仓在这上面栽过：
+        ///   模板里 JS 的转义要穿两层、漏一层就整页白屏）。
+        ///   base64 之后只剩 `A-Za-z0-9+/=`，怎么都不会破坏语法。
+        /// </summary>
+        public static (bool 成功, string 出, string 错) 跑并抓(string 源码, string 家)
+        {
+            if (!就绪) return (false, "", "Python 还没初始化");
+            try
+            {
+                string 路出 = Path.Combine(家, "hel-跑-出.txt").Replace('\\', '/');
+                string 路错 = Path.Combine(家, "hel-跑-错.txt").Replace('\\', '/');
+                string b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(源码));
+                string 脚本 = string.Join("\n", new[]
+                {
+                    "import base64, io, sys, traceback",
+                    "_src = base64.b64decode('" + b64 + "').decode('utf-8')",
+                    "_o, _e = io.StringIO(), io.StringIO()",
+                    "_so, _se = sys.stdout, sys.stderr",
+                    "sys.stdout, sys.stderr = _o, _e",
+                    "try:",
+                    "    exec(compile(_src, '<学员代码>', 'exec'), {'__name__': '__main__'})",
+                    "except BaseException:",
+                    "    traceback.print_exc()",
+                    "finally:",
+                    "    sys.stdout, sys.stderr = _so, _se",
+                    "open(r'" + 路出 + "', 'w', encoding='utf-8').write(_o.getvalue())",
+                    "open(r'" + 路错 + "', 'w', encoding='utf-8').write(_e.getvalue())",
+                });
+                nint r = PyRun_SimpleStringFlags(脚本, IntPtr.Zero);
+                string 出 = File.Exists(路出) ? File.ReadAllText(路出) : "";
+                string 错 = File.Exists(路错) ? File.ReadAllText(路错) : "";
+                bool 好 = r == 0 && 错.Length == 0;
+                Log.Info(标签, "跑并抓：r=" + r + " 出=" + 出.Length + " 字 错=" + 错.Length + " 字");
+                return (好, 出, 错);
+            }
+            catch (Exception e)
+            {
+                return (false, "", e.GetType().Name + ": " + e.Message);
+            }
+        }
+
+        /// <summary>
         /// 跑一段 Python 源码，返回 (成功, 输出)。
         ///
         /// ⚠ 现在只能拿到"成功与否" —— **拿不回 print 的内容**。
         ///   要拿回来得把 `sys.stdout` 换成我们自己实现的 writer
         ///   （C 侧 `PySys_SetObject` + 一个 Python 可调用对象），
         ///   那是下一步的事。当前这个页面只需要证明 Python 真的起来了。
+        ///   ⇒ 已由上面的 `跑并抓` 补上（用 StringIO，不是 C 侧 writer）。
         ///
         /// ⚠ 必须在**后台线程**调 —— Python 代码可能是死循环（学员写的），
         ///   在 UI 线程上跑会把界面卡死，而那个症状看起来像"应用崩了"。

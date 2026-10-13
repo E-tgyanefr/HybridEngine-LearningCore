@@ -512,6 +512,20 @@ def _有图形界面() -> bool:
         return False
 
 
+#: 双击（无参数）时开哪个图形界面。
+#
+#  ⚠⚠ **这是两个产品唯一的"界面分叉点"** —— 做成一行可替换的常量，
+#    而不是在代码里写 `if 产品 == ...`：
+#
+#      HybridEngine-LearningCore  `hybridengine_light.learn_gui`   （学习界面）
+#      HybridEngine-SampleCore    `hybridengine_light.sample_gui`  （游戏开发 IDE）
+#
+#  ⚠ 作者定的：**两个不同的程序，UI 各自重新设计、完全不共用**。
+#    所以不是"一个界面加开关"，而是**两个界面文件**，这里只选开哪一个。
+#  ⚠ SampleCore 的生成器（`_build/make_samplecore.py`）会把下面这一行改掉。
+图形界面模块 = "hybridengine_light.learn_gui"
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
@@ -519,7 +533,10 @@ def main(argv: list[str] | None = None) -> int:
                         _有图形界面(),
                         bool(os.environ.get("PROMPT")),
                         bool(os.environ.get("HYBRIDENGINE_LIGHT_CLI"))):
-            from .learn_gui import main as 图形界面
+            #: ⚠ 按名字动态取 —— 于是"换成哪个界面"是**一个字符串**的事，
+            #:   两边都不需要 import 对方（"完全不共用"落实到 import 图上）。
+            import importlib
+            图形界面 = importlib.import_module(图形界面模块).main
             return 图形界面()
         码 = _cmd_list()
         if 需要暂停等待(bool(getattr(sys, "frozen", False)),

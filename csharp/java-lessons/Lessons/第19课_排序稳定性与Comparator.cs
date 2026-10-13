@@ -350,7 +350,7 @@ static Comparator<String> 按长度再按字典() {
         string 停 = 先别急着比(run);
         if (停.Length > 0) return JavaCheckResult.不过(停);
         return 比(run,
-            ("比较器|", "[c, ab, zz, abc, java]", "按长度再按字典() 排 {java, c, abc, ab, zz} ⇒ 长度 1 的 c；长度 2 的 ab、zz（字典序）；长度 3 的 abc；长度 4 的 java"));
+            ("比较器|", "[c, ab, ba, zz, abc, java]", "按长度再按字典() 排 {java, c, abc, ab, zz, ba} ⇒ 长度 1 的 c；长度 2 的 ab、ba、zz（字典序）；长度 3 的 abc；长度 4 的 java"));
     }
 
     [Java检查说明("名字是跟着分数一起挪的（不是只排了分数）")]
@@ -383,7 +383,7 @@ static Comparator<String> 按长度再按字典() {
         System.out.println("不稳分|" + Arrays.toString(分数3));
         System.out.println("不稳名|" + String.join(" ", 名字3));
 
-        ArrayList<String> 词 = new ArrayList<>(Arrays.asList("java", "c", "abc", "ab", "zz"));
+        ArrayList<String> 词 = new ArrayList<>(Arrays.asList("java", "c", "abc", "ab", "zz", "ba"));
         词.sort(按长度再按字典());
         System.out.println("比较器|" + 词);
 """;

@@ -154,6 +154,13 @@ namespace HybridEngineLight.Android
                 string 目录 = await Task.Run(() => AssetInstaller.安装(this!));
                 Log.Info(标签, "素材目录：" + 目录);
 
+                // ⚠⚠ **把上一次运行留下的原生输出捞出来**（CPython 的报错原文）。
+                //   安卓应用的 fd 1/2 指向 /dev/null，`Py_FatalError` 写的东西
+                //   平时一行都看不到 —— 而它正是 5 轮排查一直缺的那句话。
+                //   所以 `Diag.装重定向()` 把 fd 1/2 接到应用私有目录的文件上，
+                //   崩了之后**下一次启动**在这里读回 logcat。
+                Diag.读输出(Path.GetDirectoryName(目录) ?? 目录);
+
                 if (提前初始化PY)
                 {
                     //: ⚠ **在 UI 线程上**调（不是线程池）—— CPython 的 C API

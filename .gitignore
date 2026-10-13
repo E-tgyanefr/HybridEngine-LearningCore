@@ -1,35 +1,49 @@
-# �?发布前排除项（每一条都写了理由，不要随手删�?
-# �?.NET 构建产物 —�?里面记着**开发者机器的绝对路径**
-#    （实测：`csharp/**/obj/*.FileListAbsolute.txt` �?217 �?`D:\Users\etgya\...`�?#    �?公开仓不该带这些
+# ⚠ 发布前排除项（每一条都写了理由，不要随手删）
+
+# ① .NET 构建产物 —— 里面记着**开发者机器的绝对路径**
+#    （实测：`csharp/**/obj/*.FileListAbsolute.txt` 含 217 处 `D:\Users\etgya\...`）
+#    ⇒ 公开仓不该带这些
 bin/
 obj/
 
-# �?Python 缓存
+# ② Python 缓存
 __pycache__/
 *.py[cod]
 
-# �?学生答题�?—�?由课�?*首次运行时生成模�?*（见 README「answers/」一节）
-#    �?不应随仓发布，否则新用户会以为里面已有答�?#
-# ⚠⚠ 这里有两套命名，**必须都排�?*（我第一版只写了 `*-answers/`�?#    结果 `lessons/answers/` **漏了** —�?它不�?`-answers` 结尾）：
+# ③ 学生答题处 —— 由课程**首次运行时生成模板**（见 README「answers/」一节）
+#    ⇒ 不应随仓发布，否则新用户会以为里面已有答案
+#
+# ⚠⚠ 这里有两套命名，**必须都排除**（我第一版只写了 `*-answers/`，
+#    结果 `lessons/answers/` **漏了** —— 它不以 `-answers` 结尾）：
 #      · `ai-answers/` `embedded-answers/` `raspi-answers/` `cpp-answers/` `java-answers/`
 #      · `lessons/answers/`
 answers/
 *-answers/
 
-# �?⚠⚠ **专业版的内容**：`csharp/demo3d` 通过 csproj 链接
-#    `HybridEngine\build-ninja-release\src\bind\hybridengine.dll`�?#    �?`Program.cs` 通篇 `[DllImport("hybridengine.dll")]`�?#    轻量版仓**不应**包含专业版内核或其消费者�?csharp/demo3d/
+# ④ ⚠⚠ **专业版的内容**：`csharp/demo3d` 通过 csproj 链接
+#    `HybridEngine\build-ninja-release\src\bind\hybridengine.dll`，
+#    且 `Program.cs` 通篇 `[DllImport("hybridengine.dll")]`。
+#    轻量版仓**不应**包含专业版内核或其消费者。
+csharp/demo3d/
 
-# �?运行期产�?*.log
+# ⑤ 运行期产物
+*.log
 *.tmp
 Replay/
 PlayerData/
 
-# �?打包**产物**（PyInstaller �?dist/work/spec + 入口）—�?**不该进仓**�?#   里面�?11.7MB �?zip 与上千个运行时文件，而它们全部可�?#   `python _build/build_exe.py` 重新生成�?#   （实测踩到：`git add -A` 一次性把它们提交了，1119 个文�?/ +15 万行。）
+# ⚠ 打包**产物**（PyInstaller 的 dist/work/spec + 入口）—— **不该进仓**：
+#   里面含 11.7MB 的 zip 与上千个运行时文件，而它们全部可由
+#   `python _build/build_exe.py` 重新生成。
+#   （实测踩到：`git add -A` 一次性把它们提交了，1119 个文件 / +15 万行。）
 #
-# ⚠⚠ �?*不能整个忽略 `_build/`** —�?实测踩到第二遍：
-#   原来的规则是 `_build/`，于�?*构建脚本本身也没进版本控�?*�?#   后果：想重建某个旧版本时，旧提交�?*没有构建脚本**可用
-#   （我为此白跑了一�?`git worktree`）�?#   �?精确忽略**产物**，脚本要进仓：它们是"以后还要�?的工具，
-#     不是一次性垃圾。而且仓在别处 checkout 时也应该能构建�?_build/dist/
+# ⚠⚠ 但**不能整个忽略 `_build/`** —— 实测踩到第二遍：
+#   原来的规则是 `_build/`，于是**构建脚本本身也没进版本控制**。
+#   后果：想重建某个旧版本时，旧提交里**没有构建脚本**可用
+#   （我为此白跑了一轮 `git worktree`）。
+#   ⇒ 精确忽略**产物**，脚本要进仓：它们是"以后还要用"的工具，
+#     不是一次性垃圾。而且仓在别处 checkout 时也应该能构建。
+_build/dist/
 _build/work/
 _build/build/
 _build/*.spec
@@ -39,10 +53,10 @@ _build/entry.py
 # no git history). The template is the real file now.
 !_build/entry_template.py
 
-# C �� 25 �Σ��ļ���д���ļ����������ļ�������������
+# C 第 25 课（文件读写）的检查会产出这个文件，是正常产物
 out.txt
 
-# �� ѧϰ���� ���� **����״̬**�������ֿ�
-#    ? ����"���ѧԱ��������"�����ǿγ����ݡ�
-#      �ύ��ȥ�Ļ������� clone �����ῴ����Ľ��ȣ����һụ�า�ǣ���
-.ѧϰ����.json
+# ⑥ 学习进度 —— **本机状态**，不进仓库
+#    ? 它是"这个学员读到哪了"，不是课程内容。
+#      提交上去的话，别人 clone 下来会看到你的进度（而且会互相覆盖）。
+.学习进度.json

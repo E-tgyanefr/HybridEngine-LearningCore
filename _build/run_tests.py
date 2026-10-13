@@ -81,6 +81,7 @@ env["PYTHONDONTWRITEBYTECODE"] = "1"
          #: ⚠ 会**真开 tkinter 窗口**（每个测试立刻关掉）。
          #:   无显示环境时它自己 skip（不算失败、也不算通过）。
          "tests.test_tk_hot_backend",
+         "tests.test_ui_split",
          "tests.test_version",
      ]),
     ("第二批：界面全流程（必须独占一个进程）",
