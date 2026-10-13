@@ -123,6 +123,30 @@ class 录制后端:
         self.帧数 = 0
 
 
+def _界面字体(号: int):
+    """文字用的字体元组 —— **走 `theme`，不要在这里写死族名**。
+
+    ⚠⚠ 这三处原来**各自写死了 `"Microsoft YaHei UI"`**
+      （本文件、`stage.py:203`、还有一处）—— 那是**跨平台的漏网**：
+      这个族名只有 Windows 有，Linux/macOS 上 Tk 会**静默回退**到一个很丑的默认字体。
+
+    ⇒ 现在统一从 `theme.界面字体()` 取 —— 它按 `sys.platform` 给候选表，
+      并在"已经存在 Tk root"时用 `tkfont.families()` 探测真有的那个。
+
+    ⚠ 为什么**延迟到函数内 import**：本模块在包里的层级比 `theme` 深一层
+      （`pyengine/render.py`），而 `theme` 是顶层模块 ——
+      写成模块级 import 也**不成环**（`theme` 只 import `sys`），
+      但延迟取更稳：**没有 Tk 的环境**下（纯无头跑判据）不该在 import 期碰字体。
+    """
+    try:
+        from .. import theme as _T
+        return _T.界面字体(int(号))
+    except Exception:
+        #: ⚠ 兜底不能给 `None`（tkinter 会报难懂的错）——
+        #:   给一个 Tk 一定认识的通名，最差也只是字体不好看。
+        return ("TkDefaultFont", int(号))
+
+
 def 颜色(名: str) -> str:
     """颜色名 → tkinter 认的字符串。未知名字原样返回（交给底下提示）。
 
@@ -304,7 +328,7 @@ class Tk后端:
         if not self._在视野内(px, py):
             return
         self._canvas.create_text(px, py, text=str(内容), fill=颜色(色),
-                                 font=("Microsoft YaHei UI", int(字号)),
+                                 font=_界面字体(int(字号)),
                                  tags=self._签(tags))
 
     def 呈现(self) -> None:

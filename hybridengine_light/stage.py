@@ -48,6 +48,26 @@ def color_of(name: str) -> str:
     return colors.get(name.strip(), colors.get(key, name))
 
 
+def _界面字体(号: int):
+    """文字用的字体元组 —— **走 `theme`，不要写死族名**。
+
+    ⚠ 这里原来写死的是 `("Microsoft YaHei UI", fs)` —— 那是**跨平台漏网**：
+      这个族名只有 Windows 有，Linux/macOS 上 Tk 会**静默回退**到一个很丑的
+      默认字体（而且不报错，只是"看起来没做完"）。
+
+    ⚠ 延迟 import（函数内取 `theme`）：
+      · 纯无头跑判据时**不该在 import 期碰字体**
+      · `theme` 只 import `sys` ⇒ 不成环，但延迟更稳
+    """
+    try:
+        from . import theme as _T
+        return _T.界面字体(int(号))
+    except Exception:
+        #: ⚠ 兜底不能给 `None`（tkinter 会报难懂的错）——
+        #:   给一个 Tk 一定认识的通名，最差也只是字体不好看。
+        return ("TkDefaultFont", int(号))
+
+
 class Stage:
     """一块画布。约定：坐标是 0..size 的虚拟坐标，原点在**左下角**。
 
@@ -199,8 +219,11 @@ class Stage:
         elif kind == "text":
             _, x, y, s, col, fs = sh
             px, py = self._xy(x, y)
+            #: ⚠ 字体**从 `theme` 取**，别在这里写死族名 ——
+            #:   `"Microsoft YaHei UI"` 只有 Windows 有，
+            #:   Linux/macOS 上 Tk 会**静默回退**到一个很丑的默认字体。
             c.create_text(px, py, text=s, fill=color_of(col),
-                          font=("Microsoft YaHei UI", fs))
+                          font=_界面字体(fs))
 
     def wait(self, seconds: float | None = None):
         """停住画面让人看。不传参数就一直等到你关掉窗口。"""
