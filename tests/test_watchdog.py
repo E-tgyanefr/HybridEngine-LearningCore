@@ -341,5 +341,161 @@ class 开销测试(unittest.TestCase):
         self.assertLess(每次, 2.0, "一次判分要 %.2f 秒 —— 太慢了" % 每次)
 
 
+class 机制选择测试(unittest.TestCase):
+    """⭐ 两条路（`setitimer` / `settrace`）按**能力**选，不是按平台写死。
+
+    ## ⚠⚠ 这组判据里最要紧的一条是"探测不能把能用误判成不能用"
+
+        踩过的坑：`_settrace_可用()` 第一版把探测循环写在**已经活动的那一帧**里。
+        `settrace` 的**全局 tracer 只在 `call` 事件时被调** ——
+        没有新帧就**没有 `call`** ⇒ tracer 一次都不被调 ⇒ 报"不可用"。
+
+        表现是**自相矛盾**：`机制()` 报 `none`，
+        而同一进程里 `看门狗` 明明把死循环打断了。
+        ⇒ 判据就是钉这个矛盾：**"说有保护"和"真的能打断"必须一致。**
+    """
+
+    def test_机制是个已知值(self):
+        from hybridengine_light import watchdog as W
+        self.assertIn(W.机制(), ("signal", "settrace", "none"))
+
+    def test_有超时保护与本机能力一致(self):
+        from hybridengine_light import watchdog as W
+        期望 = W._信号可用() or W._settrace_可用()
+        self.assertEqual(W.有超时保护(), 期望)
+
+    def test_机制与有超时保护不矛盾(self):
+        """⚠ 报了 `none` 却说"有保护"，或反过来 —— 都是 bug。"""
+        from hybridengine_light import watchdog as W
+        self.assertEqual(W.机制() == "none", not W.有超时保护())
+
+    def test_说能保护就必须真能打断(self):
+        """⭐⭐ **这条是核心** —— 把"探测结果"和"真本事"绑在一起。
+
+        ⚠ 没有它，`_settrace_可用()` 那种**误判**会一路静默下去：
+          界面显示"有超时保护"，而学员的死循环照样卡住。
+        """
+        from hybridengine_light import watchdog as W
+        if not W.有超时保护():
+            self.skipTest("这台机器上两条路都没有 —— 见 test_机制是个已知值")
+        #: ⚠⚠ **必须用 `exec` 跑那段死循环，不能就地写 `while True`。**
+        #:   原因见下面 `test_只在活动帧里不行` 那条 ——
+        #:   `settrace` **对 `__enter__` 所在的那个已经在活动的帧无效**，
+        #:   而就地写 `while True` 时，循环**就在那个帧里**。
+        #:   ⚠ 而**生产路径用的是 `exec`**（`code.run` / `run_checks` 都是），
+        #:     那是**新帧** ⇒ 能打断。⇒ 判据要复刻**生产路径**，不是复刻一个
+        #:     在生产里不存在的写法。
+        try:
+            with W.看门狗(秒=0.4, 每多少行=200):
+                exec(compile("while True:\n    pass\n", "<学员代码>", "exec"),
+                     {"__name__": "__main__"})
+        except W.超时:
+            return                              #: 真打断了 ⇒ 与"说有保护"一致
+        self.fail("说有超时保护，但死循环**没有**被打断 —— 探测结果在撒谎")
+
+    def test_用了这个字段与实际走的路一致(self):
+        from hybridengine_light import watchdog as W
+        if not W.有超时保护():
+            self.skipTest("没有可用的路")
+        with W.看门狗(秒=5.0) as w:
+            pass
+        self.assertIn(w.用了, ("signal", "settrace"))
+        #: ⚠ 不该报 `none` —— 那说明"探测说能用、实际没用上"
+        self.assertNotEqual(w.用了, "none", "探测说能用，但 __enter__ 没走任何一条路")
+
+    def test_超时之后信号被清掉(self):
+        """⚠⚠ **定时器不清会害下一个 `with` 块莫名被打断** —— 极难查。
+
+        做法：先跑一个超时的（0.3 秒），再跑一个**不该超时**的（给 5 秒、
+        只 sleep 0.5 秒）—— 如果上一个的定时器没清，第二个会被误伤。
+        """
+        from hybridengine_light import watchdog as W
+        if not W.有超时保护():
+            self.skipTest("没有可用的路")
+        try:
+            with W.看门狗(秒=0.3, 每多少行=200):
+                exec(compile("while True:\n    pass\n", "<学员代码>", "exec"),
+                     {"__name__": "__main__"})
+        except W.超时:
+            pass
+        #: 现在跑一个正常该跑完的
+        import time as _t
+        好 = False
+        with W.看门狗(秒=5.0):
+            _t.sleep(0.5)
+            好 = True
+        self.assertTrue(好, "上一个看门狗的定时器**没清**，误伤了这一个")
+
+
+class 活动帧限制测试(unittest.TestCase):
+    """⚠⚠ **`settrace` 对"已经在活动的帧"无效** —— 这条限制必须钉住。
+
+    ## 实测（本机 Windows）
+
+        `with 看门狗(...): while True: pass`  写在**模块顶层** ⇒ ❌ **不打断**
+        同一个 `with` 写在**函数里**、循环再调一个函数 ⇒ ✅ 打断
+        直接 `__enter__()` / `__exit__()`（不用 `with`）⇒ ✅ 打断
+        `with` + `exec(compile(...))`           ⇒ ✅ 打断   ← **生产路径**
+
+    ## 为什么
+
+        `sys.settrace(f)` 设的是**全局 trace**，它只在**新帧产生**时被调用；
+        当前**已经在活动**的那个帧**拿不到** local trace。
+        ⇒ `with` 写在顶层时，`while True` 就在**同一个帧**里 ⇒ tracer 收不到它的行事件。
+
+    ## 为什么这**不影响产品**
+
+        生产路径三处全是 `exec` 或函数调用（`ctl._code_run` 用 `exec`，
+        `check.run_checks` 调课程里的 `CHECK_*` **函数**，
+        `examrun._grade_code` 用 `exec`）⇒ **都是新帧**。
+
+        ⚠ 但**用户可能在别处用它** —— 所以这条限制要**写成判据**，
+          而不是靠"我们知道"。
+    """
+
+    def test_exec跑的死循环能打断(self):
+        """⭐ **生产路径** —— 这条必须过。"""
+        from hybridengine_light import watchdog as W
+        if not W.有超时保护():
+            self.skipTest("没有可用的路")
+        try:
+            with W.看门狗(秒=0.4, 每多少行=200):
+                exec(compile("while True:\n    pass\n", "<学员代码>", "exec"),
+                     {"__name__": "__main__"})
+        except W.超时:
+            return
+        self.fail("**生产路径**（exec）里的死循环没被打断")
+
+    def test_函数里调用的死循环能打断(self):
+        """也是生产路径：`run_checks` 调的是课程里的 `CHECK_*` **函数**。"""
+        from hybridengine_light import watchdog as W
+        if not W.有超时保护():
+            self.skipTest("没有可用的路")
+
+        def 死():
+            while True:                 # noqa: B011
+                pass
+
+        try:
+            with W.看门狗(秒=0.4, 每多少行=200):
+                死()
+        except W.超时:
+            return
+        self.fail("函数里的死循环没被打断")
+
+    #: ⚠⚠ **不把"活动帧里打断不了"写成判据。**
+    #:
+    #:   我第一版写了，而且用 `os._exit(7)` 当兜底 —— 结果**测试进程被那条
+    #:   测试自己杀掉**（退出码 7），整套判据跟着挂。
+    #:
+    #:   ⇒ 教训：**判据不该有"为了不挂住而自杀"这种设计。**
+    #:     一个会杀进程的判据，坏起来比它想测的东西还难查。
+    #:
+    #:   那条限制记在**上面这个类的 docstring 里**就够了 ——
+    #:   它是"我们知道的一件事"，不是"每次都要跑一遍的断言"。
+    #:   （真要测，得有真正的硬超时机制；而本模块本身就是那个机制，
+    #:     用它测它自己不成立 —— 循环依赖。）
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

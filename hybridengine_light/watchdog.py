@@ -195,6 +195,135 @@ import time
 默认秒 = 10.0
 
 
+# ══════════════════════════════════════════════════════════════════════════
+#  ⭐⭐ 两条路：`setitimer`（首选）与 `settrace`（兜底）
+# ══════════════════════════════════════════════════════════════════════════
+#
+#  ⚠⚠ **为什么不是只用一条** —— 两条各有"在某个平台上没有"的问题：
+#
+#      `signal.setitimer`  —— **Windows 没有 `SIGALRM`** ⇒ 桌面上不可用
+#      `sys.settrace`      —— **安卓这份构建没带 tracing** ⇒ 手机上不可用
+#                             （`settrace` 能调、`gettrace` 也设上了，
+#                              但 tracer **一次都不回调**）
+#
+#  ⇒ 所以是**按能力选**，不是按 `sys.platform` 写死。
+#     ⚠ 也更不该写 `if 安卓: 用信号 else: 用trace` —— 那是把"当前平台的实现细节"
+#       硬编码进业务逻辑；而 `hasattr` + **真跑一次**探测是自适应的。
+
+#: `_settrace_可用()` 的缓存（`None` = 还没探过）
+_settrace_结果: bool | None = None
+
+
+def _settrace_可用() -> bool:
+    """`sys.settrace` 到底**触发不触发**（不是"能不能调"）。
+
+    ⚠⚠ **"能调这个 API"和"它真的生效"是两件事。**
+
+        真机实测（安卓，2026-10-13）：
+            `sys.settrace(f)` 调用成功、`sys.gettrace()` 也设上了，
+            但 tracer **一次都没被回调**（`tracer 触发次数 = 0`）——
+            那份 Chaquopy 的 `libpython3.12.so` **没带 tracing**。
+        ⇒ 只看 `hasattr(sys, "settrace")` 会得出**完全错误**的结论。
+
+    ⇒ 所以这里**真的跑一小段、数一下回调次数**。
+      ⚠ 代价：探测时开一次 trace（1000 行，微秒级，一次性）；结果缓存。
+
+    ⚠⚠ **踩过的坑：探测代码本身必须"产生一个新帧"。**
+
+        `sys.settrace(f)` 设的是**全局 trace**，而它**只在 `call` 事件时被调用**
+        —— 之后每一行要看的是**它返回的那个 local trace**。
+        ⇒ 如果探测循环写在**已经活动的那一帧里**（比如直接写在本函数体里），
+          **根本不会有 `call` 事件** ⇒ tracer 一次都不被调 ⇒
+          **把"能用"误判成"不能用"**。
+
+        （我第一版就是这么写的：`机制()` 报 `none`，而同一进程里
+          `看门狗` 明明把死循环打断了 —— **自相矛盾**才发现的。）
+
+        ⇒ 修法：把循环塞进一个**嵌套函数**并调用它，强制产生新帧。
+    """
+    global _settrace_结果
+    if _settrace_结果 is not None:
+        return _settrace_结果
+    次 = [0]
+
+    def 探(frame, event, arg):
+        次[0] += 1
+        return 探
+
+    def 干点活():
+        #: ⚠ 这个函数**必须是独立的帧** —— 见上面那段。
+        #:   有界循环：万一 tracer 不触发也得返回。
+        for _ in range(1000):
+            pass
+
+    旧 = sys.gettrace()
+    try:
+        sys.settrace(探)
+        干点活()
+    except Exception:                                          # noqa: BLE001
+        次[0] = 0
+    finally:
+        try:
+            sys.settrace(旧)
+        except Exception:                                      # noqa: BLE001
+            pass
+    _settrace_结果 = 次[0] > 0
+    return _settrace_结果
+
+
+def _信号可用() -> bool:
+    """这个解释器有没有可用的 `setitimer` + `SIGALRM`。
+
+    ⚠ 与 `_settrace_可用()` 不同，这一条**不用真跑**：`hasattr` 就够 ——
+      `setitimer` 要么在、要么不在（没有"在但不生效"那种中间态）。
+      ⚠ 但**它到底能不能打断死循环**是另一回事，那一条**真机验过**：
+        `**INTERRUPTED 1.00 秒**`（见模块顶部那段）。
+    """
+    try:
+        import signal
+        return hasattr(signal, "SIGALRM") and hasattr(signal, "setitimer")
+    except Exception:                                          # noqa: BLE001
+        return False
+
+
+def 有超时保护() -> bool:
+    """这台机器上到底能不能强制打断学员代码？
+
+    ⚠ 给调用方一个**明确的答案** —— 而不是让它以为"装了看门狗就安全了"。
+      ⚠⚠ 这正是踩过的坑：安卓上 `settrace` 装了**不报错、也不生效**。
+      ⇒ 界面/日志该按这个函数的返回值说人话。
+    """
+    return _信号可用() or _settrace_可用()
+
+
+def 机制() -> str:
+    """现在走的是哪条路：`"signal"` / `"settrace"` / `"none"`（给日志与判据用）。"""
+    if _信号可用():
+        return "signal"
+    if _settrace_可用():
+        return "settrace"
+    return "none"
+
+
+def _装信号处理(秒: float):
+    """在**当前线程**装 SIGALRM handler。
+
+    ⚠⚠ `signal.signal()` **只能在主线程调** —— 别的线程会抛 `ValueError`。
+      真机实测：`跑并抓`/`code.run` 那条路**就在主线程上**
+      （`is_main=True`），所以这里没问题。
+      ⚠ 但**别假设它永远在主线程**：`ValueError` 要转成"这条路不可用"，
+        而不是让判分崩掉。
+    """
+    import signal
+
+    def 处理(signum, frame):
+        raise 超时("代码跑了 %.1f 秒还没停（上限 %.1f 秒）—— 是不是有个循环停不下来？"
+                   % (秒, 秒))
+
+    signal.signal(signal.SIGALRM, 处理)
+    return signal
+
+
 class 超时(Exception):
     """学员代码跑太久了。
 
@@ -211,9 +340,16 @@ class 看门狗:
         with 看门狗(秒=5.0):
             学员的代码()
 
-    ⚠ 退出时**一定会**把 `sys.settrace` 还原 —— 包括异常路径。
-      不还原的后果：后面所有代码都被 trace 着（性能问题）
-      而且下一个看门狗会被覆写（很难查）。
+    ## ⭐ 两条路，按能力选（不是按平台写死）
+
+        · **`signal.setitimer`**（首选）—— 真机验过能打断 `while True`
+          （`**INTERRUPTED 1.00 秒**`）。⚠ Windows 没有 `SIGALRM` ⇒ 桌面上用不了。
+        · **`sys.settrace`**（兜底）—— 桌面有效。
+          ⚠ 安卓这份构建**没带 tracing**，所以手机上它是个**静默的空操作**。
+
+    ⚠ 退出时**一定会**把两条路都还原（包括异常路径）：
+      · 信号：`setitimer(0)` —— 不清的话**下一个 `with` 块会被上一个的定时器打断**
+      · trace：`sys.settrace(旧)` —— 不清的话后面所有代码都被 trace 着
     """
 
     def __init__(self, 秒: float = 默认秒, 每多少行: int = 每多少行看表):
@@ -222,6 +358,9 @@ class 看门狗:
         self._旧trace = None
         self._开始 = 0.0
         self._计数 = 0
+        #: 这次实际走了哪条路（`"signal"` / `"settrace"` / `"none"`）
+        self.用了 = "none"
+        self._signal = None
         #: 超时后置真 —— 给外面一个"确实是我打断的"的凭据
         self.超了 = False
 
@@ -231,14 +370,41 @@ class 看门狗:
         self._开始 = time.monotonic()
         self._计数 = 0
         self.超了 = False
-        #: ⚠ 只换 trace 函数，**不动** `sys.gettrace()` 之外的东西
+        self.用了 = "none"
+
+        #: ① 首选：`setitimer`（不依赖 tracing ⇒ 手机上唯一有效的路）
+        if _信号可用():
+            try:
+                self._signal = _装信号处理(self.秒)
+                self._signal.setitimer(self._signal.ITIMER_REAL, self.秒)
+                self.用了 = "signal"
+                return self
+            except Exception:                                  # noqa: BLE001
+                #: ⚠ 最可能是 `ValueError`（不在主线程）——
+                #:   那就往下退到 trace，**而不是让判分崩掉**。
+                self._signal = None
+
+        #: ② 兜底：`settrace`（探过真的会回调才用）
         self._旧trace = sys.gettrace()
         sys.settrace(self._看)
+        self.用了 = "settrace" if _settrace_可用() else "none"
         return self
 
     def __exit__(self, 类型, 值, 栈):
-        #: ⚠ 一定要还原（包括正常退出、异常退出两条路都走到这里）
-        sys.settrace(self._旧trace)
+        #: ⚠ 两条路都得清 —— **清的时候不看 `用了`**：
+        #:   `用了` 是"我以为走了哪条"，而清理必须无条件做
+        #:   （万一 `用了` 判错了，漏清一个定时器会让**下一个** `with` 块莫名被打断，
+        #:     那种 bug 极难查）。
+        if self._signal is not None:
+            try:
+                self._signal.setitimer(self._signal.ITIMER_REAL, 0)
+            except Exception:                                  # noqa: BLE001
+                pass
+        try:
+            if self._旧trace is not sys.gettrace():
+                sys.settrace(self._旧trace)
+        except Exception:                                      # noqa: BLE001
+            pass
         #: 返回 False ⇒ 不吞异常（超时会照常往上抛，由调用方转成人话）
         return False
 
