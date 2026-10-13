@@ -48,6 +48,10 @@ class 录制后端:
       而不用去截屏比对像素。
     """
 
+    #: ⚠⚠ **录制后端不裁剪** —— 见 `Tk后端.允许裁剪` 的说明。
+    #:   判据靠 `指令` 数"画了几个圆"，裁剪掉会让判据**假红**。
+    允许裁剪 = False
+
     def __init__(self) -> None:
         self.指令: list[tuple] = []
         self.帧数 = 0
@@ -172,6 +176,23 @@ class Tk后端:
     #: 烘焙模式下，逐帧重画的东西都打这个标签
     动标签 = "动态"
 
+    #: 视野外的对象**跳过不画**（省渲染）。
+    #
+    #  ⚠⚠ **`录制后端` 上必须是 False** —— 判据靠它的指令列表数"画了几个圆"，
+    #    裁剪掉的话判据会**假红**（而且会掩盖真问题）。
+    #    真实后端裁剪、录制后端不裁剪，这个差异是**有意的**：
+    #    "画了什么"（语义）和"实际提交给 GPU/画布多少"（性能）是两件事。
+    允许裁剪 = True
+
+    #: 裁剪时往外放宽多少（虚拟坐标单位）
+    #
+    #  ⚠ 为什么要放宽：物体有半径/宽高，**只看中心点会漏掉"边缘压线"的那些**
+    #    ⇒ 画面边缘会闪。放宽一个大 MARGIN 比"每个对象都算真实包围盒"划算得多
+    #    （后者要改组件接口，代价大、收益小）。
+    #  ⚠ 但它是个**近似**：真有特别大的对象（半径 > MARGIN）压在线外，
+    #    它会被裁掉。⇒ 所以这是"够用的近似"，不是"精确裁剪"。
+    MARGIN = 10.0
+
     def __init__(self, 宽: int, 高: int, size: int, 标题: str = "HybridEngine",
                  背景: str = "白", 烘焙: bool = False) -> None:
         import tkinter as tk
@@ -242,8 +263,21 @@ class Tk后端:
         except Exception:
             pass
 
+    def _在视野内(self, sx: float, sy: float) -> bool:
+        """屏幕坐标在不在视野内（外扩 `MARGIN`）。
+
+        ⚠ 用**屏幕坐标**判断 —— 虚拟坐标下画布多大取决于 `size`，容易算错。
+          屏幕上就是 `0..宽` / `0..高`，没有歧义。
+        """
+        if not self.允许裁剪:
+            return True
+        m = self.MARGIN * (self.宽 / self.size)      # MARGIN 是虚拟单位，要换算
+        return -m <= sx <= self.宽 + m and -m <= sy <= self.高 + m
+
     def 画圆(self, x, y, r, 色, tags=None) -> None:
         px, py = self._xy(x, y)
+        if not self._在视野内(px, py):
+            return
         pr = self._r(r)
         self._canvas.create_oval(px - pr, py - pr, px + pr, py + pr,
                                  fill=颜色(色), outline="", tags=self._签(tags))
@@ -251,18 +285,24 @@ class Tk后端:
     def 画矩形(self, x, y, w, h, 色, tags=None) -> None:
         x1, y1 = self._xy(x, y + h)          # 左下角在屏幕上是"下方"
         x2, y2 = self._xy(x + w, y)
+        if not self._在视野内((x1 + x2) / 2, (y1 + y2) / 2):
+            return
         self._canvas.create_rectangle(x1, y1, x2, y2, fill=颜色(色), outline="",
                                       tags=self._签(tags))
 
     def 画线(self, x1, y1, x2, y2, 色, 粗, tags=None) -> None:
         a = self._xy(x1, y1)
         b = self._xy(x2, y2)
+        if not (self._在视野内(a[0], a[1]) or self._在视野内(b[0], b[1])):
+            return
         self._canvas.create_line(a[0], a[1], b[0], b[1],
                                  fill=颜色(色), width=max(1, int(self._r(粗))),
                                  tags=self._签(tags))
 
     def 画文字(self, x, y, 内容, 色, 字号, tags=None) -> None:
         px, py = self._xy(x, y)
+        if not self._在视野内(px, py):
+            return
         self._canvas.create_text(px, py, text=str(内容), fill=颜色(色),
                                  font=("Microsoft YaHei UI", int(字号)),
                                  tags=self._签(tags))
