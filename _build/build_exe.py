@@ -545,7 +545,17 @@ print("     已清理 _build 中间物")
 #:     已经犯过两次，所以这里照抄同一份规则，不另列一套。
 print()
 print("  === 核对：课程内容与源一致 ===")
-_忽略目录 = {"__pycache__", "bin", "obj"}
+#: ⚠⚠ 这份忽略名单**必须和上面 `shutil.copytree` 的 `ignore_patterns` 一模一样**：
+#:
+#:     ignore_patterns("__pycache__", "*.pyc", "bin", "obj", "answers", "*-answers")
+#:
+#: ⚠ 我第一版漏了 **`"answers"`（裸名字）**，只写了 `"*-answers"`（`ai-answers` 那种）——
+#:   于是 `lessons/answers/` 那 22 个文件被算进"源"，而发布目录里没有
+#:   ⇒ **假红**（"lessons 少 22 个"），害我去查一批**本来就该被排除**的文件。
+#:   ⚠ 这是我在这道闸门上**第三次**踩同一类错（"排除规则猜错"）——
+#:     前两次在 `_release_gate.py`。
+#:   ⇒ 规矩：**忽略名单只有一份，照抄，不另列。**
+_忽略目录 = {"__pycache__", "bin", "obj", "answers"}
 _忽略尾巴 = ("-answers",)
 _坏 = []
 
@@ -560,7 +570,11 @@ def _数源(根):
 
 
 for d in 内容:
-    src = os.path.join(LC, d)
+    #: ⚠ 这个脚本里根路径变量叫 **`ROOT`**（不是 `LC`）——
+    #:   我第一版写成 `LC`（那是别的脚本里的名字）⇒ `NameError`，
+    #:   而这行在**打包快结束时**才跑 ⇒ 前面所有步骤都成功了、最后一步才炸。
+    #:   ⚠ 这也是"结尾加检查"的一个代价：**它的错要等全程跑完才暴露**。
+    src = os.path.join(ROOT, d)
     dst = os.path.join(发布子, d)
     if not os.path.isdir(src):
         continue
