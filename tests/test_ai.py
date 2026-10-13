@@ -60,7 +60,40 @@ def _合成(名: str, 源码: str):
 
 
 def _失败项(rep):
-    return [f"{r.name}: {r.detail}" for r in rep.results if not r.ok]
+    """把"没过的"渲染成能读的几行。
+
+    ⚠⚠ **这段原来只列 `not r.ok` 的结果 —— 于是有两类失败会渲染成空字符串**：
+
+        · `rep.total == 0`（一条 `CHECK_` 都没跑到）
+          ⇒ `all_ok` 假（它要求 `total > 0`），但 `results` 是空的
+          ⇒ **消息里冒号后面什么都没有**
+        · `rep.error` 被设（`check.py` 里只有一种：课程没定义任何 `CHECK_`）
+
+    ⚠ 这个缺陷是**三平台 CI 逼出来的**：macOS job 上出现
+
+        AssertionError: False is not true : 05_西瓜分类器.py 第 6 次没全过：
+                                        ↑ 冒号后面是空的
+
+      而我为了搞清楚"到底哪条检查挂了"**烧了一整轮**：
+      CI 日志里没有、本机跑 200 次也复现不出来（0 挂）——
+      因为**消息里根本没写是哪一类失败**。
+
+    ⇒ 规矩：**失败消息必须能区分失败的种类。**
+      "没全过"这三个字对排错毫无价值；"一条检查都没跑到"和
+      "第 3 条检查挂了"是两件完全不同的事，修法也完全不同。
+    """
+    行 = [f"{r.name}: {r.detail}" for r in rep.results if not r.ok]
+    if 行:
+        return 行
+    #: —— 下面这几类"从结果列表里看不出来"的失败，必须单独说 ——
+    if rep.error:
+        return [f"（检查本身报错）{rep.error}"]
+    if rep.total == 0:
+        return ["（一条 CHECK_ 都没跑到 —— 课程模块里没有 CHECK_ 开头的函数，"
+                "或者它加载到一半就出错了）"]
+    #: 走到这里 = "有结果且都 ok，而 all_ok 却是假" ⇒ 那是 check.py 的口径 bug
+    return [f"（口径矛盾：results 有 {rep.total} 条且全 ok，但 all_ok 是假 —— "
+            f"这本身是 check.py 的 bug）"]
 
 
 class 公共断言(unittest.TestCase):
