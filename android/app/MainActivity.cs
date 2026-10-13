@@ -43,11 +43,17 @@ namespace HybridEngineLight.Android
         /// <summary>
         /// 调试期开关：打开 WebView 的远程调试（CDP）。
         ///
-        /// ⚠ 发布版应该改成 false —— 调试端口不该留在正式包里。
-        ///   现在开着是因为真机上要靠它来**验证交互**
-        ///   （否则只能用 `adb shell input tap X Y` 猜坐标，我为此烧了好几轮）。
+        /// ⚠⚠ **发布版必须是 false**（调试端口不该留在正式包里）。
+        ///   2026-10-13 收口时已改回 false —— 真机验证全部做完之后才关的。
+        ///   要再查安卓界面：把它改回 true、重新构建即可（下面这段注释
+        ///   就是那次调试留下的方法记录）。
+        ///
+        /// ⚠ 关掉之后 `_build/_cdp.py` 就连不上了 —— 那是有意的：
+        ///   它靠的是 `webview_devtools_remote_<pid>` 这个调试 socket。
+        ///   发布包里**不留**它。要复现验证，走下面的 `--es hel` 实验入口
+        ///   （那条不需要 WebView 调试，也不需要 CDP）。
         /// </summary>
-        const bool 调试WebView = true;
+        const bool 调试WebView = false;
 
         WebView? _网页;
         TextView? _状态;
@@ -126,24 +132,27 @@ namespace HybridEngineLight.Android
         ///   · 这里通了 ⇒ 问题在 WebView/桥那侧，libpython 是好的
         ///   · 这里也崩 ⇒ libpython 与这个 NDK/ABI 组合本身起不来
         /// </summary>
-        // ⚠⚠ **手机版不需要 Python，所以这里是 false。**
+        // ⚠⚠ **这一段已经过时过一次，2026-10-13 重写了 —— 别再照旧结论走。**
         //
-        //   真机实测：这台设备上 `Py_Initialize()` 一调就原生崩
-        //       FORTIFY: pthread_mutex_lock called on a destroyed mutex
-        //   而已经排除的候选有（都实测过）：
-        //     · HttpListener（换掉照样崩）
-        //     · 线程（Task.Run 和同线程都崩）
-        //     · WebView / JS 桥（提前到 Activity 阶段、完全不碰它们，照样崩）
-        //     · 环境变量（一个都不设，照样崩）
-        //     · 扩展模块找不到 libpython（手工 dlopen 全部成功）
-        //   但 `dlopen` + `Py_GetVersion()` 是**成功的**
-        //   （返回 "3.12.7 (main, May 7 2025) [Clang 18.0.3]"）。
+        //   旧结论（当时是对的）："手机版不需要 Python，所以这里是 false。"
+        //   原因是那会儿 `Py_Initialize()` 一调就原生崩。
         //
-        //   ⇒ 作者的决定：**手机单独做一版**，不硬塞桌面引擎。
-        //     手机版由 C# 宿主提供课程内容（`web/course-data.js`），
-        //     WebView 做界面 —— **完全不需要 Python**。
-        //   ⇒ 所以这一段关掉。它留着是为了：万一以后要再查那个崩溃，
-        //     把这里改回 true 就能复现整条诊断路径。
+        //   ⚠⚠ **那个结论已经不成立了**：崩溃的死因是
+        //     `ModuleNotFoundError: No module named 'encodings'`
+        //     （PYTHONPATH 里没带标准库 + `.NET` 的 SetEnvironmentVariable
+        //      到不了原生 environ，见 `PythonHost.初始化` 的注释），
+        //     修掉之后 Python 3.12 在真机上**起得来、跑得动、能判分**。
+        //   ⇒ 所以：**手机版需要 Python**，判分就是它干的。
+        //
+        //   仍然保留 false 的理由变了 —— 不再是"起不来"，而是**惰性**：
+        //     · 判分是第一个真要用 Python 的动作，那之前不必付这个代价
+        //     · 一次 `Py_Initialize` 实测 20 ms，但引擎 import 更贵，
+        //       冷启动路径上不值得为"可能不判分"先付掉
+        //   ⇒ 打开它是"提前起来（Activity 阶段、主线程）"，
+        //     留着是为了：万一以后要查"启动期就崩"这类问题，改回 true 就能复现。
+        //
+        //   ⚠ 真要复现崩溃路径，用下面的 `--es hel old` 实验入口更干净
+        //     （它是独立进程、独立日志，不用改代码重构建）。
         const bool 提前初始化PY = false;
 
         async Task 初始化()
@@ -159,7 +168,32 @@ namespace HybridEngineLight.Android
                 //   平时一行都看不到 —— 而它正是 5 轮排查一直缺的那句话。
                 //   所以 `Diag.装重定向()` 把 fd 1/2 接到应用私有目录的文件上，
                 //   崩了之后**下一次启动**在这里读回 logcat。
-                Diag.读输出(Path.GetDirectoryName(目录) ?? 目录);
+                //
+                // ── ⚠ 实验入口（**走 adb Intent，不依赖 WebView/CDP**）──────────
+                //
+                //     adb shell am start -n com.hybridengine.light/crc…MainActivity \
+                //         --es hel bare
+                //
+                // ⚠ 为什么要有这条路：CDP 那条路实测**不稳** —— WebView 的
+                //   devtools socket 会突然"连得上但不回一个字节"，
+                //   一个假设要重试好几次，白烧时间。Intent 是安卓自己的机制，
+                //   每次都干净：`am force-stop` + `am start --es` 就一个进程一个实验。
+                //
+                // ⚠ 整段（含读输出）**只在带 `--es hel` 时才跑** ⇒
+                //   正常启动零开销、也不会有调试残留文件被读。
+                string 实验 = Intent?.GetStringExtra("hel") ?? "";
+                if (实验.Length > 0)
+                {
+                    Diag.读输出(Path.GetDirectoryName(目录) ?? 目录);
+                    string 步 = 实验, 参 = "";
+                    int 竖 = 实验.IndexOf('|');
+                    if (竖 >= 0) { 步 = 实验.Substring(0, 竖); 参 = 实验.Substring(竖 + 1); }
+                    报状态("实验：" + 步);
+                    Log.Info(标签, "=== Intent 实验：" + 步 + " 参=" + 参 + " ===");
+                    string 果 = Diag.跑实验(步, 参, Path.GetDirectoryName(目录) ?? 目录, 目录, this);
+                    Log.Info(标签, "=== Intent 实验 " + 步 + " 结果：\n" + 果);
+                    报状态("实验 " + 步 + "：" + (果.Length > 200 ? 果.Substring(0, 200) : 果));
+                }
 
                 if (提前初始化PY)
                 {
@@ -228,8 +262,10 @@ namespace HybridEngineLight.Android
                     //   "进度条没显示"这种问题只能靠截图猜，绕了好几轮。
                     _网页?.SetWebChromeClient(new 标题日志());
                     string 首页 = "file://" + Path.Combine(目录, "web", "index.html")
-                                       .Replace('\\', '/')
-                                 + "?自检=1";     // ⚠ 发版前去掉这个参数
+                                       .Replace('\\', '/');
+                    //: ⚠ 调试期在末尾加 `?自检=1`（页面每秒把 DOM 状态写进
+                    //:   `document.title`，宿主落进 logcat）。**发布版去掉** —— 已去掉。
+                    //:   要查界面就加回来（它只写标题，不改行为）。
                     Log.Info(标签, "加载界面：" + 首页);
                     _网页?.LoadUrl(首页);
                     报状态("就绪");

@@ -84,7 +84,12 @@ body {
 .名 { font-size:15.5px; line-height:1.4; }
 .元 { font-size:12px; color:var(--暗); margin-top:3px; }
 
-/* ══ 进度：手机判不了分，所以「读过多少」是**唯一**的进度信号 ══
+/* ══ 进度：按「读过多少」算 —— ⚠ 不是"因为判不了分" ══════════════════
+   ⚠ 原来这里写的理由是"手机判不了分"，**那个理由已经作废**
+     （判分 2026-10-13 起在手机上真能用了）。
+     进度仍然只按"读过"算，但理由换成真的那条：
+     **判分覆盖不了所有课**（要真编译器的那几条线手机上判不了），
+     拿它当进度信号会让进度条永远差一截。 */
    它必须显眼、而且会动 —— 可见的进度是坚持下来的关键。 */
 #进度 { display:flex; align-items:center; gap:10px; padding:0 2px 12px; }
 #进度条外 { flex:1; height:6px; background:var(--面); border-radius:3px; overflow:hidden; }
@@ -178,6 +183,23 @@ body {
 .小钮:active { background:var(--强); color:#fff; border-color:var(--强); }
 .小钮.成 { background:var(--好); color:#10231f; border-color:var(--好);
            font-weight:700; }
+
+/* ══ 判分（手机上真判，2026-10-13 起） ══════════════════════════════
+   ⚠ 结果要**逐条**列：只给一个"没过"等于把"差在哪"藏起来，
+     而学员下一步该做什么全靠这个。 */
+.主钮 { width:100%; min-height:var(--碰); border-radius:10px; font-size:15px;
+        font-weight:700; background:var(--好); color:#10231f;
+        border:1px solid var(--好); }
+.主钮:active { filter:brightness(.92); }
+#判位 { margin-top:10px; }
+.判果 { padding:11px 13px; border-radius:10px; font-size:14px; font-weight:700;
+        background:var(--面2); border:1px solid var(--线); }
+.判果.过 { background:rgba(80,200,150,.16); border-color:var(--好); color:var(--好); }
+.判果.不 { background:rgba(240,120,120,.14); border-color:#c66; color:#e88; }
+.判行 { padding:9px 12px; margin-top:7px; border-radius:9px; font-size:13.5px;
+        background:var(--面2); border:1px solid var(--线); line-height:1.6; }
+.判细 { color:var(--暗); font-size:12.5px; margin-top:3px; line-height:1.6;
+        word-break:break-word; }
 
 /* 底部：**拇指区**。主操作放这里，不放顶部 */
 #底 {
@@ -274,7 +296,8 @@ window.onerror = function (m, u, l) {
     return;
   }
 
-  // 进度只存本地（localStorage）。手机版判不了分，所以"读过没读过"
+  // 进度只存本地（localStorage）。按"读过没读过"算 —— ⚠ 理由见上面 CSS 那段：
+  // **不是"判不了分"**（那个理由已作废），而是判分覆盖不了所有课。
   // 是唯一的进度信号 —— 这个信号必须可靠，所以存在设备上、不上传、不靠网络。
   var 键 = "hel-读过";
   var 读过 = {};
@@ -287,7 +310,8 @@ window.onerror = function (m, u, l) {
     try { localStorage.setItem(键, JSON.stringify(读过)); } catch (e) {}
     return true;
   }
-  // ⚠ 防"一路狂滑到底"：手机判不了分，"读过"是唯一的进度信号，
+  // ⚠ 防"一路狂滑到底"：读满一段时间才算读过。"读过"是进度的唯一依据
+  //   （⚠ 不是"因为判不了分" —— 那个理由已作废，见上面 CSS 那段）。
   //   所以它至少该表示"真的看过一会儿"，而不是"手指划过"。
   //   做法：进课程页后**停留够久**才记读过；滑动不算。
   //   阈值取 8 秒 —— 比最短的一课（约 3 分钟）短得多，
@@ -361,12 +385,19 @@ window.onerror = function (m, u, l) {
     }
     h.push('</div>');
 
-    // 手机上判不了分这件事**要说在前面**，不能等学员写完才发现。
-    // 依据：PEP 738 说安卓只允许执行系统目录里的可执行文件，
-    // 而那些目录运行时不可写 ⇒ 真编译真运行做不到。
-    h.push('<div class="提示">手机上<b>只能读课程和看要求</b>，判不了分 —— ' +
-           '判分要把你写的代码真编译真运行，而安卓不允许。<br>' +
-           '要判分请用电脑版（Windows / Linux）。</div>');
+    // ⚠⚠ **这两句原来写的是"手机上判不了分" —— 现在是假的，改掉了。**
+    //   2026-10-13 真机实测：Python 3.12 能在应用里跑起来
+    //   （Py_Initialize 通了），判定走引擎自己的 check.run_checks，
+    //   错答案 ✗ / 对答案 ✓ 都验过。
+    //   ⚠ 当初写"判不了"的**理由**（PEP 738：安卓不允许执行应用自己的
+    //     可执行文件）本身没错，只是它只挡得住"起子进程"那条路 ——
+    //     而 Python 引擎可以**进程内**跑（libpython 载进主进程）。
+    //   ⚠ 仍然成立的限制：要**真编译器**的那几条线（C / C++ / Java / C#）
+    //     在手机上判不了 —— 它们必须起子进程，正是 PEP 738 挡住的那件事。
+    h.push('<div class="提示">手机上<b>能判分了</b>：Python 3.12 就跑在应用里，' +
+           '判定用的是电脑版同一套检查。<br>' +
+           '⚠ 要真编译器的那几条线（C / C++ / Java / C#）在手机上仍然判不了 —— ' +
+           '它们必须起子进程，而安卓不允许应用执行自己的可执行文件。</div>');
 
     for (k = 0; k < 本线.length; k++) {
       var c = 本线[k];
@@ -441,11 +472,12 @@ window.onerror = function (m, u, l) {
     //   「抄一遍不如写错一遍学得多 —— 确定要看吗？」），手机版照搬这个态度：
     //   **答案不是不让看，是别一上来就看。**
     //   ⚠ 实测过的理由：直接给按钮的话，学员会先点答案再倒推 —— 那样学到的最少。
-    // ══ 答题区：手机上**能写** ══════════════════════════════════════
-    //  ⚠ 手机判不了分（PEP 738：安卓不允许执行应用自己的可执行文件），
-    //    但"能写下来"本身有价值 —— 学员在手机上读、在手机上写，
-    //    回到电脑再粘进答题文件检查。
-    //  ⚠ 存 localStorage（零权限、不联网）。键按"线+课号"分开。
+    // ══ 答题区：手机上**能写、也能判** ══════════════════════════════
+    //  ⚠ 2026-10-13 起：判分在手机上真的能用了（Python 3.12 载进主进程，
+    //    判定走引擎自己的 check.run_checks）。原来这里写着"判不了分"，
+    //    那句已经不成立，改掉（留着就是产品在骗用户）。
+    //  ⚠ 草稿仍然存 localStorage（零权限、不联网）。键按"线+课号"分开。
+    //    判分时会先把草稿落成答题文件再跑检查 —— 学员不用管这件事。
     h.push('<div class="分节">在手机上写下来</div>');
     // ⚠⚠ placeholder 里**不要写换行转义** —— 这条是踩出来的：
     //   模板里 JS 的转义要穿两层（Python 字符串 → 生成的 JS），
@@ -458,17 +490,21 @@ window.onerror = function (m, u, l) {
     //   它是模板字面量的定界符，一个落单的反引号会开一个跨多行的
     //   模板字符串去吞后面的代码，而报错指向的是别的地方。
     h.push('<textarea id="写" spellcheck="false" autocapitalize="off" ' +
-           'autocorrect="off" placeholder="在这里写这一课的代码（手机上判不了分，' +
-           '写下来是给你自己留的；回到电脑可以粘进答题文件）">' +
+           'autocorrect="off" placeholder="在这里写这一课的代码，写完点下面的「判分」">' +
            '</textarea>');
     h.push('<div class="写条"><span id="写况"></span>' +
            '<button class="小钮" data-做="分享" style="margin-left:auto">' +
            '发到电脑</button></div>');
+    // ⚠ 判分按钮 + 结果区。结果逐条列出 CHECK_*（哪条过、哪条不过），
+    //   而不是只给一个"没过" —— 学员要知道**差在哪**。
+    h.push('<div class="写条" style="margin-top:2px">' +
+           '<button class="主钮" data-做="判分">判分（手机上真判）</button></div>');
+    h.push('<div id="判位"></div>');
 
     if (当前课.答) h.push('<div id="答位"></div>');
     h.push('<div style="height:18px"></div>');
-    h.push('<div class="说明">手机上判不了分。要判分请用电脑版：把这一课照着' +
-           '写进电脑上的答题文件，再跑「检查」。</div>');
+    h.push('<div class="说明">判分用的是电脑版同一套检查（课程里的 CHECK_*），' +
+           '代码在手机本地跑，不联网。写错了会逐条告诉你差在哪。</div>');
 
     主.innerHTML = h.join("");
 
@@ -551,6 +587,49 @@ window.onerror = function (m, u, l) {
       if (t.dataset && t.dataset.线) { 当前线 = t.dataset.线; 画列表(); return; }
       if (t.dataset && t.dataset.课 !== undefined) {
         画课(parseInt(t.dataset.课, 10)); return;
+      }
+      if (t.dataset && t.dataset.做 === "判分") {
+        // ⚠⚠ 判分走**桥 → 引擎自己的 CHECK_***（check.run_checks）。
+        //   C# 侧只做三件事：把草稿落成答题文件、调引擎、把 JSON 带回来 ——
+        //   **判定逻辑一行都没写在宿主里**。
+        // ⚠ 第一次点会等 1~2 秒（Python 要在这一步才起来）——
+        //   所以先把"正在判…"写进 DOM，别让学员以为没反应。
+        if (!当前课) return;
+        var 框3 = document.getElementById("写");
+        var 码 = 框3 ? 框3.value : "";
+        var 位4 = document.getElementById("判位");
+        if (!码.trim()) {
+          if (位4) 位4.innerHTML = '<div class="判果 不">还没写东西 —— 先在上面写代码。</div>';
+          return;
+        }
+        if (!(桥 && 桥.Pan)) {
+          if (位4) 位4.innerHTML = '<div class="判果 不">这台设备不支持判分（桥没接上）。</div>';
+          return;
+        }
+        if (位4) 位4.innerHTML = '<div class="判果">正在判…（第一次要等 Python 起来，约 1~2 秒）</div>';
+        var 判 = "";
+        try {
+          var r2 = JSON.parse(桥.Pan(当前课.编, 码));
+          if (r2.err) {
+            判 = '<div class="判果 不">判分没跑起来：' + 转义(r2.err.msg || "未知原因") + '</div>';
+          } else {
+            var 条 = r2.results || [], i2, 行们 = [];
+            for (i2 = 0; i2 < 条.length; i2++) {
+              行们.push('<div class="判行">' + (条[i2].ok ? "✓ " : "✗ ") +
+                        转义(条[i2].name) +
+                        (条[i2].detail ? '<div class="判细">' + 转义(条[i2].detail) + '</div>' : "") +
+                        '</div>');
+            }
+            判 = '<div class="判果' + (r2.ok ? " 过" : " 不") + '">' +
+                 (r2.ok ? "✓ 全过（" : "✗ 没过（") + r2.passed + "/" + r2.total + "）</div>" +
+                 (r2.error ? '<div class="判细">' + 转义(r2.error) + '</div>' : "") +
+                 行们.join("");
+          }
+        } catch (e3) {
+          判 = '<div class="判果 不">判分出错：' + 转义(String(e3)) + '</div>';
+        }
+        if (位4) 位4.innerHTML = 判;
+        return;
       }
       if (t.dataset && t.dataset.做 === "分享") {
         // ⚠⚠ 走**原生分享**（安卓的 Intent.ACTION_SEND），不走剪贴板。

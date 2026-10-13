@@ -247,8 +247,20 @@ namespace HybridEngineLight.Android
         }
 
         /// <summary>
-        /// 协议入口（下一步接 `ctl.py`）。现在只回一句"还没接上"，
-        /// 好让界面能明确区分「Python 没起来」和「协议层没接」。
+        /// ⚠⚠ **协议入口 —— 判分走这里**（原来是"还没接上"的空壳）。
+        ///
+        /// 网页发一行 `ctl.py` 协议请求（JSON 文本），拿回一行 JSON 响应：
+        ///
+        ///     桥.ctl('{"id":1,"cmd":"code.check","args":{"id":"基础-050","answer":"..."}}')
+        ///     → {"id":1,"ok":false,"err":{"code":-1,"msg":"…未通过…"}}
+        ///
+        /// 判定**不是在这里做的** —— 这里只把请求递给
+        /// `hybridengine_light.ctl.处理一行`，用的是引擎自己那套
+        /// `check.run_checks` / `examrun._grade_code`。宿主换成安卓，引擎一行没改。
+        ///
+        /// ⚠ 现在**界面还没接**（页面里没有调用它的按钮）—— 缺口记在
+        ///   `docs/安卓版说明.md` 里：接上只需要在网页上加一个按钮 +
+        ///   把答案文本塞进这条请求，服务端这一侧已经是真的了。
         /// </summary>
         [JavascriptInterface]
         [Java.Interop.Export("ctl")]
@@ -257,9 +269,8 @@ namespace HybridEngineLight.Android
             try
             {
                 PythonHost.启动(素材根);
-                return "{\"ok\":false,\"err\":{\"code\":-1,\"msg\":" +
-                       引号("协议层还没接上（下一步：把 ctl.py 的 JSON-lines 循环挂到这里）") +
-                       "},\"收到\":" + 引号(请求 ?? "") + "}";
+                return PythonHost.调协议(请求,
+                    System.IO.Path.GetDirectoryName(素材根) ?? 素材根);
             }
             catch (Exception e)
             {
@@ -298,6 +309,38 @@ namespace HybridEngineLight.Android
             {
                 Log.Error(标签, "Dia 抛异常：" + e);
                 return "Dia 抛异常：" + e.GetType().Name + ": " + e.Message;
+            }
+        }
+
+        /// <summary>
+        /// ⚠⚠ **判分入口（界面上的「判分」按钮走这里）。**
+        ///
+        /// 学员在手机上写的代码 → 落成答题文件 → 跑这一课的 `CHECK_*` → 逐条返回。
+        ///
+        /// 返回的 JSON 形如：
+        ///     {"ok":true,"passed":3,"total":3,
+        ///      "results":[{"name":"有函数 平方","ok":true,"detail":""}, …]}
+        /// 错答案时 `ok` 是 false、`results` 里能看到**哪一条不过**。
+        ///
+        /// ⚠ 判定逻辑**一行都没写在 C# 里** —— 全是引擎的 `check.run_checks`。
+        ///   宿主换成安卓以后引擎那边一个字没改，这就是"移植"而不是"重写"。
+        ///
+        /// ⚠ 方法名/参数名故意用 ASCII（见 `Dia` 的注释）。
+        /// </summary>
+        [JavascriptInterface]
+        [Java.Interop.Export("Pan")]
+        public string Pan(string id, string code)
+        {
+            try
+            {
+                PythonHost.启动(素材根);
+                return PythonHost.判课(id ?? "", code ?? "", 素材根,
+                    System.IO.Path.GetDirectoryName(素材根) ?? 素材根);
+            }
+            catch (Exception e)
+            {
+                Log.Error(标签, "判分失败：" + e);
+                return "{\"ok\":false,\"err\":{\"msg\":" + 引号(e.GetType().Name + ": " + e.Message) + "}}";
             }
         }
 

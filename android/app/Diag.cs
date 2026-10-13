@@ -63,6 +63,41 @@ namespace HybridEngineLight.Android
         [DllImport("libc.so", CallingConvention = CallingConvention.Cdecl)]
         static extern int dladdr(IntPtr 地址, out Dl信息 信息);
 
+        //: ⚠⚠ **必须走 libc 的 setenv** —— 实测 `.NET` 的
+        //   `Environment.SetEnvironmentVariable` 在安卓上**到不了原生 environ**：
+        //   托管侧读回来是设好的，而 libpython 的 `getenv("PYTHONPATH")` 是 NULL，
+        //   CPython 的路径诊断原文就写着 `PYTHONPATH = (not set)`。
+        //   ⇒ 环境变量设了等于没设 —— 这个坑本身就值得单独记一笔。
+        [DllImport("libc.so", CallingConvention = CallingConvention.Cdecl, EntryPoint = "setenv")]
+        static extern int 设原生环境(string 名, string 值, int 覆盖);
+
+        [DllImport("libc.so", CallingConvention = CallingConvention.Cdecl, EntryPoint = "getenv")]
+        static extern IntPtr 取原生环境(string 名);
+
+        /// <summary>用 libc 设环境变量，并**从原生侧读回来**验证。</summary>
+        public static string 本地设环境(string 名, string 值)
+        {
+            int r;
+            try { r = 设原生环境(名, 值, 1); }
+            catch (Exception e) { return "setenv(" + 名 + ") 抛：" + e.Message; }
+            string 回 = 本地读环境(名);
+            string 说 = string.Format("setenv({0}) 返回 {1}，原生 getenv 读回 {2}", 名, r, 回);
+            Log.Info(标签, 说);
+            return 说;
+        }
+
+        /// <summary>从原生侧读环境变量（托管侧读到的可能不是同一个）。</summary>
+        public static string 本地读环境(string 名)
+        {
+            try
+            {
+                IntPtr p = 取原生环境(名);
+                if (p == IntPtr.Zero) return "（null）";
+                return Marshal.PtrToStringAnsi(p) ?? "（空）";
+            }
+            catch (Exception e) { return "getenv 抛：" + e.Message; }
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         struct Dl信息
         {
@@ -86,19 +121,23 @@ namespace HybridEngineLight.Android
         /// ⚠ 必须在**调用 CPython 之前**做：CPython 的 `Py_FatalError` 只往 stderr 写。
         /// ⚠ 用 `O_TRUNC` 每次清空 —— 这样文件里只可能有"这一次"的内容，不会有旧噪音。
         /// </summary>
-        public static string 装重定向(string 家)
+        public static string 装重定向(string 家, string 标记 = "")
         {
             var 出 = new StringBuilder();
             try
             {
-                string 路错 = Path.Combine(家, 名错);
-                string 路出 = Path.Combine(家, 名出);
+                //: ⚠ 文件名带**实验标记** —— 否则分不清"这次的输出"和"上一次的残留"。
+                //   我在这上面绕过一次：`fix` 实验崩了之后，下一次启动读到的
+                //   其实是 `bare` 那次的旧文件（字节数一样），差点得出"修了也没用"。
+                string 尾 = string.IsNullOrEmpty(标记) ? "" : "-" + 标记;
+                string 路错 = Path.Combine(家, "hel" + 尾 + "-错.txt");
+                string 路出 = Path.Combine(家, "hel" + 尾 + "-出.txt");
                 int f2 = 开(路错, O_WRONLY | O_CREAT | O_TRUNC, 420);
                 int f1 = 开(路出, O_WRONLY | O_CREAT | O_TRUNC, 420);
                 出.Append("stderr fd=").Append(f2).Append("；stdout fd=").Append(f1);
                 if (f2 >= 0) { dup2(f2, 2); 关(f2); }
                 if (f1 >= 0) { dup2(f1, 1); 关(f1); }
-                出.Append("；dup2 完成 → ").Append(家);
+                出.Append("；dup2 完成 → ").Append(路错);
             }
             catch (Exception e)
             {
@@ -108,33 +147,40 @@ namespace HybridEngineLight.Android
             return 出.ToString();
         }
 
-        /// <summary>把上一次（或刚才）重定向下来的输出喂进 logcat。</summary>
+        /// <summary>把**所有**实验留下的输出喂进 logcat（每个实验一个文件，不会互相盖）。</summary>
         public static string 读输出(string 家, int 最多行 = 400)
         {
             var 出 = new StringBuilder();
-            foreach (var (名, 标) in new[] { (名错, 标签错), (名出, 标签出) })
+            string[] 们;
+            try { 们 = Directory.GetFiles(家, "hel*-*.txt"); }
+            catch (Exception e) { return "列目录失败：" + e.Message; }
+            Array.Sort(们);
+            if (们.Length == 0) { Log.Info(标签, "（还没有任何实验输出文件）"); return "（无）"; }
+            foreach (string 路 in 们)
             {
-                string 路 = Path.Combine(家, 名);
+                string 名 = Path.GetFileName(路);
+                string 标 = 名.Contains("错") ? 标签错 : 标签出;
                 try
                 {
-                    if (!File.Exists(路)) { Log.Info(标签, "（没有 " + 名 + "）"); continue; }
+                    var 信 = new FileInfo(路);
                     string 文 = File.ReadAllText(路, Encoding.UTF8);
-                    Log.Info(标签, "=== " + 名 + "：" + 文.Length + " 字节 ===");
-                    出.Append("【").Append(名).Append(" ").Append(文.Length).Append(" 字节】");
+                    Log.Info(标签, "=== " + 名 + "：" + 文.Length + " 字节，改于 "
+                                   + 信.LastWriteTime.ToString("HH:mm:ss") + " ===");
+                    if (文.Length == 0) continue;
+                    出.Append("【").Append(名).Append(' ').Append(文.Length).Append(" 字节】");
                     int n = 0;
                     foreach (string 行 in 文.Split('\n'))
                     {
-                        if (n++ >= 最多行) { Log.Info(标, "…（截断，只显示前 " + 最多行 + " 行）"); break; }
+                        if (n++ >= 最多行) { Log.Info(标, "…（截断）"); break; }
                         string 净 = 行.TrimEnd('\r');
                         if (净.Length == 0) continue;
                         Log.Info(标, 净);
                         出.Append('\n').Append(净);
                     }
+                    //: 上一轮的文件清掉，免得越攒越多、也免得又看成"这一次的"
+                    try { File.Delete(路); } catch { }
                 }
-                catch (Exception e)
-                {
-                    Log.Warn(标签, "读 " + 名 + " 失败：" + e.Message);
-                }
+                catch (Exception e) { Log.Warn(标签, "读 " + 名 + " 失败：" + e.Message); }
             }
             return 出.ToString();
         }
@@ -325,7 +371,8 @@ namespace HybridEngineLight.Android
         //     python _build/_cdp.py "桥.Dia('bare','')"
         //     python _build/_cdp.py "桥.Dia('who','0x711b60eaf8')"
         //     python _build/_cdp.py "桥.Dia('dump','')"      ← 上一次的 stderr
-        public static string 跑实验(string 步, string 参, string 家, string 素材根)
+        public static string 跑实验(string 步, string 参, string 家, string 素材根,
+                                    global::Android.App.Activity? 活动 = null)
         {
             Log.Info(标签, "━━ 实验：" + 步 + " 参=" + 参);
 
@@ -338,15 +385,14 @@ namespace HybridEngineLight.Android
                 case "who": return 谁们(参);
                 case "threads": return 线程();
                 case "env": return 环境();
-                case "stderr": return 装重定向(家);
 
                 // ── 一个个假设，各自冷启动一个进程 ──
                 case "bare":
-                    装重定向(家);
+                    装重定向(家, 步);
                     return "裸 Py_Initialize：" + PythonHost.试初始化();
 
                 case "global":
-                    装重定向(家);
+                    装重定向(家, 步);
                     {
                         string 加载;
                         try
@@ -365,30 +411,37 @@ namespace HybridEngineLight.Android
                     }
 
                 case "dlglobal":
-                    装重定向(家);
+                    装重定向(家, 步);
                     return 手工加载("libpython3.12.so", 标志_全局) + "\n" + PythonHost.试初始化();
 
                 case "dllocal":
-                    装重定向(家);
+                    装重定向(家, 步);
                     return 手工加载("libpython3.12.so", 标志_本地) + "\n" + PythonHost.试初始化();
 
                 case "old":
-                    装重定向(家);
-                    try { PythonHost.初始化(素材根, 旧路径: true); }
+                    装重定向(家, 步);
+                    try { PythonHost.初始化(素材根, 旧路径: true, 本地: false); }
                     catch (Exception e) { return "初始化(旧)抛：" + e.GetType().Name + ": " + e.Message; }
                     return "初始化(旧)通了：" + (PythonHost.版本() ?? "?");
 
                 case "fix":
-                    装重定向(家);
-                    try { PythonHost.初始化(素材根, 旧路径: false); }
+                    装重定向(家, 步);
+                    try { PythonHost.初始化(素材根, 旧路径: false, 本地: false); }
                     catch (Exception e) { return "初始化(新)抛：" + e.GetType().Name + ": " + e.Message; }
                     return "初始化(新)通了：" + (PythonHost.版本() ?? "?");
 
+                //: ⚠⚠ 关键对照：路径对了 + **用原生 setenv**
+                case "fix2":
+                    装重定向(家, 步);
+                    try { PythonHost.初始化(素材根, 旧路径: false, 本地: true); }
+                    catch (Exception e) { return "初始化(原生env)抛：" + e.GetType().Name + ": " + e.Message; }
+                    return "初始化(原生env)通了：" + (PythonHost.版本() ?? "?");
+
                 case "run":
-                    装重定向(家);
+                    装重定向(家, 步);
                     try
                     {
-                        PythonHost.初始化(素材根, 旧路径: false);
+                        PythonHost.初始化(素材根, 旧路径: false, 本地: true);
                         var (好, 出, 错) = PythonHost.跑并抓("print(1+2)", 家);
                         return string.Format("跑 print(1+2)：成功={0}\n【stdout】\n{1}\n【stderr】\n{2}",
                                              好, 出, 错);
@@ -396,17 +449,118 @@ namespace HybridEngineLight.Android
                     catch (Exception e) { return "抛：" + e.GetType().Name + ": " + e.Message; }
 
                 case "self":
-                    装重定向(家);
+                    装重定向(家, 步);
                     try
                     {
-                        PythonHost.初始化(素材根, 旧路径: false);
+                        PythonHost.初始化(素材根, 旧路径: false, 本地: true);
                         var (ok, 详情) = PythonHost.自检();
                         return "自检：" + (ok ? "过 " : "没过 ") + 详情;
                     }
                     catch (Exception e) { return "抛：" + e.GetType().Name + ": " + e.Message; }
+
+                case "路径":
+                    装重定向(家, 步);
+                    try
+                    {
+                        PythonHost.初始化(素材根, 旧路径: false, 本地: true);
+                        var (_, 出, 错) = PythonHost.跑并抓(
+                            "import sys, os\n"
+                            + "print('executable', sys.executable)\n"
+                            + "print('prefix', sys.prefix)\n"
+                            + "print('HOME', os.environ.get('HOME'))\n"
+                            + "print('PYTHONPATH', os.environ.get('PYTHONPATH'))\n"
+                            + "print('ROOT', os.environ.get('HYBRIDENGINE_LIGHT_ROOT'))\n"
+                            + "for p in sys.path: print('path', p)\n"
+                            + "import math, json, re, collections\n"
+                            + "print('扩展模块 OK', math.gcd(12, 18), json.dumps([1, 2]))\n", 家);
+                        return "【stdout】\n" + 出 + "\n【stderr】\n" + 错;
+                    }
+                    catch (Exception e) { return "抛：" + e.GetType().Name + ": " + e.Message; }
+
+                //: ⚠⚠ **判分实测**：错答案要 ✗、对答案要 ✓。
+                //   用的是引擎**自己的**检查（`code.check` → `examrun._grade_code`
+                //   跑隐藏用例），不是这里另写一套判定。
+                //
+                //: ⚠⚠ `桥判` 走的是**界面那条路**：`JsBridge.Pan`（网页点
+                //   「判分」时调的**同一个方法**）。发布包关掉了 WebView 调试 ⇒
+                //   点不了按钮，所以用它来证明"桥这个方法在发布包里也是通的"。
+                case "桥判":
+                    装重定向(家, 步);
+                    try
+                    {
+                        if (活动 == null) return "（没有 Activity，跑不了桥实验）";
+                        PythonHost.启动(素材根);
+                        var 桥 = new JsBridge(活动, 素材根);
+                        string 坏 = "print(\"工具链就绪\")\n";
+                        string 好 = "print(\"工具链就绪\")\n"
+                                  + "print(\"我准备好学 Python 了\")\n"
+                                  + "print(\"第一步：写，第二步：跑\")\n";
+                        string b1 = 桥.Pan("00", 坏);
+                        string b2 = 桥.Pan("00", 好);
+                        Log.Info(标签, "桥判 错答案：" + b1);
+                        Log.Info(标签, "桥判 对答案：" + b2);
+                        return "JsBridge.Pan 错答案 → " + b1 + "\nJsBridge.Pan 对答案 → " + b2;
+                    }
+                    catch (Exception e) { return "桥判抛：" + e.GetType().Name + ": " + e.Message; }
+
+                case "判":
+                    装重定向(家, 步);
+                    try
+                    {
+                        PythonHost.初始化(素材根, 旧路径: false, 本地: true);
+                        var 报 = new StringBuilder();
+                        //: ① 错答案（平方函数写成恒返回 0）
+                        string 错答 = "def 平方(n):\n    return 0\n";
+                        string r1 = PythonHost.调协议(
+                            "{\"id\":1,\"cmd\":\"code.check\",\"args\":{\"id\":\"基础-050\","
+                            + "\"answer\":\"" + 转义(错答) + "\"}}", 家);
+                        报.Append("① 错答案 code.check 基础-050 → ").Append(r1).Append('\n');
+                        //: ② 对答案
+                        string 对答 = "def 平方(n):\n    return n * n\n";
+                        string r2 = PythonHost.调协议(
+                            "{\"id\":2,\"cmd\":\"code.check\",\"args\":{\"id\":\"基础-050\","
+                            + "\"answer\":\"" + 转义(对答) + "\"}}", 家);
+                        报.Append("② 对答案 code.check 基础-050 → ").Append(r2).Append('\n');
+                        //: ③ 跑学员代码并收输出
+                        string r3 = PythonHost.调协议(
+                            "{\"id\":3,\"cmd\":\"code.run\",\"args\":{\"source\":\"print(1+2)\"}}", 家);
+                        报.Append("③ code.run print(1+2) → ").Append(r3).Append('\n');
+                        //: ④ 课程列表（证明引擎真的读到了课程，不是空目录）
+                        string r4 = PythonHost.调协议(
+                            "{\"id\":4,\"cmd\":\"lesson.list\",\"args\":{\"line\":\"python\"}}", 家);
+                        报.Append("④ lesson.list python → ").Append(
+                            r4.Length > 400 ? r4.Substring(0, 400) + "…" : r4).Append('\n');
+                        //: ⑤ 题库
+                        string r5 = PythonHost.调协议(
+                            "{\"id\":5,\"cmd\":\"exam.list\",\"args\":{}}", 家);
+                        报.Append("⑤ exam.list → ").Append(
+                            r5.Length > 300 ? r5.Substring(0, 300) + "…" : r5).Append('\n');
+                        Log.Info(标签, "判分结果：\n" + 报);
+                        return 报.ToString();
+                    }
+                    catch (Exception e) { return "抛：" + e.GetType().Name + ": " + e.Message; }
             }
-            return "（没有这个实验：" + 步 + "）可选：dump maps sym who threads env stderr "
-                 + "bare global dlglobal dllocal old fix run self";
+            return "（没有这个实验：" + 步 + "）可选：dump maps sym who threads env "
+                 + "bare global dlglobal dllocal old fix fix2 run self 路径 判";
+        }
+
+        /// <summary>把字符串转义成 JSON 字面量的内容（不引外层引号）。</summary>
+        static string 转义(string s)
+        {
+            var b = new StringBuilder();
+            foreach (char c in s)
+            {
+                switch (c)
+                {
+                    case '"': b.Append("\\\""); break;
+                    case '\\': b.Append("\\\\"); break;
+                    case '\n': b.Append("\\n"); break;
+                    case '\r': b.Append("\\r"); break;
+                    case '\t': b.Append("\\t"); break;
+                    default: b.Append(c); break;
+                }
+            }
+            return b.ToString();
         }
     }
 }

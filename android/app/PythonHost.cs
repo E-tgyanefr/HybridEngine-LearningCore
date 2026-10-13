@@ -214,7 +214,7 @@ namespace HybridEngineLight.Android
         /// ⚠ `dyn` 是真的 `lib-dynload/<abi>/` 那一层 —— 旧写法少了 `<abi>`，
         ///   扩展模块（`_io`/`math`/`_locale`）根本不在那个目录里。
         /// </summary>
-        public static void 初始化(string 素材根, bool 旧路径)
+        public static void 初始化(string 素材根, bool 旧路径, bool 本地 = true)
         {
             lock (锁)
             {
@@ -238,6 +238,26 @@ namespace HybridEngineLight.Android
                 string 路径 = 旧路径
                     ? app                                   // ← 旧行为（复现崩溃用，别删）
                     : string.Join(new string(Path.PathSeparator, 1), new[] { std, app, dyn });
+                //: ⚠⚠ 用**原生 setenv**，不是 `Environment.SetEnvironmentVariable`。
+                //   实测：托管那个在安卓上到不了原生 environ，
+                //   而 CPython 的 getpath 走的是 `getenv` —— 于是
+                //   PYTHONPATH 设了等于没设（它的诊断原文：`PYTHONPATH = (not set)`）。
+                if (本地)
+                {
+                    Diag.本地设环境("PYTHONPATH", 路径);
+                    Diag.本地设环境("PYTHONNOUSERSITE", "1");
+                    Diag.本地设环境("PYTHONDONTWRITEBYTECODE", "1");
+                    Diag.本地设环境("HOME", 素材根);
+                    Diag.本地设环境("TMPDIR", Path.Combine(素材根, "tmp"));
+                    //: ⚠⚠ **引擎靠这个找课程**。`_paths.内容根()` 优先读
+                    //   `HYBRIDENGINE_LIGHT_ROOT`，没设就退回"包目录的上一级"。
+                    //   而安卓上的布局是 `<素材根>/python-app/content/lessons/…`
+                    //   —— 包目录的上一级是 `python-app`，那里**没有** `lessons/`。
+                    //   ⇒ 不设这一条，`lesson.list` 会返回 0 课（而不是报错，
+                    //     因为"目录不存在"和"课程为空"在它眼里一样）。
+                    Diag.本地设环境("HYBRIDENGINE_LIGHT_ROOT",
+                                     Path.Combine(app, "content"));
+                }
                 Environment.SetEnvironmentVariable("PYTHONPATH", 路径);
                 Environment.SetEnvironmentVariable("PYTHONNOUSERSITE", "1");
                 // ⚠ 不写字节码：写 __pycache__ 需要额外的文件操作，
@@ -251,7 +271,16 @@ namespace HybridEngineLight.Android
                 Environment.SetEnvironmentVariable("TMPDIR", Path.Combine(素材根, "tmp"));
                 Directory.CreateDirectory(Path.Combine(素材根, "tmp"));
 
+                //: ⚠ 把**真正设进去的值**打出来 —— "设了"和"生效了"是两件事，
+                //  而这个死因（encodings 找不到）恰恰只在"没生效"时出现。
+                //  ⚠ 而且这里要读**原生**侧：托管侧读到的一直是"设好了"，
+                //    原生侧才是 CPython 看得见的那一份。
+                Log.Info(标签, "初始化(旧路径=" + 旧路径 + " 本地env=" + 本地 + ") PYTHONPATH=" + 路径);
+                Log.Info(标签, "  托管读回：" + (Environment.GetEnvironmentVariable("PYTHONPATH") ?? "?")
+                               + "\n  原生读回：" + Diag.本地读环境("PYTHONPATH") + "\n  dyn=" + dyn);
+                Log.Info(标签, "准备调 Py_Initialize()…");
                 Py_Initialize();
+                Log.Info(标签, "Py_Initialize 返回了");
                 if (Py_IsInitialized() == 0)
                     throw new InvalidOperationException("Py_Initialize 之后仍未初始化");
 
@@ -338,6 +367,132 @@ namespace HybridEngineLight.Android
             catch (Exception e)
             {
                 return (false, "", e.GetType().Name + ": " + e.Message);
+            }
+        }
+
+        /// <summary>
+        /// ⚠⚠ **判分的地基：把一行 `ctl.py` 协议请求送进引擎，拿回一行 JSON 响应。**
+        ///
+        /// 这一层之前是空的（`桥.ctl` 只回一句"协议层还没接上"）。
+        /// 接法刻意选"**进程内直接调 `ctl.处理一行`**"，而不是"起子进程跑 ctl"：
+        ///   · 安卓上起不了自己的可执行文件（PEP 738 原文），子进程那条路根本不通
+        ///   · `处理一行` 是纯函数式的一进一出，正好适合嵌进来
+        ///   · 引擎那边的判定逻辑（`check.run_checks` / `examrun._grade_code`）
+        ///     **一行都不用改** —— 换的是宿主，不是引擎
+        ///
+        /// ⚠ 请求用 **base64** 传（学员代码里引号/换行/中文都有），
+        ///   响应写文件再由 C# 读回 —— 不走 stdout，因为学员代码自己会 print。
+        /// </summary>
+        public static string 调协议(string 请求, string 家)
+        {
+            if (!就绪) return "{\"ok\":false,\"err\":{\"code\":-1,\"msg\":\"Python 还没起来\"}}";
+            try
+            {
+                string 路 = Path.Combine(家, "hel-协议.json").Replace('\\', '/');
+                string b64 = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes(请求 ?? ""));
+                string 脚本 = string.Join("\n", new[]
+                {
+                    "import base64, json, traceback",
+                    "请求 = base64.b64decode('" + b64 + "').decode('utf-8')",
+                    "try:",
+                    "    from hybridengine_light import ctl",
+                    "    _id, _ok, _r, _msg, _code = ctl.处理一行(请求)",
+                    "    出 = json.dumps({'id': _id, 'ok': bool(_ok), 'r': _r,",
+                    "                     'err': None if _ok else {'code': _code, 'msg': _msg}},",
+                    "                    ensure_ascii=False, default=str)",
+                    "except BaseException:",
+                    "    出 = json.dumps({'ok': False, 'err': {'code': -3,",
+                    "                     'msg': traceback.format_exc()[-1500:]}}, ensure_ascii=False)",
+                    "open(r'" + 路 + "', 'w', encoding='utf-8').write(出)",
+                });
+                PyRun_SimpleStringFlags(脚本, IntPtr.Zero);
+                return File.Exists(路) ? File.ReadAllText(路) : "{\"ok\":false,\"err\":{\"msg\":\"没有响应文件\"}}";
+            }
+            catch (Exception e)
+            {
+                return "{\"ok\":false,\"err\":{\"msg\":\"" + e.GetType().Name + ": "
+                       + e.Message.Replace("\"", "'") + "\"}}";
+            }
+        }
+
+        /// <summary>
+        /// ⚠⚠ **判一课的答案 —— 「完美移植」最后一块。**
+        ///
+        /// 走的是引擎**自己的**检查：`check.load_module` + `check.run_checks`
+        /// （课程文件里那些 `CHECK_*` 函数），一行判定逻辑都没有重写。
+        ///
+        /// ⚠ 为什么不直接用 `ctl.lesson.check`：那条路的 python 线要
+        ///   `from . import run`，而 **`run.py` 顶层引 tkinter**，
+        ///   安卓上根本没有 tkinter（PEP 738）⇒ 那条路在手机上是死的。
+        ///   所以这里照 `ctl._跑检查` 的形状走 `check`，
+        ///   **只把"答案文件读写"这部分自己做了**（学员在界面上打的字
+        ///   要落成答题文件才能被 `load_module` 加载）。
+        ///
+        /// ⚠ 答题文件写在 `<内容根>/lessons/answers/<课>.py` —— 那是**学员自己的
+        ///   答题区**（桌面版同一位置），不是课程内容，改它不违反
+        ///   「课程内容不许改」。
+        /// </summary>
+        public static string 判课(string 课号, string 代码, string 素材根, string 家)
+        {
+            if (!就绪) return "{\"ok\":false,\"err\":{\"msg\":\"Python 还没起来\"}}";
+            try
+            {
+                string 路 = Path.Combine(家, "hel-判.json").Replace('\\', '/');
+                string b64课 = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes(课号 ?? ""));
+                string b64码 = Convert.ToBase64String(
+                    System.Text.Encoding.UTF8.GetBytes(代码 ?? ""));
+                string 脚本 = string.Join("\n", new[]
+                {
+                    "import base64, glob, json, os, traceback",
+                    "课号 = base64.b64decode('" + b64课 + "').decode('utf-8').strip()",
+                    "代码 = base64.b64decode('" + b64码 + "').decode('utf-8')",
+                    "try:",
+                    "    from pathlib import Path",
+                    "    from hybridengine_light import check as _check",
+                    "    from hybridengine_light._paths import 内容根",
+                    "    root = 内容根()",
+                    "    匹配 = sorted(glob.glob(str(root / 'lessons' / (课号 + '_*.py'))))",
+                    "    if not 匹配:",
+                    "        raise RuntimeError('找不到课程文件 lessons/' + 课号 + '_*.py（内容根=' + str(root) + '）')",
+                    "    课文件 = Path(匹配[0])",
+                    "    答目录 = root / 'lessons' / 'answers'",
+                    "    答目录.mkdir(parents=True, exist_ok=True)",
+                    "    答文件 = 答目录 / 课文件.name",
+                    "    答文件.write_text(代码, encoding='utf-8')",
+                    "    课 = _check.load_module(课文件, name='hel_课' + 课号)",
+                    // ⚠ 多文件作业要能 `import 自己的模块` —— ctl 是 chdir 到作业目录
+                    "    # （单文件作业则 chdir 到内容根，与 ctl._跑检查 一致）",
+                    "    作业目录 = 答目录 / 课文件.stem",
+                    "    旧 = os.getcwd()",
+                    "    try:",
+                    "        os.chdir(str(作业目录 if (作业目录 / 'main.py').exists() else root))",
+                    "        已 = _check.load_module(答文件, name='hel_答' + 课号)",
+                    "    finally:",
+                    "        os.chdir(旧)",
+                    "    rep = _check.run_checks(课, 已)",
+                    "    出 = json.dumps({'ok': bool(rep.all_ok), 'passed': rep.passed,",
+                    "                     'total': rep.total, 'error': rep.error,",
+                    "                     'results': [{'name': r.name, 'ok': bool(r.ok),",
+                    "                                  'detail': r.detail} for r in rep.results]},",
+                    "                    ensure_ascii=False, default=str)",
+                    "except BaseException:",
+                    "    出 = json.dumps({'ok': False,",
+                    "                     'err': {'msg': traceback.format_exc()[-1500:]}},",
+                    "                    ensure_ascii=False)",
+                    "open(r'" + 路 + "', 'w', encoding='utf-8').write(出)",
+                });
+                PyRun_SimpleStringFlags(脚本, IntPtr.Zero);
+                string 果 = File.Exists(路) ? File.ReadAllText(路)
+                                           : "{\"ok\":false,\"err\":{\"msg\":\"没有响应文件\"}}";
+                Log.Info(标签, "判课 " + 课号 + " → " + (果.Length > 300 ? 果.Substring(0, 300) : 果));
+                return 果;
+            }
+            catch (Exception e)
+            {
+                return "{\"ok\":false,\"err\":{\"msg\":\"" + e.GetType().Name + ": "
+                       + e.Message.Replace("\"", "'") + "\"}}";
             }
         }
 
