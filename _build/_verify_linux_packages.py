@@ -66,36 +66,24 @@ def 验内容() -> int:
     模块, _ = G.读打包清单()
     坏 = 0
     for P in tars:
-        #: ⚠ PyInstaller 的包内**没有 .py 源码**（它是编译成 .pyc 塞进单文件/目录的），
-        #:   所以**不能拿"引擎模块清单"去查它**。
-        #:   ⇒ tar.gz 这条改成查"**关键入口在不在**"（下面那份清单）。
         缺 = _查关键入口(P, 那是tar=True)
         if 缺:
             坏 += 1
-            print("  XX  **%s 里缺关键入口**：" % os.path.basename(P))
+            print("  XX  **%s 里缺东西**：" % os.path.basename(P))
             for x in 缺:
                 print("       %s" % x)
         else:
-            print("  OK  %s：关键入口都在（%s）"
-                  % (os.path.basename(P), "、".join(_关键入口()[:3]) + " …"))
+            print("  OK  %s：该有的路径都在" % os.path.basename(P))
 
     for P in debs:
-        #: ⚠ `.deb` 是 ar 归档（`debian-binary` + `control.tar.*` + `data.tar.*`），
-        #:   Python 的 `tarfile` 读不了外层 ⇒ 用 `dpkg-deb -c` 列内容。
-        #:   ⚠ 没装 dpkg-deb 就**明说跳过**（"没跑到" ≠ "没问题"）。
-        r = subprocess.run(["dpkg-deb", "-c", P], capture_output=True, text=True,
-                           encoding="utf-8", errors="replace")
-        if r.returncode != 0:
-            print("  ⚠ %s：`dpkg-deb -c` 跑不了（%s）—— **不算通过**"
-                  % (os.path.basename(P), (r.stderr or "").strip()[:80]))
-            continue
-        有 = r.stdout or ""
-        缺 = [k for k in _关键入口() if k not in 有]
+        缺 = _查关键入口(P, 那是tar=False)
         if 缺:
             坏 += 1
-            print("  XX  **%s 里缺关键入口**：%s" % (os.path.basename(P), "、".join(缺)))
+            print("  XX  **%s 里缺东西**：" % os.path.basename(P))
+            for x in 缺:
+                print("       %s" % x)
         else:
-            print("  OK  %s：关键入口都在" % os.path.basename(P))
+            print("  OK  %s：该有的路径都在" % os.path.basename(P))
 
     print()
     print("  结论：%s" % ("**有包是残的** ❌" if 坏 else "包内容都齐 ✅"))
@@ -103,39 +91,102 @@ def 验内容() -> int:
 
 
 def _关键入口() -> list[str]:
-    """Linux 包里"必须在"的东西。
+    """Linux 包里"必须在"的**路径后缀**（按真实布局，不是猜 basename）。
 
-    ⚠ 为什么不拿引擎模块清单（`引擎模块`）来查：
-      PyInstaller 的产物里**没有 .py 源码**（编译进归档了）。
-      ⇒ 查"入口在不在"才是对这份产物**有判别力**的判据。
+    ⚠⚠ **这一版是 CI 抓出来的第二版。**
 
-    ⚠ 这份清单**只列"少了就一定有问题"的**，不列可有可无的。
+        第一版我猜的是"可执行的 basename 就叫 `hybridengine-light`" ——
+        **两处都猜错**，红了：
+          · `tar.gz` 里是 PyInstaller 的产物，入口在 `HybridEngine-light/` **子目录**里
+          · `.deb` 里 `hybridengine-light` 在 `usr/bin/`，而 `ctl` **根本没有**
+
+        ⇒ 教训和第①版一样（**"该打包什么"不能靠猜**）：判据要照着
+          **打包脚本真实的产物布局**写。这一次是读了 `build_linux_packages.sh`
+          里"搬/装"那几步才定下来的。
+
+    真实布局（读脚本得到，不是推测）：
+
+        tar.gz（PyInstaller 独立包）
+            HybridEngine-light/HybridEngine-light       ← 主可执行
+            HybridEngine-light/<课程目录>/              ← 832 个内容文件
+            HybridEngine-light/怎么用.txt
+
+        .deb（**源码形态**）
+            usr/bin/hybridengine-light                   ← sh 包装器（PYTHONPATH + python3 -m）
+            usr/lib/hybridengine-light/hybridengine_light/...  ← 整个源码包
+            usr/share/applications/*.desktop
+
+    ⚠ 所以判据是**"路径后缀在不在"**，不是"basename 等不等于某个名字"：
+      同一个可执行，在 tar.gz 里是 `.../HybridEngine-light/HybridEngine-light`，
+      在 .deb 里是 `usr/bin/hybridengine-light`。
     """
     return [
-        "hybridengine-light",          # 主可执行 / 启动脚本
-        "hybridengine-light-ctl",      # 命令行入口（课程/协议都靠它）
+        #: 主入口（两种形态的路径后缀都算）
+        "hybridengine-light",
+        "HybridEngine-light",
+        #: 内容根 —— 少了它，界面能起但**一节课都看不到**
+        "lessons",
     ]
 
 
 def _查关键入口(P: str, 那是tar: bool) -> list[str]:
-    """tar.gz 里查关键入口（**同时也查引擎源文件**，如果这个包带源码）。"""
-    try:
-        with tarfile.open(P) as t:
-            名 = t.getnames()
-    except Exception as e:                                     # noqa: BLE001
-        return ["打不开：%s" % e]
-    基 = {os.path.basename(n) for n in 名}
-    缺 = [k for k in _关键入口() if k not in 基]
-    #: ⚠ 如果这个包里**带源码**（`hybridengine_light/` 有 .py），
-    #:   那就顺带用统一闸门查一遍引擎模块 —— 那是"源码包"该有的判据。
-    if any(n.endswith("hybridengine_light/__init__.py") for n in 名):
+    """查包里"该有的路径"在不在。
+
+    ⚠ 用**路径后缀**匹配（不是 basename）：`.../HybridEngine-light/HybridEngine-light`
+      这种形态下，basename 匹配会漏，而"以 `/名字` 结尾"能同时覆盖两种布局。
+    """
+    if 那是tar:
+        try:
+            import tarfile as _tf
+            with _tf.open(P) as t:
+                名 = t.getnames()
+        except Exception as e:                                 # noqa: BLE001
+            return ["打不开：%s" % e]
+    else:
+        #: `.deb` 是 ar 归档（`debian-binary` + `control.tar.*` + `data.tar.*`），
+        #: Python 的 tarfile 读不了外层 ⇒ 用 `dpkg-deb -c` 列路径。
+        r = subprocess.run(["dpkg-deb", "-c", P], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
+        if r.returncode != 0:
+            return ["`dpkg-deb -c` 跑不了（%s）—— **不算通过**"
+                    % (r.stderr or "").strip()[:70]]
+        #: `dpkg-deb -c` 的行形如 `-rwxr-xr-x root/root 123 2026-.. ./usr/bin/x`
+        #: ⇒ 取出最后那个路径段
+        名 = []
+        for l in (r.stdout or "").split("\n"):
+            段 = l.split()
+            if 段 and 段[-1].startswith(("./", "/")):
+                名.append(段[-1].lstrip("./"))
+
+    名集 = set(名)
+    小集 = {n.lower() for n in 名集}
+
+    def _有(k: str) -> bool:
+        """包里有没有"以 `k` 结尾的路径段"。
+
+        ⚠ 用**后缀**匹配（不是 basename 相等），因为：
+          · tar.gz 里主入口是 `HybridEngine-light/HybridEngine-light`
+            —— 末段是**大写**的 `HybridEngine-light`，而清单里是小写
+          · `.deb` 里是 `usr/bin/hybridengine-light` —— 前缀完全不同
+        ⇒ 只有"**路径以 `/<名字>` 结尾**"能同时覆盖两种布局。
+
+        ⚠ 也比一次小写（大小写不敏感）—— 那两个名字本来就只是大小写不同，
+          把"大小写不一致"当失败没有意义。
+        """
+        k = k.lower()
+        return any(n == k or n.endswith("/" + k) or n.rstrip("/").endswith("/" + k)
+                   for n in 小集)
+
+    缺 = [k for k in _关键入口() if not _有(k)]
+    #: ⚠ 带源码的包（`.deb` 那种）要顺带查引擎模块 —— 那是"源码包"该有的判据。
+    #:   ⚠ 但**只查".py 在不在"**，不查"内容目录在不在"：
+    #:     `.deb` 里课程内容在 `usr/share/` 下，路径与源码树不同，
+    #:     硬套源码树的相对路径会**假红**（第一版就是这么红的）。
+    if any(n.endswith("hybridengine_light/__init__.py") for n in 名集):
         模块, _ = G.读打包清单()
-        前缀 = ""
-        for n in 名:
-            if n.endswith("hybridengine_light/__init__.py"):
-                前缀 = n[: -len("hybridengine_light/__init__.py")]
-                break
-        缺 += G.查压缩包(P, 包内前缀=前缀, 源根=LC, 模块清单=模块)
+        for m in 模块:
+            if not any(n.endswith("hybridengine_light/" + m) for n in 名集):
+                缺.append("引擎模块 %s" % m)
     return 缺
 
 
