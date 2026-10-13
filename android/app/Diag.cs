@@ -372,7 +372,7 @@ namespace HybridEngineLight.Android
         //     python _build/_cdp.py "桥.Dia('who','0x711b60eaf8')"
         //     python _build/_cdp.py "桥.Dia('dump','')"      ← 上一次的 stderr
         public static string 跑实验(string 步, string 参, string 家, string 素材根,
-                                    global::Android.App.Activity? 活动 = null)
+                                    global::Android.App.Activity? 活动 = null, string? src = null)
         {
             Log.Info(标签, "━━ 实验：" + 步 + " 参=" + 参);
 
@@ -442,9 +442,35 @@ namespace HybridEngineLight.Android
                     try
                     {
                         PythonHost.初始化(素材根, 旧路径: false, 本地: true);
-                        var (好, 出, 错) = PythonHost.跑并抓("print(1+2)", 家);
-                        return string.Format("跑 print(1+2)：成功={0}\n【stdout】\n{1}\n【stderr】\n{2}",
-                                             好, 出, 错);
+                        //: ⚠⚠ **`参` 可以是 base64 源码 ⇒ 真机上跑任意 Python 片段。**
+                        //:
+                        //:   这条把实验台从"一次假设要重建一次 APK"变成
+                        //:   "**一次 `am start` 验一个假设**" —— 构建+装机要 1~2 分钟，
+                        //:   而探一个想法只需要 15 秒。
+                        //:
+                        //:   ⚠ 做法：`adb shell am start ... --es hel run --es 参 <base64>`
+                        //:     不传 `参` 时保留原来的 `print(1+2)`（回归判据不变）。
+                        string 源码 = "print(1+2)";
+                        //: ⚠ `src` 这个 **ASCII 参数名**才是给 adb 用的 —— 
+                        //:   实测 `--es 参 <汉字名>` 在 `adb shell` 里会**丢**
+                        //:   （跑出来是 `跑（10 字符）`，也就是原来的 print(1+2)）。
+                        //:   汉字参数名在 adb 的 shell 转义里不可靠。
+                        string 传 = !string.IsNullOrWhiteSpace(src) ? src! : 参;
+                        if (!string.IsNullOrWhiteSpace(传))
+                        {
+                            try
+                            {
+                                源码 = System.Text.Encoding.UTF8.GetString(
+                                    Convert.FromBase64String(传.Trim()));
+                            }
+                            catch (Exception e)
+                            {
+                                return "参 不是合法 base64：" + e.GetType().Name + ": " + e.Message;
+                            }
+                        }
+                        var (好, 出, 错) = PythonHost.跑并抓(源码, 家);
+                        return string.Format("跑（{0} 字符）：成功={1}\n【stdout】\n{2}\n【stderr】\n{3}",
+                                             源码.Length, 好, 出, 错);
                     }
                     catch (Exception e) { return "抛：" + e.GetType().Name + ": " + e.Message; }
 
@@ -580,8 +606,23 @@ namespace HybridEngineLight.Android
                     }
                     catch (Exception e) { return "抛：" + e.GetType().Name + ": " + e.Message; }
             }
-            return "（没有这个实验：" + 步 + "）可选：dump maps sym who threads env "
-                 + "bare global dlglobal dllocal old fix fix2 run self 路径 判";
+            //: ⚠⚠ **这张表必须和上面的 `case` 对得上。**
+            //:
+            //:   它原来是一行**手写的**字符串，只列到 `判` 为止 ——
+            //:   于是我加了 `桥判` 和 `jit` 之后，跑 `hel 超时` 得到的是
+            //:   「（没有这个实验：超时）可选：… 路径 判」，
+            //:   **而我从那张表读出了"这个实验不存在"的结论 —— 那是错的**
+            //:   （`jit` 明明在），白烧了一轮。
+            //:
+            //:   ⇒ 这张表**分开维护就一定会过时**。做法：把可选项和 case
+            //:     放成一份数据（下面那个数组），报错时由它生成。
+            //:     ⚠ 新增 case 时**同时加进这个数组** —— 它会在报错信息里出现。
+            string[] 可选 = {
+                "dump", "maps", "sym", "who", "threads", "env",
+                "bare", "global", "dlglobal", "dllocal", "old", "fix", "fix2",
+                "run", "self", "路径", "桥判", "jit", "判",
+            };
+            return "（没有这个实验：" + 步 + "）可选：" + string.Join(" ", 可选);
         }
 
         /// <summary>把字符串转义成 JSON 字面量的内容（不引外层引号）。</summary>

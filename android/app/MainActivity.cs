@@ -188,9 +188,18 @@ namespace HybridEngineLight.Android
                     string 步 = 实验, 参 = "";
                     int 竖 = 实验.IndexOf('|');
                     if (竖 >= 0) { 步 = 实验.Substring(0, 竖); 参 = 实验.Substring(竖 + 1); }
+                    //: ⚠⚠ **要跑的 Python 源码走单独的 ASCII 参数名 `src`。**
+                    //:
+                    //:   实测：`adb shell am start ... --es 参 <base64>` 传不过来 ——
+                    //:   汉字参数名在 adb 的 shell 转义里会丢（跑出来是默认的 print(1+2)，
+                    //:   日志显示"跑（10 字符）"）。而 `--es hel run|...` 那条路
+                    //:   靠的是 Intent 里的 `hel`，它本身是 ASCII，所以没事。
+                    //:   ⇒ 大段 base64 走 `src`；小参数仍可以走 `hel` 里的 `|`。
+                    string 源 = Intent?.GetStringExtra("src") ?? "";
                     报状态("实验：" + 步);
-                    Log.Info(标签, "=== Intent 实验：" + 步 + " 参=" + 参 + " ===");
-                    string 果 = Diag.跑实验(步, 参, Path.GetDirectoryName(目录) ?? 目录, 目录, this);
+                    Log.Info(标签, "=== Intent 实验：" + 步 + " 参=" + 参
+                                   + " src=" + (源.Length > 0 ? 源.Length + " 字符" : "无") + " ===");
+                    string 果 = Diag.跑实验(步, 参, Path.GetDirectoryName(目录) ?? 目录, 目录, this, 源);
                     Log.Info(标签, "=== Intent 实验 " + 步 + " 结果：\n" + 果);
                     报状态("实验 " + 步 + "：" + (果.Length > 200 ? 果.Substring(0, 200) : 果));
                 }
