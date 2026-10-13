@@ -108,6 +108,119 @@ if os.path.exists(素材) and any(os.path.exists(w) for w in 网页们):
         print("      python _build/prepare_android_assets.py --go")
         sys.exit(1)
 
+
+def _查素材漏没漏():
+    """⚠⚠ **上面那道闸只比了网页的时间戳 —— 引擎的 `.py` 它一个都没比。**
+
+    实测事故（2026-10-13）：
+
+        我给 `hybridengine_light/` 加了 `watchdog.py`（超时保护），
+        改的 `check.py` / `ctl.py` / `examrun.py` 都要 import 它。
+        · `prepare_android_assets.py` 的 `引擎模块` 清单我**加对了**
+        · 那道清单闸门也**证明了会拦**（拿掉 watchdog 就退出码 2）
+        · `build_android.py` **退出码 0**、构建成功、装机成功
+
+        结果：APK 的 `assets/python.zip` 里**没有 `watchdog.py`**（20 个模块，它是第 21 个）。
+
+    真机症状：`hel 超时` 实验**卡住不动**，应用界面无响应（`mCurrentFocus=null`），
+    只能强杀。日志停在 `Python 起来了` —— 之后一行都没有。
+
+    ⚠ 根因：**只按 mtime 比是不够的。**
+      新加的**文件**（不是"改动的文件"）不会让任何旧文件的 mtime 变新 ⇒
+      `python.zip` 看着"不过期"，但它里面就是少东西。
+
+    ⇒ 正确的检查不是"比时间"，是"**清单里的东西在不在包里**"。
+      这条与"过期检查"是**同一类 bug 的两种表现**：
+      **构建会静默地使用不完整的东西。**
+    """
+    import zipfile as _zf
+    if not os.path.exists(素材):
+        return None
+    try:
+        with _zf.ZipFile(素材) as z:
+            包里 = set(z.namelist())
+    except Exception as e:                                    # noqa: BLE001
+        return ["python.zip 打不开：%s" % e]
+
+    LC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    源目录 = os.path.join(LC, "hybridengine_light")
+    漏 = []
+    #: ① 引擎模块：清单里每个 .py 都要在包里
+    try:
+        sys.path.insert(0, os.path.join(LC, "_build"))
+        import prepare_android_assets as _PA
+        模块 = list(_PA.引擎模块)
+    except Exception as e:                                    # noqa: BLE001
+        模块 = []
+        漏.append("（读不到 引擎模块 清单：%s）" % e)
+    for m in 模块:
+        应 = "python-app/hybridengine_light/" + m
+        if 应 not in 包里:
+            漏.append("引擎模块 %s 不在包里" % m)
+    #: ② 课程内容：**用素材脚本自己的 `课程目录` 清单**，不自己猜。
+    #:
+    #:    ⚠⚠ 这一点我第一版做错了，代价是**两次假红**：
+    #
+    #        · 第一次：路径前缀写成 `python-app/`，实际是 `python-app/content/`
+    #        · 第二次：自己列了一遍目录名（lessons/csharp/java-lessons/…），
+    #          结果 `lessons/answers/` 被报"不在包里" —— 而那是**故意不打**的
+    #          （手机上判分用的是 `check.run_checks`，不需要答案文件），
+    #          `csharp/` 同理（要真编译器，安卓上不可能）
+    #
+    #    ⇒ **"该打包什么"的唯一权威是 `prepare_android_assets.py` 里的清单。**
+    #      这边猜一遍 = 造第二份真相，而两份真相迟早不一致
+    #      （而且不一致时的症状是"闸门假红"，会让人去修一个不存在的问题）。
+    try:
+        sys.path.insert(0, os.path.join(LC, "_build"))
+        import prepare_android_assets as _PA2
+        课程清单 = list(getattr(_PA2, "课程目录", []))
+    except Exception as e:                                    # noqa: BLE001
+        漏.append("（读不到 课程目录 清单：%s）" % e)
+        课程清单 = []
+    for 名 in 课程清单:
+        源 = os.path.normpath(os.path.join(LC, 名))
+        if not os.path.isdir(源):
+            continue
+        #: ⚠⚠ **排除规则必须和素材脚本一致**（`prepare_android_assets.py` 里那份 `不要`）。
+        #:   手机上**故意不打** `answers/` 和 `solutions/` —— 判分走的是
+        #:   `check.run_checks`（检查函数就在课程 `.py` 里），**不需要答案文件**。
+        #:   ⚠ 我第一版漏了这条 ⇒ **假红**："lessons/answers/… 不在包里"，
+        #:     而它本来就不该在。**假红会让人去修一个不存在的问题**，比漏报还费时间。
+        跳过目录 = {"__pycache__", "answers", "solutions", "bin", "obj"}
+        样例 = []
+        for 根, 目录们, 文件们 in os.walk(源):
+            目录们[:] = [d for d in 目录们 if d not in 跳过目录]
+            for f in 文件们:
+                if f.endswith(".pyc"):
+                    continue
+                相对 = os.path.relpath(os.path.join(根, f), LC).replace("\\", "/")
+                if "python-app/content/" + 相对 not in 包里:
+                    样例.append(相对)
+                    if len(样例) >= 3:
+                        break
+            if len(样例) >= 3:
+                break
+        if 样例:
+            漏.append("%s 里有 %d+ 个文件不在包里，例如 %s"
+                      % (名, len(样例), "、".join(样例)))
+    return 漏
+
+
+_漏 = _查素材漏没漏()
+if _漏:
+    print()
+    print("  XX **python.zip 里缺东西** —— 构建会照常成功，但真机上要用到才炸：")
+    for x in _漏:
+        print("       %s" % x)
+    print()
+    print("  ⚠ 只按 mtime 比是不够的：**新加的文件**不会让旧文件的 mtime 变新 ⇒")
+    print("     zip 看着「不过期」，但里面就是少东西。")
+    print()
+    print("  先跑：")
+    print("      python _build/prepare_android_assets.py --go")
+    sys.exit(1)
+print("    OK  素材完整性（清单里的模块与课程文件都在包里）")
+
 #: 构建要的 JDK —— 系统 PATH 上是 25，而 .NET Android 拒绝
 JDK = r"D:\AndroidToolchain\jdk21\jdk-21.0.5+11"
 print("    %s JDK 21（%s）" % ("OK " if os.path.isdir(JDK) else "XX ", JDK))

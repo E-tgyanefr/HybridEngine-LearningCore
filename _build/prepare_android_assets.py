@@ -76,6 +76,15 @@ MAVEN = "https://repo1.maven.org/maven2/com/chaquo/python/target"
     "examrun.py",      # ctl → examrun
     "ctl.py",          # 协议层（安卓入口用它）
     "check.py",        # Python 课的检查
+    #: ⚠⚠ **`watchdog.py` 漏不得**（2026-10-13 加）——
+    #:   它是"跑学员代码时的超时保护"，被 `check.py` / `ctl.py` / `examrun.py`
+    #:   **三个文件** import。
+    #:
+    #:   ⚠ 漏了会怎样：**这个清单是硬编码的**，漏掉的那个文件不会进 APK，
+    #:     而报错要到学员**点判分那一刻**才出现（`ModuleNotFoundError: watchdog`）——
+    #:     构建、装机、看界面全都正常。
+    #:   ⇒ 加模块时**必须同步加这里**，别指望构建脚本自己发现。
+    "watchdog.py",     # 跑学员代码的超时保护（check/ctl/examrun 都用）
     "learnmodel.py",   # 课程模型（只读课程文本）
     "aicourse.py", "enginecourse.py", "embedded.py", "raspi.py",
     "raspi_course.py", "mcu.py", "gamekit.py", "cmd_engine.py",
@@ -102,6 +111,71 @@ for m in 引擎模块:
 print("    有 %d 个：%s" % (len(可用), " ".join(可用)))
 if 缺:
     print("    缺 %d 个：%s" % (len(缺), " ".join(缺)))
+
+
+def _查包内依赖():
+    """⚠⚠ **这个清单是硬编码的 ⇒ 漏一个模块要等学员点判分才暴露。**
+
+    实测过一次（2026-10-13）：给 `check.py` / `ctl.py` / `examrun.py`
+    加了 `from .watchdog import ...`，忘了往 `引擎模块` 里加 `watchdog.py` ——
+    构建成功、装机成功、界面正常，**只有点到"判分"那一刻**才
+    `ModuleNotFoundError: No module named 'hybridengine_light.watchdog'`。
+
+    ⇒ 这道闸就是拦这件事：**把清单里每个模块的包内 import 全解析一遍，
+      凡是指向"同包某个 .py"、而那个 .py 不在清单里的，直接报出来。**
+
+    ⚠ 只查**同包（相对 import）**：跨包的第三方依赖本来就不该有
+      （本项目铁律：零第三方依赖），而 `hybridengine_light` 之外的
+      全是 stdlib，安卓的 stdlib 已经有了。
+
+    ⚠ 用 AST 而不是正则：正则会把注释和字符串里的 import 也算进来
+      （本文件自己的注释里就写着 `from .watchdog import`）。
+    """
+    import ast as _ast
+    包内 = {m for m in 引擎模块 if m.endswith(".py")}
+    模块名 = {m[:-3] for m in 包内}
+    漏 = []
+    for m in sorted(包内):
+        P = os.path.join(LC, "hybridengine_light", m)
+        if not os.path.isfile(P):
+            continue
+        try:
+            树 = _ast.parse(open(P, encoding="utf-8").read())
+        except SyntaxError as e:
+            print("    ??  %s 解析不了：%s" % (m, e))
+            continue
+        for 节 in _ast.walk(树):
+            #: `from .x import y` / `from . import x`
+            if isinstance(节, _ast.ImportFrom) and 节.level == 1:
+                基 = 节.module or ""
+                #: `from . import a, b` ⇒ 每个 name 都可能是个模块
+                if not 基:
+                    for a in 节.names:
+                        if a.name in 模块名 and a.name + ".py" not in 包内:
+                            漏.append((m, "." + a.name))
+                    continue
+                顶层 = 基.split(".")[0]
+                #: `from .pyengine import x` 指向的是**目录**（包里另算）——
+                #: 只有"指向同目录某个 .py"的才算漏
+                if os.path.isfile(os.path.join(LC, "hybridengine_light",
+                                               *基.split(".")) + ".py"):
+                    if 顶层 + ".py" not in 包内:
+                        漏.append((m, "." + 基))
+                elif os.path.isdir(os.path.join(LC, "hybridengine_light", 顶层)):
+                    pass          # 目录（子包）——不在这个清单的职责里
+    return 漏
+
+
+_漏 = _查包内依赖()
+if _漏:
+    print()
+    print("  XX **清单漏了模块**（构建、装机、界面都会正常，只有用到时才炸）：")
+    for 谁, 什么 in _漏:
+        print("       %s 里 import 了 %s —— 但它不在 引擎模块 清单里" % (谁, 什么))
+    print()
+    print("     ⇒ 往上面的 `引擎模块` 列表里加上它们，再跑。")
+    sys.exit(2)
+print("    （包内依赖检查：清单没有漏模块）")
 print()
 print("  === 要拷贝的课程目录 ===")
 for d in 课程目录:

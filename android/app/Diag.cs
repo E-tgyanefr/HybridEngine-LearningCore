@@ -503,6 +503,46 @@ namespace HybridEngineLight.Android
                     }
                     catch (Exception e) { return "桥判抛：" + e.GetType().Name + ": " + e.Message; }
 
+                 //: ⚠⚠ **看门狗在真机上还没生效**（19:44 与 19:47 两次实验都卡住）。
+                 //:
+                 //   ⇒ 这一项是**判别性**实验，专门回答"为什么"：
+                 //     它跑一个**有界**循环（不会卡住），只问
+                 //     `sys.settrace` 的 tracer 到底触发了没有。
+                 //
+                 //     三种可能，这一项能把它们分开：
+                 //       ① `settrace` 在这个构建里根本不生效 ⇒ 触发次数 = 0
+                 //       ② 触发次数 > 0 但很小 ⇒ 生效了，只是 `while True: pass`
+                 //          那种紧循环看不到行事件
+                 //       ③ 触发次数很大 ⇒ 生效正常 ⇒ 那卡住的原因在别处
+                 case "jit":
+                     装重定向(家, 步);
+                     try
+                     {
+                         PythonHost.初始化(素材根, 旧路径: false, 本地: true);
+                         //: ⚠ 这段**必须有界**：settrace 万一不生效，它也得返回。
+                         //:   循环次数写死，不看时间。
+                         string 探 = string.Join("\n", new[]
+                         {
+                             "import sys",
+                             "痕迹 = [0]",
+                             "def t(frame, event, arg):",
+                             "    痕迹[0] += 1",
+                             "    return t",
+                             "sys.settrace(t)",
+                             "for i in range(200000):",
+                             "    pass",
+                             "sys.settrace(None)",
+                             "print('tracer 触发次数 =', 痕迹[0])",
+                             "print('阈值 =', sys.gettrace() is None)",
+                         });
+                         string r = PythonHost.调协议(
+                             "{\"id\":1,\"cmd\":\"code.run\",\"args\":{\"timeout\":20,"
+                             + "\"source\":\"" + 转义(探) + "\"}}", 家);
+                         Log.Info(标签, "jit 实验：" + r);
+                         return r;
+                     }
+                     catch (Exception e) { return "jit 实验抛：" + e.GetType().Name + ": " + e.Message; }
+
                 case "判":
                     装重定向(家, 步);
                     try
