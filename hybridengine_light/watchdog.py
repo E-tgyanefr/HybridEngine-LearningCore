@@ -305,7 +305,7 @@ def 机制() -> str:
     return "none"
 
 
-def _装信号处理(秒: float):
+def _装信号处理(秒: float, 记: dict | None = None):
     """在**当前线程**装 SIGALRM handler。
 
     ⚠⚠ `signal.signal()` **只能在主线程调** —— 别的线程会抛 `ValueError`。
@@ -313,10 +313,18 @@ def _装信号处理(秒: float):
       （`is_main=True`），所以这里没问题。
       ⚠ 但**别假设它永远在主线程**：`ValueError` 要转成"这条路不可用"，
         而不是让判分崩掉。
+
+    ⚠ `记` 是个可变字典 —— handler 里把 `超了` 写进去，
+      让**两条路给同一个凭据**。
+      ⚠ 三平台 CI 抓到的：原来只有 `tracer` 那条设 `超了`，
+        signal 那条不设 ⇒ 同一个类，走不同的路，**行为不一致**
+        （`test_超了标志位` 在 Linux/macOS 红、Windows 绿）。
     """
     import signal
 
     def 处理(signum, frame):
+        if 记 is not None:
+            记["超了"] = True
         raise 超时("代码跑了 %.1f 秒还没停（上限 %.1f 秒）—— 是不是有个循环停不下来？"
                    % (秒, 秒))
 
@@ -359,8 +367,12 @@ class 看门狗:
         self._开始 = 0.0
         self._计数 = 0
         #: 这次实际走了哪条路（`"signal"` / `"settrace"` / `"none"`）
+        #: ⚠ 它记的是"**先挂上的那条**"（signal 优先）；但**两条都挂着**
+        #:   （见 `__enter__`）—— 所以它不代表"只有这条在生效"。
         self.用了 = "none"
         self._signal = None
+        #: ⚠ 给 signal handler 回写用（`超了`）—— 让**两条路行为一致**
+        self._记: dict = {}
         #: 超时后置真 —— 给外面一个"确实是我打断的"的凭据
         self.超了 = False
 
@@ -375,7 +387,8 @@ class 看门狗:
         #: ① 首选：`setitimer`（不依赖 tracing ⇒ 手机上唯一有效的路）
         if _信号可用():
             try:
-                self._signal = _装信号处理(self.秒)
+                self._记 = {}
+                self._signal = _装信号处理(self.秒, self._记)
                 self._signal.setitimer(self._signal.ITIMER_REAL, self.秒)
                 self.用了 = "signal"
                 return self
@@ -384,10 +397,29 @@ class 看门狗:
                 #:   那就往下退到 trace，**而不是让判分崩掉**。
                 self._signal = None
 
-        #: ② 兜底：`settrace`（探过真的会回调才用）
+        #: ② 兜底：`settrace`
+        #:
+        #: ⚠⚠ **不能只在 `_信号可用() == False` 时才走这条。**
+        #:
+        #:   三平台 CI 抓到的真 bug（2026-10-13）：
+        #:     Linux / macOS 上 `_信号可用()` 报 **True**（它们有 SIGALRM）⇒
+        #:     上面那条就 `return` 了；而**signal 那条实际并没生效**
+        #:     （实测：紧循环开销只有 **1.04x**，说明 tracer 根本没接上）。
+        #:     表现是 4 条判据红，而 **Windows 全绿** ——
+        #:     因为 Windows 没有 SIGALRM，天然走这条兜底路。
+        #:
+        #:   ⇒ 教训：**"看起来可用"和"真的生效"是两件事**
+        #:     （这和 `settrace` 在安卓上"能调但不回调"是**同一类**错）。
+        #:   ⇒ 修法：把 trace **也装上**，两条**同时挂着**：
+        #:        · 哪条先炸都行（谁先到谁生效）
+        #:        · `__exit__` **无条件清两条**（不看 `用了`）
+        #:     这样"signal 实际不生效"时，trace 就是兜底 —— 而不是一起失效。
         self._旧trace = sys.gettrace()
         sys.settrace(self._看)
-        self.用了 = "settrace" if _settrace_可用() else "none"
+        #: ⚠ `用了` 记的是"**先挂上的那条**"（signal 优先）；
+        #:   但**两条都在**，所以它不代表"只有这条在生效"。
+        self.用了 = "signal" if self._signal is not None else (
+            "settrace" if _settrace_可用() else "none")
         return self
 
     def __exit__(self, 类型, 值, 栈):
@@ -405,6 +437,10 @@ class 看门狗:
                 sys.settrace(self._旧trace)
         except Exception:                                      # noqa: BLE001
             pass
+        #: ⚠ 把 signal handler 记下的 `超了` 收回来 ——
+        #:   这样**两条路给同一个凭据**（走 signal 时 `超了` 也要是 True）。
+        if self._记.get("超了"):
+            self.超了 = True
         #: 返回 False ⇒ 不吞异常（超时会照常往上抛，由调用方转成人话）
         return False
 
