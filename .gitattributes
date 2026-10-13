@@ -1,0 +1,111 @@
+# ════════════════════════════════════════════════════════════════════════════
+# 换行符钉死 —— **这条是三平台 CI 抓出来的**
+# ════════════════════════════════════════════════════════════════════════════
+#
+# ## 事件
+#
+# 加了三平台 CI 之后，Windows job 的「平台自检」报：
+#
+#     ✗ _build/build_linux_packages.sh 是 CRLF 换行 —— Linux 上会报 `bad interpreter: /bin/sh^M`
+#     ✗ _build/build_macos_app.sh 是 CRLF 换行 —— 同上
+#
+# ## 根因（**不是文件写错了，是 git 的换行设置**）
+#
+#     开发机  core.autocrlf = true
+#     仓库里  存的是 LF（`git cat-file` 数过：0 处 CRLF）
+#     检出到 Windows ⇒ 变 CRLF ⇒ 我磁盘上看到的是 CRLF
+#     我提交回去 ⇒ **仓库里也成了 CRLF**
+#     Linux/macOS 检出 ⇒ CRLF ⇒ `bad interpreter: /bin/sh^M`
+#
+# ⚠⚠ **为什么本机测不出来**：
+#    Windows 上的 `bash -n`（Git Bash）**容忍 CRLF**，所以本地全绿。
+#    ⇒ 只有**真的到 Linux/macOS 上跑**才会炸 —— 而那正是这个 CI 存在的理由。
+#
+# ## 修法：把规则写进仓库，不靠每台机器的 `core.autocrlf`
+#
+# ⚠ `.gitattributes` 是**仓库级**的：谁检出、在哪检出，规则都一样。
+#    只改本机 `core.autocrlf` 是"我这台机器上没问题"——
+#    下一个人（或 CI）照样踩。
+#
+# ⚠ 改完这个文件之后**要重新规范化**已跟踪的文件：
+#
+#     git add --renormalize .
+#
+#    不然新规则只对"以后新增/改动的文件"生效 —— 已经存成 CRLF 的那些不会自动变。
+# ════════════════════════════════════════════════════════════════════════════
+
+#: 默认：让 git 自己判断文本/二进制，文本在仓库里统一存 LF
+* text=auto
+
+#: ── 必须在 Linux/macOS 上可执行的 ──────────────────────────────────────
+#: ⚠ 这些是**硬要求 LF**：CRLF 会让 shebang 变成 `#!/bin/sh\r` ⇒
+#:   内核找不到解释器 ⇒ `bad interpreter: /bin/sh^M`。
+#:   `eol=lf` 是"检出时也用 LF"（不只是"仓库里存 LF"）——
+#:   少了它，`core.autocrlf=true` 的机器上检出还是会变 CRLF。
+*.sh            text eol=lf
+#: 无扩展名的命令行入口（`hybridengine-light-ctl`）—— 同样要能直接执行
+hybridengine-light-ctl   text eol=lf
+
+#: ── 源码 ────────────────────────────────────────────────────────────
+#: ⚠ Python **两种换行都能跑**，所以这里不是为了"能跑"，是为了**diff 干净**：
+#:   同一份文件在不同平台上被改一次就整文件 diff，会把真改动淹掉。
+*.py            text eol=lf
+*.pyi           text eol=lf
+*.js            text eol=lf
+*.cs            text eol=lf
+*.csproj        text eol=lf
+*.md            text eol=lf
+*.json          text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.xml           text eol=lf
+*.toml          text eol=lf
+*.cfg           text eol=lf
+*.txt           text eol=lf
+*.jsx           text eol=lf
+*.html          text eol=lf
+*.css           text eol=lf
+*.h             text eol=lf
+*.hpp           text eol=lf
+*.cpp           text eol=lf
+*.c             text eol=lf
+*.java          text eol=lf
+
+#: ── Windows 专属的批处理 ────────────────────────────────────────────
+#: ⚠ 反过来了：`.cmd` / `.bat` **要 CRLF**。
+#:   cmd.exe 对 LF 的批处理容忍度很差（`goto`/`if` 块会出怪问题）。
+*.cmd           text eol=crlf
+*.bat           text eol=crlf
+
+#: ── 二进制：不许碰 ──────────────────────────────────────────────────
+#: ⚠ 漏一个就可能被 `text=auto` 当文本处理 ⇒ **把文件改坏**（而且看不出来）。
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.ico           binary
+*.bmp           binary
+*.wav           binary
+*.mp3           binary
+*.zip           binary
+*.apk           binary
+*.jar           binary
+*.so            binary
+*.dll           binary
+*.dylib         binary
+*.a             binary
+*.lib           binary
+*.exe           binary
+*.pyd           binary
+*.pyc           binary
+*.pfx           binary
+*.keystore      binary
+*.ttf           binary
+*.otf           binary
+
+#: ⚠ git 的**语言统计**（GitHub 上那个色条）—— 不写的话
+#:   课程数据 / 生成的 JS 会把统计带偏（看不出这是个 Python 项目）
+_build/_*.txt           linguist-documentation
+_build/报告/**          linguist-documentation
+docs/**                 linguist-documentation
+android/app/web/course-data.js   linguist-generated
