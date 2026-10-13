@@ -279,6 +279,23 @@ def _信号可用() -> bool:
       ⚠ 但**它到底能不能打断死循环**是另一回事，那一条**真机验过**：
         `**INTERRUPTED 1.00 秒**`（见模块顶部那段）。
     """
+    #: ⚠⚠ **只在安卓上用信号** —— 理由与依据：
+    #:
+    #:     桌面（Win/Linux/macOS）—— `sys.settrace` **探过真的会回调**
+    #:       （三平台 CI 都验过它绿）⇒ **够用，不需要信号**。
+    #:    安卓 —— `settrace` **装了不回调**（真机 `tracer 触发次数 = 0`）
+    #:       ⇒ **只有信号这一条路**。
+    #:
+    #: ⚠ 为什么不"两条都挂上"（我试过）：信号是**异步**的，会在**任意字节码边界**
+    #:   抛异常 ⇒ 桌面上 trace 已够用，再挂个异步信号**只会引入不确定性**
+    #:   （实测：Linux/macOS 红、Windows 绿 —— 而本机是 Windows，**复现不出来**）。
+    #:   ⇒ **能用确定性的那条，就别用异步的那条。**
+    #:
+    #: ⚠ `sys.platform` 分不出"安卓"和"Linux 桌面"（都是 `"linux"`）——
+    #:   所以用安卓专有的环境变量区分（AOSP 一直有，桌面 Linux 上没有）。
+    import os
+    if not os.environ.get("ANDROID_ROOT") and not os.environ.get("ANDROID_DATA"):
+        return False
     try:
         import signal
         return hasattr(signal, "SIGALRM") and hasattr(signal, "setitimer")
