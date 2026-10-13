@@ -130,3 +130,82 @@ jobs:
             _build/报告/**
           if-no-files-found: ignore
           retention-days: 7
+
+  # ══════════════════════════════════════════════════════════════════════════
+  #  ⭐ Linux **打包** —— 目标里唯一整块没验的东西
+  # ══════════════════════════════════════════════════════════════════════════
+  #
+  #  ## 为什么单独一个 job
+  #
+  #  `build_linux_packages.sh` 里写着「**这一环必须在 Linux 机器上执行**。
+  #  这是物理限制，不是没做」—— AppImage 要 `appimagetool`、`.deb` 要 `dpkg-deb`，
+  #  而 PyInstaller 的 bootloader 是**预编译的**，交叉编译走不通。
+  #
+  #  ⚠ 开发机只有 Windows ⇒ **这个脚本在真 Linux 上一次都没跑过**，
+  #    一直标着"未验"。而 GitHub 的 `ubuntu-24.04` runner 正是那个"Linux 机器"。
+  #
+  #  ⇒ 这个 job 就是把它从"未验"变成"验过"的**唯一**办法。
+  #
+  #  ## 判据（三层，一层比一层硬）
+  #
+  #    ① `sh _build/build_linux_packages.sh --go` **退出码 0**
+  #    ② 产出的包里，**清单里的东西都在**（`_build/_release_gate.py`）
+  #       ⚠ 这条是刚需：10-12 那个源码包就少了 `sample_gui.py` / `watchdog.py`
+  #         而**打包照样"成功"** ⇒ 光看退出码不够
+  #    ③ 解出来**真能跑**：`python -m hybridengine_light --help`（无头，只要 CLI 能起）
+  #
+  #  ⚠ 不要求 AppImage 成功：`appimagetool` 要联网下载且不是标准包
+  #    ⇒ 脚本自己会"缺什么说什么"，**那不算失败**。判据只钉 tar.gz 与（有 dpkg 时的）.deb。
+  package-linux:
+    name: Linux 打包
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      #: ⚠ tkinter 是**独立包**（Ubuntu 的 python3 默认不带）；
+      #:   本项目两个图形界面都靠它，而 `_check_platform.py` 会查它。
+      #: ⚠ `dpkg-deb` 在 ubuntu runner 上本来就有（`dpkg` 是基础包）——
+      #:   这里显式装一次是为了"缺了什么一眼看到"，不是为了补。
+      - name: 装打包要的东西
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-tk xvfb dpkg
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+
+      - name: 工具版本（诊断）
+        shell: bash
+        run: |
+          python -V
+          python -c "import PyInstaller; print('PyInstaller', PyInstaller.__version__)"
+          dpkg-deb --version | head -1
+          echo "glibc: $(ldd --version | head -1)"
+
+      #: ⚠ 先跑 `--go` 之外的**只读检查**：它会把"要装什么、能打什么"打出来。
+      #:   如果这一步就红，日志里能立刻看到缺什么（比打到一半失败好查）。
+      - name: 打包前置检查（只读）
+        run: sh _build/build_linux_packages.sh
+
+      - name: 真打（tar.gz / AppImage / .deb）
+        run: sh _build/build_linux_packages.sh --go
+
+      #: ⭐ 判据②：包里的东西齐不齐（用统一那道闸门，不另写一套）
+      - name: 验包内容（发布物完整性）
+        run: python _build/_verify_linux_packages.py
+
+      #: ⭐ 判据③：解出来**真能起**
+      - name: 验包能跑（解出来真起一次）
+        run: python _build/_verify_linux_packages.py --跑
+
+      - name: 留下产物
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: 发布/*
+          if-no-files-found: ignore
+          retention-days: 7
