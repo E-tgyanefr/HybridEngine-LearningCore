@@ -531,5 +531,63 @@ print("     ✓ 动态 import 的模块都在")
 shutil.rmtree(DIST, ignore_errors=True)
 shutil.rmtree(WORK, ignore_errors=True)
 print("     已清理 _build 中间物")
+
+#: ⚠⚠ **核对"复制过去的和源一样多"** —— 2026-10-13 加。
+#:
+#:   起因：`-src.tar.gz` 那次**少了两个模块而打包退出码是 0**（见 `_release_gate.py`）。
+#:   `build_exe.py` 这边的对应风险是**课程内容**：
+#:     `2 复制课程内容` 那步打印的 `%d 文件` 是**复制后的数**（`os.walk(dst)`），
+#:     它**从来没和源比过** ⇒ "复制少了一半"和"复制全了"打出来长得一样。
+#:
+#:   ⚠ 判据要和**上面那条 `ignore_patterns` 一致**（`__pycache__` / `*.pyc` /
+#:     `bin` / `obj` / `answers` / `*-answers`）—— 不然会**假红**
+#:     （数源的时候把被忽略的也算进去）。这个错我在 `_release_gate.py` 里
+#:     已经犯过两次，所以这里照抄同一份规则，不另列一套。
+print()
+print("  === 核对：课程内容与源一致 ===")
+_忽略目录 = {"__pycache__", "bin", "obj"}
+_忽略尾巴 = ("-answers",)
+_坏 = []
+
+
+def _数源(根):
+    n = 0
+    for 底, 目录们, 文件们 in os.walk(根):
+        目录们[:] = [d for d in 目录们
+                     if d not in _忽略目录 and not d.endswith(_忽略尾巴)]
+        n += sum(1 for f in 文件们 if not f.endswith(".pyc"))
+    return n
+
+
+for d in 内容:
+    src = os.path.join(LC, d)
+    dst = os.path.join(发布子, d)
+    if not os.path.isdir(src):
+        continue
+    源数 = _数源(src)
+    if not os.path.isdir(dst):
+        _坏.append("%s：**发布目录里没有**（源里有 %d 个文件）" % (d, 源数))
+        continue
+    #: ⚠ `2b 预构建` 会往 `csharp/*/bin|obj` 里**加**东西 —— 而 `bin`/`obj`
+    #:   在忽略名单里，所以 dst 的数**可能比源多**。⇒ 判据是"**不许少**"。
+    目标数 = _数源(dst)
+    if 目标数 < 源数:
+        _坏.append("%s：源 %d 个，发布目录只有 %d 个（**少了 %d 个**）"
+                   % (d, 源数, 目标数, 源数 - 目标数))
+    else:
+        print("     OK  %-10s 源 %4d → 发布 %4d" % (d, 源数, 目标数))
+
+if _坏:
+    print()
+    print("  XX  **课程内容没复制全** —— 这个包能发出去，但学员会看不到课：")
+    for x in _坏:
+        print("       %s" % x)
+    print()
+    print("  ⚠ 别只看上面那行「%d 文件」：那是**复制后的数**，"
+          "从来没和源比过 ⇒")
+    print("     复制少了一半，打出来和复制全了**长得一样**。")
+    sys.exit(1)
+
+print("     ✓ 课程内容与源一致")
 print("  => 成品在：%s" % 发布子)
 sys.exit(0)
