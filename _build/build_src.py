@@ -237,3 +237,32 @@ print()
 print("  完成：")
 print("    %s" % tar路径)
 print("    %s" % 脚本路径)
+
+#: ⚠⚠ **打完包立刻自查"清单里的东西在不在"** —— 2026-10-13 加。
+#:
+#:   起因（实测事故）：`HybridEngine-light-v0.8.0-src.tar.gz`（10-12 打的）
+#:   里 **没有 `sample_gui.py`**（SampleCore 的入口·游戏开发 IDE）
+#:   也**没有 `watchdog.py`** —— 而那个包的**退出码是 0、一切"成功"**。
+#:   ⇒ 用户拿到包，**游戏界面打不开**，而没人会发现。
+#:
+#:   ⚠ 为什么"比 mtime"不够：**新加的文件**不会让任何旧文件的 mtime 变新 ⇒
+#:     包看着"不过期"，里面就是少东西（安卓那次也是这么中招的）。
+#:   ⇒ 判据只能是「**清单里的在不在**」。
+print()
+print("  === 自查：这个包里的引擎模块齐不齐 ===")
+try:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import _release_gate as _G
+    _模块, _ = _G.读打包清单()
+    _漏 = _G.查压缩包(tar路径, 包内前缀="%s-%s/" % (APP, 版本号),
+                     源根=LC, 模块清单=_模块)
+    if _G.报告(tar路径, _漏) != 0:
+        print()
+        print("  ⇒ **包已经打出来了，但它是残的 —— 别发。**")
+        print("     先查 `_build/build_src.py` 的包含规则，再打一次。")
+        sys.exit(1)
+except SystemExit:
+    raise
+except Exception as _e:                                        # noqa: BLE001
+    #: ⚠ 自查本身失败了要**说出来**，不能当成通过（"没跑到" ≠ "没问题"）
+    print("    ⚠ 自查没跑成（%s: %s）—— **不算通过**" % (type(_e).__name__, _e))
