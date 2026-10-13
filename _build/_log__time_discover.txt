@@ -1,0 +1,55 @@
+  csharp   41 课  0.01 秒
+  cpp      41 课  0.01 秒
+  java     41 课  0.01 秒
+  c        41 课  0.01 秒
+
+  === 编译型轨道的 工程名/答案名（c 是不是配错了）===
+  _发现编译型:
+  工程名:
+  答案名:
+    def _发现编译型(轨道键: str, root: Path) -> list[课]:
+        """C# / C++ / Java / C —— 课程定义是 .cs，答题文件在 `<线>-answers/`。
+    
+        ⚠ **先直接读文件，读不到才退回子进程**：
+          子进程（`dotnet run`）每条线要 0.66 秒，四条线近 3 秒，
+          界面第一眼就是"载入中…"。直接读 0.002 秒。
+          但子进程那条路**保留着**：万一以后课程文件换了组织形式，
+          直接读拿不到，还能靠它兜底（宁可慢，不能空）。
+        """
+        # ⚠ C# 用的是 `cs-lessons`（8 课真课程）。
+        #   原来指向 `lessons` —— 那是个**演示程序**（只有 Program.cs，
+        #   没有 Lessons/ 目录）⇒ 界面里 C# 显示 0 课。
+        #   作者反馈"python与c#的课程不全"时，C# 这边就是这个问题。
+        工程名 = {"csharp": "cs-lessons", "cpp": "cpp-lessons",
+                  "java": "java-lessons", "c": "c-lessons"}[轨道键]
+        工程 = root / "csharp" / 工程名
+        # ⚠ 判据用 `Program.cs`：它是**运行器**，每门编译型课都有。
+        #   不要用 Lessons/ 目录 —— 有的线的课程文件组织形式不同。
+        if not (工程 / "Program.cs").is_file():
+            return []
+        # ⚠ 答案目录名要与各课课程库里的常量一致：
+        #   CsCourse.答题目录 / CppCourse / JavaCourse / CCourse
+        答案名 = {"csharp": "cs-answers", "cpp": "cpp-answers",
+                  "java": "java-answers", "c": "c-answers"}[轨道键]
+    
+        表 = _直接读课程表(工程)
+        if not 表:
+            # 直接读不到 ⇒ 退回子进程（慢但可靠）
+            表 = []
+            for 行 in _运行课程程序(工程, [])[1].split("\n"):
+                s = 行.strip()
+                # 形如：   01   第 01 课：输出 —— 让程序开口说话   （5 项检查）
+                if len(s) > 6 and s[:2].isdigit() and "  " in s:
+                    标题 = s[4:].split("（")[0].strip()
+                    if 标题:
+                        表.append((s[:2], 标题))
+        return [课(轨道键, 编号, 标题, 工程, root / 答案名, 工程)
+                for 编号, 标题 in 表]
+    
+    
+    # ── 调用编译型课程程序 ───────────────────────────────────────────────────
+    
+    #: 工具名 -> 可执行文件候选名（Windows 上带 .exe）
+    _工具候选 = {
+        "dotnet": ("dotnet", "dotnet.exe"),
+        "g++": ("g++", "g++.exe", "clang++", "clang++.exe", "c++"),

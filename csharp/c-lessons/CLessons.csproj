@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- C 课程：课程定义（.cs，装检查逻辑）+ 学生作业（.c，装学生代码）。
+       ⚠ 课程是 .cs 而作业是 .c：学生只面对一个 .c 文件，不用管检查怎么实现的。
+       检查由 C# 写（有类型检查、能写注释），编译学生的代码用 gcc。 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>HybridEngineLight.CLessons</AssemblyName>
+    <RootNamespace>HybridEngineLight.CLessons</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HybridEngineLight\HybridEngineLight.csproj" />
+  </ItemGroup>
+</Project>

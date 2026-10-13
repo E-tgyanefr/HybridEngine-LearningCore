@@ -1,0 +1,6 @@
+﻿# ⚠ 生成物不要进仓库 —— 每次构建都会产生 diff（5.8 MB）
+app/python.zip
+app/obj/
+app/bin/
+app/jniLibs/
+

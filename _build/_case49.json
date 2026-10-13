@@ -1,0 +1,25 @@
+{
+ "对": "\"\"\"第 49 课参考答案 —— 图与遍历。\"\"\"\n\nfrom collections import deque\n\n\ndef 建邻接表(点数, 边列表):\n    # ⚠ 先把 0..点数-1 全建出来 —— 孤点也要有键，否则遍历时 KeyError\n    表 = {点: [] for 点 in range(点数)}\n    for 甲, 乙 in 边列表:\n        if 甲 == 乙:               # 自环忽略（矩阵那边也填 0）\n            continue\n        表[甲].append(乙)\n        表[乙].append(甲)          # ⚠ 无向图：两边都要写\n    return 表\n\n\ndef 建邻接矩阵(点数, 边列表):\n    矩 = [[0] * 点数 for _ in range(点数)]\n    for 甲, 乙 in 边列表:\n        if 甲 != 乙:               # 自环不算一条能走的边\n            矩[甲][乙] = 矩[乙][甲] = 1\n    return 矩\n\n\ndef 深度优先(邻接表, 起点):\n    去过 = []\n\n    def 走(点):\n        去过.append(点)             # 进门先标记\n        for 邻 in 邻接表.get(点, []):\n            if 邻 not in 去过:      # 出门前先问\n                走(邻)\n\n    走(起点)\n    return 去过\n\n\ndef 广度优先(邻接表, 起点):\n    去过 = [起点]\n    队 = deque([起点])              # deque 的 popleft 是 O(1)\n    while 队:\n        点 = 队.popleft()\n        for 邻 in 邻接表.get(点, []):\n            if 邻 not in 去过:\n                去过.append(邻)\n                队.append(邻)       # ⚠ 进队时就标记，别等到出队\n    return 去过\n\n\ndef 连通块个数(点数, 边列表):\n    表 = 建邻接表(点数, 边列表)\n    去过 = set()\n    块 = 0\n    for 点 in range(点数):\n        if 点 in 去过:\n            continue\n        块 += 1                     # 从没去过的点出发，能走到的归一块\n        栈 = [点]\n        while 栈:\n            当 = 栈.pop()\n            if 当 in 去过:\n                continue\n            去过.add(当)\n            栈.extend(表[当])\n    return 块\n\n\ndef 两点连通(点数, 边列表, 甲, 乙):\n    # 从 甲 走一遍，看 乙 在不在走到的点里\n    return 乙 in 深度优先(建邻接表(点数, 边列表), 甲)\n",
+ "错": [
+  [
+   "BFS会重复访问",
+   "\"\"\"错答案：BFS 在出队时才判断，同一个点会进队好几次（结果里有重复）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"49\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 广度优先(邻接表, 起点):\n    去过 = []\n    队 = deque([起点])\n    while 队:\n        点 = 队.popleft()\n        去过.append(点)\n        for 邻 in 邻接表.get(点, []):\n            队.append(邻)           # ❌ 进队时不判重，出队才看见\n    return 去过\n"
+  ],
+  [
+   "DFS不标记已访问",
+   "\"\"\"错答案：DFS 从头到尾没记「去过」—— 图里有环就会一直绕。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"49\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 深度优先(邻接表, 起点):\n    去过 = []\n\n    def 走(点):\n        去过.append(点)\n        for 邻 in 邻接表.get(点, []):\n            走(邻)                  # ❌ 少了 if 邻 not in 去过\n\n    走(起点)\n    return 去过\n"
+  ],
+  [
+   "建表漏掉孤点",
+   "\"\"\"错答案：只给「出现过」的点建键，孤点直接没有（取不到就 KeyError）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"49\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 建邻接表(点数, 边列表):\n    表 = {}\n    for 甲, 乙 in 边列表:\n        表.setdefault(甲, []).append(乙)\n        表.setdefault(乙, []).append(甲)\n    return 表\n"
+  ],
+  [
+   "无向图只写一边",
+   "\"\"\"错答案：无向图只写了一条边（从 1 就搜不到 0）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"49\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 建邻接表(点数, 边列表):\n    表 = {点: [] for 点 in range(点数)}\n    for 甲, 乙 in 边列表:\n        表[甲].append(乙)\n    return 表\n"
+  ],
+  [
+   "连通块漏掉孤点",
+   "\"\"\"错答案：连通块只数「有边的点」，孤点被漏掉。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"49\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 连通块个数(点数, 边列表):\n    表 = 建邻接表(点数, 边列表)\n    去过, 块 = set(), 0\n    for 点 in range(点数):\n        if 点 in 去过:\n            continue\n        if not 表[点]:              # ❌ 没边的点直接跳过 —— 孤点也是一块\n            continue\n        块 += 1\n        栈 = [点]\n        while 栈:\n            当 = 栈.pop()\n            if 当 in 去过:\n                continue\n            去过.add(当)\n            栈.extend(表[当])\n    return 块\n"
+  ]
+ ]
+}

@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HybridEngine-light（C# 版）—— 学 C#，从第一行代码看到画面。
+       零第三方依赖：只用 .NET 自带的东西（见 Stage.cs 顶部为什么画在控制台）。 -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>HybridEngineLight</AssemblyName>
+    <RootNamespace>HybridEngineLight</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+</Project>

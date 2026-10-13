@@ -1,0 +1,182 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- HybridEngine-light · Android 版
+       ────────────────────────────────────────────────────────────────
+       桌面版是 Python(Tkinter)；安卓上 **Tkinter 根本不存在**
+       （CPython 官方 PEP 738 名单：tkinter 需要自行构建 Tk，"not officially supported"）。
+       所以这里 **引擎照旧是那份 Python，只把界面换成 WebView**。
+
+       Python 从哪来：Chaquopy 在 Maven Central 上公开的 **预编译产物**
+       （libpython3.12.so + lib-dynload + stdlib .pyc）。
+       ⚠ 不用 Chaquopy 的 Gradle 插件 —— 这台机器没有 Gradle，
+         而 .NET Android workload 自带完整构建链。产物本身是裸 zip，直接用即可。
+       素材由 `_build/prepare_android_assets.py` 准备（会拉到 android/app/ 下）。
+
+       ⚠⚠ 本工程 **没在任何设备/模拟器上验证过** —— 构建机能出 APK，
+          但这台机器没有 adb、没有模拟器。第一次真机运行要盯 logcat。 -->
+
+  <PropertyGroup>
+    <!-- ⚠⚠ 目标框架是 net10.0-android，不是 net9.0-android。
+         本机 workload 是 android 36.1.69 / SDK 10.0.400，
+         而安装的引用包 **只有 Microsoft.Android.Ref.36**（没有 net9 的支持）。
+         用 net9 时构建会挑到旧的 SDK pack（35.0.105），于是 AOT 任务解析失败：
+             error MSB4236: The SDK 'Microsoft.NET.Runtime.MonoAOTCompiler.Task'
+                             specified could not be found. -->
+    <TargetFramework>net10.0-android</TargetFramework>
+
+    <!-- ⚠⚠ 这里 **不要写 TargetPlatformVersion**。
+         net10.0-android 只认 API 36；写成 35 会直接报
+             error NETSDK1140: 35 is not a valid TargetPlatformVersion for Android.
+         （API 35 是 net9.0-android 的合法值 —— 我一开始照既有工程写了 9，撞的就是这个。）
+         正确做法是装上 platforms;android-36，命令见 _build 里的说明。
+         ⚠ SupportedOSPlatformVersion 是 **运行时最低要求**，
+           和编译目标不是一回事，别混。 -->
+
+    <!-- Chaquopy 的产物最低 API 24（官方要求），照它 -->
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>HybridEngineLight.Android</RootNamespace>
+    <AssemblyName>HybridEngineLight</AssemblyName>
+    <ApplicationId>com.hybridengine.light</ApplicationId>
+    <ApplicationTitle>学编程</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.8.0</ApplicationDisplayVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+
+    <!-- ⚠ 只出 arm64：手机都是 arm64。每多一个 ABI 就多一份 libpython（实测 6.37 MB）。
+         ⚠ 用 RuntimeIdentifiers 而不是 SupportedAbi —— 既有工程实测后者在这个 SDK 上不起作用。 -->
+    <RuntimeIdentifiers>android-arm64</RuntimeIdentifiers>
+    <AndroidSupportedAbis>arm64-v8a</AndroidSupportedAbis>
+    <AndroidCreatePackagePerAbi>false</AndroidCreatePackagePerAbi>
+
+    <!-- 调试符号不进 APK（体积） -->
+    <DebugSymbols>false</DebugSymbols>
+    <DebugType>none</DebugType>
+
+    <!-- ⚠⚠ JDK：不能用 PATH 里那个。
+         PATH 上是 JDK 25，而 .NET Android 明确拒绝：
+             error XA0030: Building with JDK version 25.0.3 is not supported.
+                           Please install JDK version 21.0.
+         21 在本机 D:\AndroidToolchain\jdk21（和既有安卓工程用的是同一份）。
+         ⇒ 显式给 JavaSdkDirectory，别依赖环境变量（多版本机器上会被 PATH 覆盖）。 -->
+    <JavaSdkDirectory Condition="'$(JavaSdkDirectory)' == ''">D:\AndroidToolchain\jdk21\jdk-21.0.5+11</JavaSdkDirectory>
+    <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == ''">$(LocalAppData)\Android\Sdk</AndroidSdkDirectory>
+    <AcceptAndroidSDKLicenses>true</AcceptAndroidSDKLicenses>
+    <NoWarn>$(NoWarn);CA1416;CS0169;CS0414;XA0030</NoWarn>
+
+    <!-- ⚠ 关掉 Fast Deployment：它把程序集留在开发机上、运行时从 `.__override__`
+         目录找。而我们是 **sideload 出去装**（不走 IDE 部署），那个目录不存在 ⇒
+         启动即崩：No assemblies found in .../.__override__/arm64-v8a。
+         代价只是 debug 包装机慢一点，换来的是「这个包自己能跑起来」——
+         真机 sideload 测试必须如此。 -->
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <AndroidUseInterpreter>false</AndroidUseInterpreter>
+
+    <!-- ⚠⚠ AOT 全部关掉。
+         不是「不需要」那么简单 —— 开着的话构建会挂在
+             error MSB4236: The SDK 'Microsoft.NET.Runtime.MonoAOTCompiler.Task'
+                             specified could not be found.
+         实测：那个包 **装了**（10.0.12 / 9.0.20 都在 dotnet/packs 下），
+         是 MSBuild 的 SdkResolver 找不到它；net9 / net10 目标框架都撞同一个错。
+         ⇒ 这个应用没有热路径需要 AOT（界面是 WebView，重活都在 Python 里），
+           关掉零损失。 -->
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <AndroidUseInterpreter>false</AndroidUseInterpreter>
+
+    <!-- ⚠⚠ **关掉 JNI marshal methods** —— 这一条是真机+构建实测逼出来的。
+         .NET Android 会把 Java↔C# 的调用包装编成 **native assembly**
+         （即使 AOT 全关）。而它生成的 LLVM IR 里**带中文参数名**：
+
+             define i1 @Java_crc..._MainActivity_n_1onKeyDown(
+                 ptr noundef %env, ptr noundef %klass,
+                 i32 noundef %键, ptr noundef %e)      ← 中文进了 IR
+
+         于是构建挂在：
+             error XA3006: Could not compile native assembly
+             [llc.EXE stderr] ... error: ... %键 ...
+         ⇒ 这个项目**通篇用中文标识符**（方法名、参数名、字段名都是中文，
+           这是本项目刻意的风格），所以只要某个方法被 Java 侧调用、
+           而参数名是中文，就会撞上它。
+         ⇒ `AndroidEnableMarshalMethods=false` 让包装走托管路径，
+           不生成那段 native assembly。代价是 JNI 调用稍慢一点点 ——
+           而这个应用的重活是 WebView 渲染，完全无感。
+
+         ⚠ 为什么之前能构建：那时被 Java 调用、且带中文参数的方法还没有
+           （`OnBackPressed` 是**无参**的；`OnKeyDown` 带了 `键`/`e` 才撞上）。 -->
+    <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>
+
+    <!-- ⚠⚠ 试过加 `<WebViewDebuggingEnabled>true</WebViewDebuggingEnabled>`
+         来开 WebView 远程调试（CDP），**撤掉了**，两个原因：
+           ① 加了之后构建直接失败：
+                error XA3006: Could not compile native assembly
+                （llc.exe 报错 —— 它会连带把 AOT 那条链拉起来）
+           ② 就算加上了，`webview_devtools_remote_<pid>` socket 也**没出现**
+              ⇒ CDP 连不上，白加
+         ⇒ 真机调试改用**标题自检通道**（见 make_android_web.py 的 `?自检=1`），
+           它实测可用：把 DOM 状态写进 `document.title`，宿主落进 logcat。 -->
+
+    <!-- ⚠⚠ 下面这两项我原来加了，**真机上是崩的原因之一**（见下），现已去掉：
+             <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+             <AndroidEnableAssemblyCompression>true</AndroidEnableAssemblyCompression>
+             <PublishTrimmed>false</PublishTrimmed>
+         ⇒ 现在这一段**逐项对齐**那个已经在真机上跑起来的安卓工程
+           （`HybridProjects/ElectronicGirlfriend-Android`）：
+           它只设了 `AndroidUseInterpreter=false` + `RunAOTCompilation=false`，
+           别的都不设。
+         ⚠ 教训：**"看起来无害的优化项"不能凭想当然加**。
+           我没有安卓运行时的经验，加了三项自认为安全的设置，
+           结果应用一启动就
+               UnsatisfiedLinkError: No implementation found for
+               void …MainActivity.n_onCreate(android.os.Bundle)
+           而这台机器原来**没有设备可验** —— 那种错只会在真机上现形。 -->
+  </PropertyGroup>
+
+  <!-- ── Python 运行时：.so 打进 lib/<abi>/ ──────────────────────────────
+       ⚠ .NET Android 靠 **路径** 推断 ABI（要形如 .../arm64-v8a/xxx.so），
+         所以下面显式给 Abi，并用 Link 指定进包后的名字。
+       ⚠ Android 上 dlopen("libpython3.12.so") 认的是 **lib 前缀**，
+         而产物本来就叫 libpython3.12.so，名字正好对得上。 -->
+  <ItemGroup>
+    <AndroidNativeLibrary Include="jniLibs\arm64-v8a\*.so" Abi="arm64-v8a">
+      <Link>lib\%(Filename)%(Extension)</Link>
+    </AndroidNativeLibrary>
+  </ItemGroup>
+
+  <!-- ── 权限 ────────────────────────────────────────────────────────────
+       ⚠⚠ **INTERNET 是必需的**，虽然这个应用不上网。
+         真机实测：没有它时 `HttpListener.Start()` 直接抛，
+         症状是"41000~41200 一个端口都挑不到" —— 看着像端口被占，
+         其实是**绑 socket 也要 INTERNET 权限**。
+         我们要在本机起一个小 HTTP 服务把界面发给 WebView
+         （原因见 LocalServer.cs：WebView 禁止 fetch 访问 file://）。
+
+       ⚠ 只监听 127.0.0.1，不监听 0.0.0.0 —— 同 WiFi 下别人访问不到。 -->
+  <ItemGroup>
+    <AndroidPermission Include="android.permission.INTERNET" />
+  </ItemGroup>
+
+  <!-- ── Python 侧全部内容：**一个 zip** ────────────────────────────────
+       ⚠⚠ 为什么不是一个个资产文件（实测撞出来的硬约束）：
+         AAPT2 **处理不了非 ASCII 文件名**。课程文件名是中文的
+         （`01_线性回归.py` 等，667 个里 79 个含中文），而这些名字**不能改**
+         —— 那是学员在界面上看到的课名。于是构建直接失败：
+             error APT2098: failed to open file. .../content/ai/01_线性回归.py
+
+         同一个 aapt2 也处理不了**含中文的工程路径**：
+             error APT2265: ... non-ASCII characters in its filename or path.
+         后者靠 `_build/build_android.py` 把工程拷到 ASCII 路径构建来解决，
+         前者只能靠**打包成一个 ASCII 名字的 zip**。
+
+       ⇒ APK 里只有 `assets/python.zip`，运行时解压（AssetInstaller.cs）。
+         附带好处：aapt2 不用逐个处理 667 个文件，**构建明显更快**。
+
+       ⚠ zip 由 `_build/prepare_android_assets.py` 生成，而且它打完会把散目录删掉
+         —— 留着的话下面这些 glob 又会把它们收进去，等于白打（体积还翻倍）。 -->
+  <ItemGroup>
+    <AndroidAsset Include="python.zip" Condition="Exists('python.zip')" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1755 @@
+共 41 课
+
+──────────────────────────────────────────────────────────────────
+### 00   (461 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+/* 这一课练的是「读报错」—— 先故意漏一个分号编译一次，读完报错再补回来。
+   报错大概长这样：
+       Main.java:5: error: ';' expected
+   意思是「第 5 行这里我以为该有个分号」。
+   ⚠ 如果报错是「类 Main 是公共的, 应在名为 Main.java 的文件中声明」，
+     那是**类名和文件名不一致** —— Java 特有的规矩。
+   程序结构是三层：类 → 方法 → 语句。
+   Java 里没有「游离的代码」，任何一行都必须待在这三层里面。 */
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("工具链就绪");
+        System.out.println("我准备好学 Java 了");
+        System.out.println("类 → main → 语句");
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 01   (184 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("你好，Java");
+        int 甲 = 6;
+        int 乙 = 7;
+        System.out.println(甲 + 乙);
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 02   (634 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+import java.util.Scanner;
+public class Main {
+    public static void main(String[] args) {
+        Scanner 输入 = new Scanner(System.in);
+        String 姓名 = 输入.nextLine();
+        System.out.println("你好，" + 姓名);
+        if (!输入.hasNextInt()) {
+            System.out.println("输入无效");
+            return;                       // ← 不往下算
+        }
+        int 甲 = 输入.nextInt();
+        if (!输入.hasNextInt()) {
+            System.out.println("输入无效");
+            return;
+        }
+        int 乙 = 输入.nextInt();
+        System.out.println("商=" + (甲 / 乙));
+        double 平均 = (甲 + 乙) / 2.0;
+        System.out.println("平均数=" + 平均);
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 03   (851 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+static String 猜数字(int 猜) {
+    if (猜 == 42) {
+        return "对了";
+    } else if (猜 < 42) {
+        return "小了";
+    } else {
+        return "大了";
+    }
+}
+static String 成绩等级(int 分数) {
+    if (分数 < 0 || 分数 > 100) {
+        return "分数不合法";
+    } else if (分数 >= 90) {
+        return "优秀";
+    } else if (分数 >= 60) {
+        return "及格";
+    } else {
+        return "不及格";
+    }
+}
+static String 闰年(int 年) {
+    boolean 是闰年 = (年 % 4 == 0 && 年 % 100 != 0) || 年 % 400 == 0;
+    if (是闰年) {
+        return "闰年";
+    } else {
+        return "平年";
+    }
+}
+static String 星期名(int 星期几) {
+    switch (星期几) {
+        case 1:  return "星期一";
+        case 2:  return "星期二";
+        case 3:  return "星期三";
+        case 4:  return "星期四";
+        case 5:  return "星期五";
+        case 6:  return "星期六";
+        case 7:  return "星期日";
+        default: return "没有这个星期";
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 04   (1039 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+static int 求和(int n) {
+    int 和 = 0;                      // ← 累加变量必须有初值
+    for (int i = 1; i <= n; i++) {   // ← 是 <= n，不是 < n（n = 1 时要跑一次）
+        和 += i;
+    }
+    return 和;
+}
+static String 重复(String 文字, int 次数) {
+    String 结果 = "";
+    for (int i = 0; i < 次数; i++) {   // ← 这一次是从 0 数起，所以用 < 次数
+        结果 += 文字;
+    }
+    return 结果;
+}
+static int 数位数(int n) {
+    int 位 = 0;
+    int 剩 = n;
+    do {                     // ← 先做一遍再看条件：n = 0 也要数出 1 位
+        位++;
+        剩 /= 10;
+    } while (剩 > 0);
+    return 位;
+}
+static int 最小因数(int n) {
+    if (n < 2) {
+        return -1;
+    }
+    int 结果 = n;                    // n 是质数的话，答案就是它自己
+    int 试 = 2;
+    while (试 < n) {
+        if (n % 试 == 0) {
+            结果 = 试;
+            break;                   // 找到最小的就跳出，不用再找了
+        }
+        试++;
+    }
+    return 结果;
+}
+static int 偶数个数(int[] 数字) {
+    int 个数 = 0;
+    for (int x : 数字) {          // 增强 for：把元素一个一个拿出来
+        if (x % 2 != 0) {
+            continue;             // 奇数跳过，不计数
+        }
+        个数++;
+    }
+    return 个数;
+}
+
+──────────────────────────────────────────────────────────────────
+### 05   (479 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+static int 加倍(int n) {
+    return n * 2;              // return 把结果交给调用它的人
+}
+static int 最大值(int a, int b) {
+    if (a > b) {
+        return a;              // a 大就交 a
+    }
+    return b;                  // 走到这里说明 a 没比 b 大
+}
+static String 星星(int n) {
+    String 结果 = "";
+    for (int i = 0; i < n; i++) {
+        结果 = 结果 + "*";      // n 是 0 时循环一次都不进，结果就是空串
+    }
+    return 结果;
+}
+static void 打印星星(int n) {
+    for (int i = 0; i < n; i++) {
+        System.out.print("*");
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 06   (423 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+static int 数组长度(int[] a) {
+    return a.length;
+}
+static int 取元素(int[] a, int i) {
+    return a[i];
+}
+static boolean 越界了吗(int[] a, int i) {
+    return i < 0 || i >= a.length;
+}
+static int[] 新建数组(int n) {
+    return new int[n];
+}
+static int 列表大小(ArrayList<Integer> 表) {
+    return 表.size();
+}
+static int 列表取(ArrayList<Integer> 表, int i) {
+    return 表.get(i);
+}
+static void 列表加(ArrayList<Integer> 表, int 值) {
+    表.add(值);
+}
+
+──────────────────────────────────────────────────────────────────
+### 07   (410 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+static int 长度(String s) {
+    return s.length();
+}
+static char 第一个(String s) {
+    return s.charAt(0);
+}
+static String 变大写(String s) {
+    return s.toUpperCase();
+}
+static int 找位置(String s, String 片段) {
+    return s.indexOf(片段);
+}
+static String 前三个(String s) {
+    if (s.length() < 3) {
+        return s;
+    }
+    return s.substring(0, 3);
+}
+static boolean 内容相同(String a, String b) {
+    return a.equals(b);
+}
+
+──────────────────────────────────────────────────────────────────
+### 08   (314 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+class 猫 {
+    String 名字;
+    int 年龄;
+    猫(String 名字, int 年龄) {
+        this.名字 = 名字;      // this.名字 指字段；右边的 名字 指参数
+        this.年龄 = 年龄;
+    }
+    String 打招呼() {
+        return "喵～我是" + 名字;
+    }
+    int 几岁了() {
+        return 年龄;
+    }
+    void 长大一岁() {
+        年龄 = 年龄 + 1;       // 改的是"这一只"的年龄，别的猫不受影响
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 09   (1384 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("== 正常工作 ==");
+        人 甲 = new 人();
+        甲.改名字("张三");
+        甲.改年龄(20);
+        甲.改名字("李四");              // 覆盖一次，证明"改"真的生效
+        甲.改年龄(30);
+        System.out.println("名字=" + 甲.取名字());
+        System.out.println("年龄=" + 甲.取年龄());
+        System.out.println("== 非法值被拒绝 ==");
+        甲.改年龄(200);                 // 超过 150 → setter 直接 return
+        甲.改年龄(-1);                  // 小于 0   → 直接 return
+        甲.改名字(null);                // null     → 直接 return
+        System.out.println("年龄还是=" + 甲.取年龄());
+        System.out.println("名字还是=" + 甲.取名字());
+        System.out.println("== 两个名字，一个对象 ==");
+        人 乙 = 甲;                     // ⚠ 这不是 new —— 两个名字指同一块地方
+        乙.改年龄(40);                  // 通过 乙 改
+        System.out.println("第一个名字看到=" + 甲.取年龄());   // 甲 看到的也变了
+    }
+}
+class 人 {
+    private String 名字;      // private = 只有 人 这个类自己看得见
+    private int 年龄;
+    public String 取名字() {
+        return 名字;
+    }
+    public int 取年龄() {
+        return 年龄;
+    }
+    public void 改名字(String 值) {
+        if (值 == null || 值.trim().isEmpty()) {
+            return;              // 非法 → 当没听见
+        }
+        this.名字 = 值;          // ⚠ this.名字 才是字段；右边的 值 是参数
+    }
+    public void 改年龄(int 值) {
+        if (值 < 0 || 值 > 150) {
+            return;
+        }
+        this.年龄 = 值;
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 10   (1138 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        学生 甲 = new 学生("小明");                  // → this("小明", 0, "未分班")
+        学生 乙 = new 学生("小红", 92);              // → this("小红", 92, "未分班")
+        学生 丙 = new 学生("小刚", 88, "三班");      // → 直接赋值
+        System.out.println(甲.介绍());
+        System.out.println(乙.介绍());
+        System.out.println(丙.介绍());
+    }
+}
+class 学生 {
+    private String 名字;
+    private int 分数;
+    private String 班级;
+    public 学生(String 名字, int 分数, String 班级) {
+        if (名字 == null || 名字.trim().isEmpty()) {
+            this.名字 = "无名";
+        } else {
+            this.名字 = 名字;
+        }
+        if (分数 < 0) {
+            分数 = 0;
+        }
+        if (分数 > 100) {
+            分数 = 100;
+        }
+        this.分数 = 分数;
+        if (班级 == null || 班级.trim().isEmpty()) {
+            this.班级 = "未分班";
+        } else {
+            this.班级 = 班级;
+        }
+    }
+    public 学生(String 名字, int 分数) {
+        this(名字, 分数, "未分班");      // ⚠ this(...) 必须是**第一条语句**
+    }
+    public 学生(String 名字) {
+        this(名字, 0, "未分班");
+    }
+    public String 介绍() {
+        return 名字 + "/" + 分数 + "/" + 班级;
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 11   (1009 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        System.out.println("起始值=" + 计数器.起始值);
+        System.out.println("平方(7)=" + 计数器.平方(7));
+        计数器.加一();
+        计数器.加一();
+        System.out.println("加一两次后=" + 计数器.报数());   // 2
+        计数器 甲 = new 计数器();
+        计数器 乙 = new 计数器();
+        甲.加一();
+        System.out.println("一个加=" + 甲.报数());          // 3（不是 1！）
+        乙.加一();
+        System.out.println("另一个加=" + 乙.报数());        // 4
+        System.out.println("两个看到=" + 甲.报数());        // 4 —— 甲看到的也变了
+        计数器.重置();
+        System.out.println("重置后=" + 计数器.报数());      // 0
+    }
+}
+class 计数器 {
+    private static int 个数 = 0;
+    public static final int 起始值 = 0;
+    private String 名字;
+    public static int 报数() {
+        return 个数;
+    }
+    public static void 加一() {
+        个数 = 个数 + 1;        // 改的是类的那一份，所有对象都看得见
+    }
+    public static void 重置() {
+        个数 = 起始值;          // 用常量而不是写死 0，哪天改起始值只改一处
+    }
+    public static int 平方(int x) {
+        return x * x;
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 12   (948 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        狗 旺财 = new 狗("旺财");        // 狗 的构造方法里会 super("旺财")
+        猫 咪咪 = new 猫("咪咪");
+        System.out.println(旺财.介绍());   // 旺财说汪
+        System.out.println(旺财.叫声());   // 汪
+        System.out.println(咪咪.叫声());   // 喵
+        System.out.println(咪咪.介绍());   // 咪咪说喵
+    }
+}
+class 动物 {
+    private String 名字;          // private：子类也不能直接碰，要走 取名字()
+    public 动物(String 名字) {
+        this.名字 = 名字;
+    }
+    public String 取名字() {
+        return 名字;
+    }
+    public String 叫声() {
+        return "……";
+    }
+    public String 介绍() {
+        return 名字 + "说" + 叫声();
+    }
+}
+class 狗 extends 动物 {
+    public 狗(String 名字) {
+        super(名字);        // ⚠ 必须是第一条语句：先把父类那部分构造好
+    }
+    @Override
+    public String 叫声() {
+        return "汪";
+    }
+}
+class 猫 extends 动物 {
+    public 猫(String 名字) {
+        super(名字);
+    }
+    @Override
+    public String 叫声() {
+        return "喵";
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 13   (1127 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        长方形 桌 = new 长方形(4, 5);
+        圆 盘 = new 圆(2);
+        System.out.println(桌.说明());            // 面积=20
+        System.out.println(盘.说明());            // 面积=13（3.14159*4 ≈ 12.57）
+        形状 一个形状 = new 圆(2);
+        System.out.println(一个形状.说明());       // 面积=13，跑的是 圆 的 面积()
+        形状[] 图形们 = new 形状[2];              // 元素类型是父类
+        图形们[0] = new 长方形(4, 5);
+        图形们[1] = new 圆(2);
+        for (形状 图 : 图形们) {
+            System.out.println(图.说明());         // 动态绑定：各自找对自己的 面积()
+        }
+    }
+}
+abstract class 形状 {
+    public abstract double 面积();
+    public String 说明() {
+        return "面积=" + Math.round(面积());
+    }
+}
+class 长方形 extends 形状 {
+    private double 宽;
+    private double 高;
+    public 长方形(double 宽, double 高) {
+        this.宽 = 宽;
+        this.高 = 高;
+    }
+    @Override
+    public double 面积() {
+        return 宽 * 高;
+    }
+}
+class 圆 extends 形状 {
+    private double 半径;
+    public 圆(double 半径) {
+        this.半径 = 半径;
+    }
+    @Override
+    public double 面积() {
+        return Math.PI * 半径 * 半径;      // ⚠ 用 Math.PI，不要用 3.14
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 14   (970 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        圆 盘 = new 圆(2);
+        System.out.println(盘.面积());               // 12.566370614359172
+        System.out.println(盘.说明());               // 面积=13（default 里的 Math.round）
+        形状 当形状看 = 盘;                          // 向上转型，和上一课是一回事
+        System.out.println(当形状看.说明());          // 面积=13
+        可命名 当名字看 = 盘;
+        System.out.println(当名字看.名字());          // 半径为2.0的圆
+        System.out.println(当形状看 == 当名字看);      // true
+    }
+}
+interface 形状 {
+    double 面积();
+    default String 说明() {
+        return "面积=" + Math.round(面积());      // ⚠ 调 面积()，动态绑定生效
+    }
+}
+interface 可命名 {
+    String 名字();
+}
+class 圆 implements 形状, 可命名 {
+    private double 半径;      // 数据放在实现类里 —— 接口不能有实例字段
+    public 圆(double 半径) {
+        this.半径 = 半径;
+    }
+    @Override
+    public double 面积() {
+        return Math.PI * 半径 * 半径;
+    }
+    @Override
+    public String 名字() {
+        return "半径为" + 半径 + "的圆";
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 15   (812 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+public class Main {
+    public static void main(String[] args) {
+        int[] 数们 = {10, 20, 30};
+        try {
+            System.out.println(取元素(数们, 0));       // 10
+            System.out.println(取元素(数们, 1));       // 20
+            System.out.println("第三个也拿到了");
+            System.out.println(取元素(数们, 9));
+            System.out.println(除(10, 0));             // 永远执行不到
+        } catch (Exception e) {
+            System.out.println("出事:" + e.getMessage());
+        } finally {
+            System.out.println("这行总会执行");
+        }
+    }
+    public static int 取元素(int[] 数们, int 下标) {
+        if (下标 < 0) {
+            throw new IllegalArgumentException("下标不能是负数");
+        }
+        return 数们[下标];              // 下标太大 → JDK 自己抛越界异常
+    }
+    public static int 除(int 甲, int 乙) {
+        return 甲 / 乙;
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 16   (1472 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+import java.util.ArrayList;
+import java.util.HashMap;
+public class Main {
+    public static void main(String[] args) {
+        ArrayList<String> 名单 = new ArrayList<>();
+        名单.add("小明");
+        名单.add("小红");
+        名单.add("小刚");
+        System.out.println(名单.size());              // 3    ⚠ 有括号
+        System.out.println(名单.get(1));              // 小红  ⚠ 下标从 0 开始
+        System.out.println(名单.contains("小红"));     // true
+        HashMap<String, Integer> 分数表 = new HashMap<>();
+        分数表.put("小明", 92);
+        分数表.put("小红", 88);
+        System.out.println(分数表.get("小明"));        // 92
+        System.out.println(分数表.get("小刚"));        // null
+        盒子<String> 名盒 = new 盒子<>();
+        名盒.放("Java");
+        System.out.println(名盒.取());                // Java（不用强转）
+        盒子<Integer> 数盒 = new 盒子<>();             // ⚠ 不能写 <int>
+        数盒.放(300);                                 // 300 自动装箱成 Integer
+        System.out.println(数盒.取());                // 300
+        int i = 1;
+        for (String 名字 : 名单) {
+            System.out.println("第" + i + "个:" + 名字);
+            i = i + 1;
+        }
+        打印两次("泛型");                              // 泛型 / 泛型
+        打印两次(7);                                   // 7 / 7
+    }
+    public static <T> void 打印两次(T 值) {
+        System.out.println(值);
+        System.out.println(值);
+    }
+}
+class 盒子<T> {
+    private T 里面;
+    public void 放(T 值) {
+        this.里面 = 值;
+    }
+    public T 取() {
+        return 里面;
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 17   (1371 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static String 每行和(int[][] 格, int 行数) {
+    StringBuilder 结果 = new StringBuilder("[");
+    for (int i = 0; i < 行数; i++) {
+        int 和 = 0;
+        for (int j = 0; j < 格[i].length; j++) {   /* ⚠ 不是 格[0].length */
+            和 = 和 + 格[i][j];
+        }
+        if (i > 0) {
+            结果.append(",");
+        }
+        结果.append(和);
+    }
+    结果.append("]");
+    return 结果.toString();
+}
+static int 列和(int[][] 格, int 行数, int 列号) {
+    int 和 = 0;
+    for (int i = 0; i < 行数; i++) {
+        if (列号 < 格[i].length) {                  /* ⚠ 问的是第 i 行 */
+            和 = 和 + 格[i][列号];
+        }
+    }
+    return 和;
+}
+static int 主对角线和(int[][] 格) {
+    int 最短 = 格.length;
+    for (int i = 0; i < 格.length; i++) {
+        if (格[i].length < 最短) {
+            最短 = 格[i].length;
+        }
+    }
+    int 和 = 0;
+    for (int i = 0; i < 最短; i++) {
+        和 = 和 + 格[i][i];
+    }
+    return 和;
+}
+static int 矩阵最大(int[][] 格) {
+    if (格.length == 0) {
+        return 0;
+    }
+    int 最大 = 格[0][0];
+    for (int i = 0; i < 格.length; i++) {
+        for (int j = 0; j < 格[i].length; j++) {
+            if (格[i][j] > 最大) {
+                最大 = 格[i][j];
+            }
+        }
+    }
+    return 最大;
+}
+static int 每行最大的数(int[][] 格, int 行号) {
+    int 最大 = 格[行号][0];
+    for (int j = 1; j < 格[行号].length; j++) {
+        if (格[行号][j] > 最大) {
+            最大 = 格[行号][j];
+        }
+    }
+    return 最大;
+}
+
+──────────────────────────────────────────────────────────────────
+### 18   (1119 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static void 冒泡排序(int[] 数, int 长度) {
+    for (int i = 0; i < 长度 - 1; i++) {
+        for (int j = 0; j < 长度 - 1 - i; j++) {
+            if (数[j] > 数[j + 1]) {
+                /* 交换三行 —— 顺序不能错 */
+                int 临时 = 数[j];
+                数[j] = 数[j + 1];
+                数[j + 1] = 临时;
+            }
+        }
+    }
+}
+static void 选择排序(int[] 数, int 长度) {
+    for (int i = 0; i < 长度 - 1; i++) {
+        int 最小 = i;                      /* 先假设第 i 个最小 */
+        for (int j = i + 1; j < 长度; j++) {
+            if (数[j] < 数[最小]) {
+                最小 = j;                  /* 只记下标，一轮结束才换 */
+            }
+        }
+        if (最小 != i) {
+            int 临时 = 数[i];
+            数[i] = 数[最小];
+            数[最小] = 临时;
+        }
+    }
+}
+static void 插入排序(int[] 数, int 长度) {
+    for (int i = 1; i < 长度; i++) {
+        int 拿着 = 数[i];                  /* 把这张牌拿在手里 */
+        int j = i - 1;
+        /* ⚠ j >= 0 必须写在前面 —— 否则 j 变成 -1 时先去读了 数[-1] */
+        while (j >= 0 && 数[j] > 拿着) {
+            数[j + 1] = 数[j];             /* 比它大的往右挪一格 */
+            j--;
+        }
+        数[j + 1] = 拿着;                  /* 放进空出来的位置 */
+    }
+}
+
+──────────────────────────────────────────────────────────────────
+### 19   (1072 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static void 按分数稳定排序(int[] 分数, String[] 名字) {
+    for (int i = 1; i < 分数.length; i++) {
+        int 拿着分 = 分数[i];
+        String 拿着名 = 名字[i];
+        int j = i - 1;
+        while (j >= 0 && 分数[j] > 拿着分) {      /* ⚠ 严格大于，不能写成 >= */
+            分数[j + 1] = 分数[j];
+            名字[j + 1] = 名字[j];
+            j--;
+        }
+        分数[j + 1] = 拿着分;
+        名字[j + 1] = 拿着名;
+    }
+}
+static void 按分数不稳定排序(int[] 分数, String[] 名字) {
+    for (int i = 0; i < 分数.length - 1; i++) {
+        int 最小 = i;
+        for (int j = i + 1; j < 分数.length; j++) {
+            if (分数[j] < 分数[最小]) {
+                最小 = j;
+            }
+        }
+        if (最小 != i) {
+            int 临时分 = 分数[i];
+            分数[i] = 分数[最小];
+            分数[最小] = 临时分;
+            String 临时名 = 名字[i];
+            名字[i] = 名字[最小];
+            名字[最小] = 临时名;
+        }
+    }
+}
+static Comparator<String> 按长度再按字典() {
+    return (a, b) -> {
+        if (a.length() != b.length()) {
+            return a.length() - b.length();
+        }
+        return a.compareTo(b);        /* ⚠ 比先后用 compareTo，不是 ==，也不是 equals */
+    };
+}
+
+──────────────────────────────────────────────────────────────────
+### 20   (592 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static long 循环求和(int n) {
+    long 和 = 0;                       /* ⚠ 用 long：int 在 n=100000 时会溢出 */
+    for (int i = 1; i <= n; i++) {
+        和 = 和 + i;
+    }
+    return 和;
+}
+static long 公式求和(int n) {
+    /* ⚠ 先转 long 再乘：n*(n+1) 在 n=100000 时是 10^10，int 装不下 */
+    return (long) n * (n + 1) / 2;
+}
+static long 平方对(int n) {
+    long 次数 = 0;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            次数 = 次数 + 1;           /* 内层每转一圈算一次 */
+        }
+    }
+    return 次数;
+}
+static String 选哪个(int n) {
+    if (n <= 1000) {
+        return "都不慢";
+    }
+    return "循环太慢";
+}
+
+──────────────────────────────────────────────────────────────────
+### 21   (540 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static long 斐波那契(int n) {
+    if (n < 2) {
+        return n;                     /* 0 → 0，1 → 1 */
+    }
+    long[] 表 = new long[n + 1];      /* ⚠ 长度是 n+1：下标 0..n 都要装得下 */
+    表[0] = 0;
+    表[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        表[i] = 表[i - 1] + 表[i - 2];   /* 前两个早就算好了，直接拿 */
+    }
+    return 表[n];
+}
+static long 爬楼梯(int n) {
+    if (n == 0) {
+        return 1;
+    }
+    long[] 表 = new long[n + 1];
+    表[0] = 1;
+    表[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        表[i] = 表[i - 1] + 表[i - 2];
+    }
+    return 表[n];
+}
+
+──────────────────────────────────────────────────────────────────
+### 22   (614 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static void 写文件(String 路径, String[] 行) throws Exception {
+    Files.write(Paths.get(路径), Arrays.asList(行));
+}
+static String[] 读文件(String 路径) throws Exception {
+    List<String> 表 = Files.readAllLines(Paths.get(路径));
+    return 表.toArray(new String[0]);          /* ⚠ 参数写成 new String[0] 是标准写法 */
+}
+static int 数行数(String 路径) throws Exception {
+    int 行数 = 0;
+    try (BufferedReader 读 = new BufferedReader(new FileReader(路径))) {
+        String 一行;
+        while ((一行 = 读.readLine()) != null) {
+            行数 = 行数 + 1;
+        }
+    }                                          /* ← 到这里 读 已经自动关掉了 */
+    return 行数;
+}
+
+──────────────────────────────────────────────────────────────────
+### 23   (1326 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static int 因数个数(int n) {
+    if (n <= 0) {
+        return 0;                          /* 0 和负数的因数有无限多个，不算 */
+    }
+    int 个数 = 0;
+    for (int i = 1; (long) i * i <= n; i++) {
+        if (n % i == 0) {
+            个数 = 个数 + 1;                /* i 是一个因数 */
+            if (i != n / i) {
+                个数 = 个数 + 1;            /* n/i 是另一个（完全平方数时它俩相等，只算一次） */
+            }
+        }
+    }
+    return 个数;
+}
+static boolean 是质数(int n) {
+    if (n < 2) {
+        return false;                      /* 1、0、负数都不是质数 */
+    }
+    for (int i = 2; (long) i * i <= n; i++) {
+        if (n % i == 0) {
+            return false;                  /* 找到了 1 和自己以外的因数 */
+        }
+    }
+    return true;
+}
+static String 质因数分解(int n) {
+    if (n < 2) {
+        return "" + n;                     /* 1、0、负数原样返回 */
+    }
+    StringBuilder 结果 = new StringBuilder();
+    int 剩 = n;
+    for (int i = 2; (long) i * i <= 剩; i++) {
+        while (剩 % i == 0) {               /* ⚠ while 不是 if：同一个质因数可能有好几个 */
+            if (结果.length() > 0) {
+                结果.append("*");
+            }
+            结果.append(i);
+            剩 = 剩 / i;
+        }
+    }
+    if (剩 > 1) {                           /* ⚠ 剩下那个本身就是质数（质数输入全靠这一步） */
+        if (结果.length() > 0) {
+            结果.append("*");
+        }
+        结果.append(剩);
+    }
+    return 结果.toString();
+}
+
+──────────────────────────────────────────────────────────────────
+### 24   (663 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static long 最大公约数(long a, long b) {
+    a = Math.abs(a);                       /* gcd 只谈约数，负数先取绝对值 */
+    b = Math.abs(b);
+    if (b == 0) {
+        return a;                          /* 余数是 0 了 —— 基准情形，也顺手管住了 gcd(0, b) = b */
+    }
+    return 最大公约数(b, a % b);             /* 换成「更小的一版」再问 */
+}
+static long 最小公倍数(long a, long b) {
+    a = Math.abs(a);
+    b = Math.abs(b);
+    if (a == 0 || b == 0) {
+        return 0;                          /* 0 和任何数的「公倍数」这一课规定是 0 */
+    }
+    return (a / 最大公约数(a, b)) * b;        /* ← 先除，再乘 */
+}
+static long 内置公约数(long a, long b) {
+    return BigInteger.valueOf(Math.abs(a)).gcd(BigInteger.valueOf(Math.abs(b))).longValue();
+}
+
+──────────────────────────────────────────────────────────────────
+### 25   (1356 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static boolean[] 标记表(int n) {
+    boolean[] 是质数 = new boolean[n + 1];      /* ⚠ n+1：下标 0..n 都要装得下 */
+    if (n < 2) {
+        return 是质数;                          /* 0 和 1 都不是质数，表里全是 false 就对 */
+    }
+    Arrays.fill(是质数, true);
+    是质数[0] = false;                          /* ⚠ 这两行不能忘 */
+    是质数[1] = false;
+    for (int i = 2; (long) i * i <= n; i++) {    /* 只需用 ≤ √n 的质数去划 */
+        if (是质数[i]) {                        /* 被划掉过的（合数）不用管 */
+            for (int j = i * i; j <= n; j = j + i) {
+                是质数[j] = false;              /* 从 i*i 开始：更小的倍数前几轮已经划过了 */
+            }
+        }
+    }
+    return 是质数;
+}
+static int[] 筛(int n) {
+    boolean[] 是质数 = 标记表(n);
+    int 个数 = 0;
+    for (int i = 0; i <= n; i++) {
+        if (是质数[i]) {
+            个数 = 个数 + 1;
+        }
+    }
+    int[] 结果 = new int[个数];
+    int 位置 = 0;
+    for (int i = 0; i <= n; i++) {
+        if (是质数[i]) {
+            结果[位置] = i;
+            位置 = 位置 + 1;
+        }
+    }
+    return 结果;
+}
+static int 数质数(int n) {
+    boolean[] 是质数 = 标记表(n);
+    int 个数 = 0;
+    for (int i = 0; i <= n; i++) {
+        if (是质数[i]) {
+            个数 = 个数 + 1;
+        }
+    }
+    return 个数;
+}
+static boolean 试除法(int n) {
+    if (n < 2) {
+        return false;
+    }
+    for (int i = 2; (long) i * i <= n; i++) {
+        if (n % i == 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+──────────────────────────────────────────────────────────────────
+### 26   (743 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static int 二分查找(int[] 数, int 目标) {
+    int low = 0;
+    int high = 数.length - 1;                 /* ⚠ length - 1：下标从 0 开始 */
+    while (low <= high) {                     /* ⚠ <= ：区间里还剩一个数时也要进来比一比 */
+        int mid = low + (high - low) / 2;     /* 这样写不会溢出（low + high 在大数组上会） */
+        if (数[mid] == 目标) {
+            return mid;
+        }
+        if (数[mid] < 目标) {
+            low = mid + 1;                    /* ⚠ mid + 1：把 mid 排除掉，否则死循环 */
+        } else {
+            high = mid - 1;                   /* ⚠ mid - 1 */
+        }
+    }
+    return -1;                                /* 区间空了 ⇒ 就是没有 */
+}
+static int 库二分(int[] 数, int 目标) {
+    int 位置 = Arrays.binarySearch(数, 目标);
+    if (位置 >= 0) {
+        return 位置;
+    }
+    return -1;
+}
+
+──────────────────────────────────────────────────────────────────
+### 27   (1632 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static String 找零(int 金额) {
+    int[] 面额 = {100, 50, 20, 10, 5, 1};
+    StringBuilder 结果 = new StringBuilder();
+    int 剩 = 金额;
+    for (int i = 0; i < 面额.length; i++) {
+        int 张数 = 剩 / 面额[i];
+        if (张数 > 0) {
+            if (结果.length() > 0) {
+                结果.append("+");
+            }
+            结果.append(面额[i]).append("*").append(张数);
+            剩 = 剩 - 张数 * 面额[i];
+        }
+    }
+    if (结果.length() == 0) {
+        return "无";                       /* 金额 ≤ 0 时什么都拿不到 */
+    }
+    return 结果.toString();
+}
+static int 最少硬币(int[] 币值, int 金额) {
+    if (金额 < 0) {
+        return -1;
+    }
+    int 到不了 = 金额 + 1;                  /* 一个"比任何合法答案都大"的数，当无穷用 */
+    int[] 最少 = new int[金额 + 1];
+    Arrays.fill(最少, 到不了);
+    最少[0] = 0;                            /* 凑 0 元要 0 枚 —— 递推的起点 */
+    for (int i = 1; i <= 金额; i++) {
+        for (int c : 币值) {
+            if (c <= i && 最少[i - c] + 1 < 最少[i]) {
+                最少[i] = 最少[i - c] + 1;   /* 用一枚 c，剩下的 i-c 早就算好了 */
+            }
+        }
+    }
+    if (最少[金额] == 到不了) {
+        return -1;                          /* 真的凑不出来 */
+    }
+    return 最少[金额];
+}
+static int 区间调度(int[][] 区间) {
+    int[][] 副本 = new int[区间.length][];
+    for (int i = 0; i < 区间.length; i++) {
+        副本[i] = new int[]{区间[i][0], 区间[i][1]};
+    }
+    /* 按结束时间（第 1 列）从小到大排 */
+    Arrays.sort(副本, (a, b) -> a[1] - b[1]);
+    int 选了几个 = 0;
+    int 上次结束 = Integer.MIN_VALUE;        /* 第一个活动之前，什么都不冲突 */
+    for (int i = 0; i < 副本.length; i++) {
+        if (副本[i][0] >= 上次结束) {         /* 开始时间不早于上次结束 ⇒ 不重叠 */
+            选了几个 = 选了几个 + 1;
+            上次结束 = 副本[i][1];
+        }
+    }
+    return 选了几个;
+}
+
+──────────────────────────────────────────────────────────────────
+### 28   (672 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static long 汉诺塔步数(int n) {
+    long 步 = 0;
+    for (int i = 0; i < n; i++) {
+        步 = 步 * 2 + 1;               /* 递推式：步数(n) = 2 × 步数(n-1) + 1 */
+    }
+    return 步;
+}
+static void 汉诺塔(int n, char 从, char 到, char 借) {
+    if (n == 0) {
+        return;                        /* 基准情形：没有盘子要搬了 —— 少了这一行就栈溢出 */
+    }
+    汉诺塔(n - 1, 从, 借, 到);          /* ① 把上层挪到借用的柱子上 */
+    System.out.println("把" + n + "从" + 从 + "移到" + 到);   /* ② 最大的那个搬到位 */
+    汉诺塔(n - 1, 借, 到, 从);          /* ③ 把上层挪到目的地 */
+}
+static long 阶乘(int n) {
+    if (n <= 1) {
+        return 1;                      /* 基准情形：0! = 1、1! = 1 */
+    }
+    return n * 阶乘(n - 1);             /* 每次参数都变小 ⇒ 一定到得了基准情形 */
+}
+
+──────────────────────────────────────────────────────────────────
+### 29   (1434 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static void 归并(int[] 数, int 左, int 中, int 右) {
+    int[] 临时 = new int[右 - 左 + 1];
+    int i = 左;
+    int j = 中 + 1;
+    int k = 0;
+    while (i <= 中 && j <= 右) {
+        /* ⚠ 相等时取左边的（<=），归并排序才是稳定的 */
+        if (数[i] <= 数[j]) {
+            临时[k] = 数[i];
+            i = i + 1;
+        } else {
+            临时[k] = 数[j];
+            j = j + 1;
+        }
+        k = k + 1;
+    }
+    while (i <= 中) {                     /* 左段还剩的（它们本来就都比右边剩的大） */
+        临时[k] = 数[i];
+        i = i + 1;
+        k = k + 1;
+    }
+    while (j <= 右) {                     /* 右段还剩的 */
+        临时[k] = 数[j];
+        j = j + 1;
+        k = k + 1;
+    }
+    for (int t = 0; t < 临时.length; t++) {   /* 写回原数组的对应位置 */
+        数[左 + t] = 临时[t];
+    }
+}
+static void 归并排序(int[] 数, int 左, int 右) {
+    if (左 >= 右) {
+        return;                           /* 基准情形：0 个或 1 个数，已经有序 */
+    }
+    int 中 = 左 + (右 - 左) / 2;            /* 这样写不会溢出（第 26 课讲过） */
+    归并排序(数, 左, 中);                    /* 治左半 */
+    归并排序(数, 中 + 1, 右);                /* 治右半 */
+    归并(数, 左, 中, 右);                    /* ⚠ 合必须在两个递归**之后** —— 两半得先有序 */
+}
+static int 分治最大(int[] 数, int 左, int 右) {
+    if (左 > 右) {
+        return Integer.MIN_VALUE;         /* 空区间：返回最小的 int，当"没有"用 */
+    }
+    if (左 == 右) {
+        return 数[左];                     /* 基准情形：一个数，它就是最大的 */
+    }
+    int 中 = 左 + (右 - 左) / 2;
+    int 左大 = 分治最大(数, 左, 中);
+    int 右大 = 分治最大(数, 中 + 1, 右);
+    return 左大 > 右大 ? 左大 : 右大;
+}
+
+──────────────────────────────────────────────────────────────────
+### 30   (798 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static final Random 随机 = new Random(20240601);
+static int 划分(int[] 数, int 左, int 右) {
+    /* ① 随机挑一个当基准，先换到末尾 —— 这样下面的 Lomuto 逻辑不用动 */
+    int 随 = 左 + 随机.nextInt(右 - 左 + 1);
+    int 临时 = 数[随];
+    数[随] = 数[右];
+    数[右] = 临时;
+    /* ② Lomuto：小 记录"比基准小的那一段"的末尾 */
+    int 基准 = 数[右];
+    int 小 = 左 - 1;
+    for (int i = 左; i < 右; i++) {
+        if (数[i] <= 基准) {
+            小 = 小 + 1;
+            int 换 = 数[小];
+            数[小] = 数[i];
+            数[i] = 换;
+        }
+    }
+    /* ③ 把基准放到分界点上 —— 这一步之后它的位置就是最终的了 */
+    int 换2 = 数[小 + 1];
+    数[小 + 1] = 数[右];
+    数[右] = 换2;
+    return 小 + 1;
+}
+static void 快速排序(int[] 数, int 左, int 右) {
+    if (左 >= 右) {
+        return;                           /* 基准情形：0 个或 1 个数已经有序 */
+    }
+    int 位 = 划分(数, 左, 右);
+    快速排序(数, 左, 位 - 1);
+    快速排序(数, 位 + 1, 右);
+}
+
+──────────────────────────────────────────────────────────────────
+### 31   (1764 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static boolean 括号匹配(String s) {
+    Deque<Character> 栈 = new ArrayDeque<>();
+    for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '(' || c == '[' || c == '{') {
+            栈.push(c);
+        } else if (c == ')' || c == ']' || c == '}') {
+            if (栈.isEmpty()) {
+                return false;                     /* 右括号来了，可没有左括号等它 */
+            }
+            char 顶 = 栈.pop();                    /* 最近的那个左括号 */
+            if (顶 == '(' && c != ')') return false;
+            if (顶 == '[' && c != ']') return false;
+            if (顶 == '{' && c != '}') return false;
+        }
+    }
+    return 栈.isEmpty();                          /* 还有左括号没配对上 ⇒ 错 */
+}
+static String 用栈倒序(int[] 数) {
+    Deque<Integer> 栈 = new ArrayDeque<>();
+    for (int i = 0; i < 数.length; i++) {
+        栈.push(数[i]);                        /* 后进 */
+    }
+    StringBuilder 结果 = new StringBuilder();
+    while (!栈.isEmpty()) {                      /* ⚠ 先问空不空：空栈 pop 得到 null */
+        if (结果.length() > 0) {
+            结果.append(" ");
+        }
+        结果.append(栈.pop());                  /* 先出 */
+    }
+    return 结果.toString();
+}
+static String 用队列轮转(int[] 数, int k) {
+    Deque<Integer> 队 = new ArrayDeque<>();
+    for (int i = 0; i < 数.length; i++) {
+        队.offer(数[i]);                       /* 入队（队尾） */
+    }
+    if (数.length > 0) {
+        int 移 = k % 数.length;                  /* ⚠ k 可能比长度大，也保证不是负数 */
+        for (int i = 0; i < 移; i++) {
+            队.offer(队.poll());                /* 队头出来、立刻进队尾 —— 这就是"轮转" */
+        }
+    }
+    StringBuilder 结果 = new StringBuilder();
+    while (!队.isEmpty()) {
+        if (结果.length() > 0) {
+            结果.append(" ");
+        }
+        结果.append(队.poll());
+    }
+    return 结果.toString();
+}
+
+──────────────────────────────────────────────────────────────────
+### 32   (1012 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static class Node {
+    int 值;
+    Node 下;
+    Node(int 值) {
+        this.值 = 值;                      /* ⚠ 字段和参数重名，this 不能省 */
+    }
+}
+static int 求长度(Node 头) {
+    int 个数 = 0;
+    Node 当前 = 头;
+    while (当前 != null) {
+        个数 = 个数 + 1;
+        当前 = 当前.下;                    /* ⚠ 别忘了往前走 */
+    }
+    return 个数;
+}
+static Node 反转(Node 头) {
+    Node 上一个 = null;                    /* 已经反好的那一段的头 */
+    Node 当前 = 头;
+    while (当前 != null) {
+        Node 下一个 = 当前.下;              /* ⚠ 第一句：先把后面记住，否则一会儿就断了 */
+        当前.下 = 上一个;                   /* 断开、反向 */
+        上一个 = 当前;                      /* 往前走两步 */
+        当前 = 下一个;
+    }
+    return 上一个;                          /* ⚠ 返回 上一个 —— 循环结束时 当前 已经是 null */
+}
+static String 打印(Node 头) {
+    if (头 == null) {
+        return "空";
+    }
+    StringBuilder 串 = new StringBuilder();
+    Node 当前 = 头;
+    while (当前 != null) {
+        if (串.length() > 0) {
+            串.append("->");
+        }
+        串.append(当前.值);
+        当前 = 当前.下;
+    }
+    return 串.toString();
+}
+
+──────────────────────────────────────────────────────────────────
+### 33   (881 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static class 结点 {
+    int 值;
+    结点 左;
+    结点 右;
+    结点(int 值) {
+        this.值 = 值;
+    }
+}
+static void 前序(结点 根) {
+    if (根 == null) {
+        return;                        /* ⚠ 基准情形必须是第一行 —— 树里到处是 null */
+    }
+    System.out.print(根.值 + " ");      /* 根在最前面 */
+    前序(根.左);
+    前序(根.右);
+}
+static void 中序(结点 根) {
+    if (根 == null) {
+        return;
+    }
+    中序(根.左);
+    System.out.print(根.值 + " ");      /* 根在中间 */
+    中序(根.右);
+}
+static void 后序(结点 根) {
+    if (根 == null) {
+        return;
+    }
+    后序(根.左);
+    后序(根.右);
+    System.out.print(根.值 + " ");      /* 根在最后 */
+}
+static int 结点个数(结点 根) {
+    if (根 == null) {
+        return 0;
+    }
+    return 1 + 结点个数(根.左) + 结点个数(根.右);
+}
+static int 树高(结点 根) {
+    if (根 == null) {
+        return 0;                      /* ⚠ 空树高 0 —— 不是 -1 */
+    }
+    int 左高 = 树高(根.左);
+    int 右高 = 树高(根.右);
+    return 1 + (左高 > 右高 ? 左高 : 右高);
+}
+
+──────────────────────────────────────────────────────────────────
+### 34   (891 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static class 结点 {
+    int 值;
+    结点 左;
+    结点 右;
+    结点(int 值) {
+        this.值 = 值;
+    }
+}
+static 结点 插入(结点 根, int 值) {
+    if (根 == null) {
+        return new 结点(值);              /* 找到空位了 */
+    }
+    if (值 < 根.值) {
+        根.左 = 插入(根.左, 值);
+    } else if (值 > 根.值) {
+        根.右 = 插入(根.右, 值);
+        /* 值相等时不插（这一课的规定）：BST 里一般不放重复的键 */
+    }
+    return 根;                            /* 把（可能变了的）子树根交还给上一层 */
+}
+static boolean 查找(结点 根, int 值) {
+    if (根 == null) {
+        return false;                     /* 走到空位 ⇒ 树里没有这个值 */
+    }
+    if (值 == 根.值) {
+        return true;
+    }
+    if (值 < 根.值) {
+        return 查找(根.左, 值);            /* ⚠ 只往左边找 */
+    }
+    return 查找(根.右, 值);                /* ⚠ 只往右边找 */
+}
+static int 最小值(结点 根) {
+    if (根 == null) {
+        return -1;                        /* 空树，题目约定返回 -1 */
+    }
+    while (根.左 != null) {
+        根 = 根.左;
+    }
+    return 根.值;
+}
+
+──────────────────────────────────────────────────────────────────
+### 35   (3061 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static final int[] 行方向 = {-1, 1, 0, 0};
+static final int[] 列方向 = {0, 0, -1, 1};
+static boolean 能到达(int[][] 迷宫, int 起行, int 起列, int 终行, int 终列) {
+    if (迷宫 == null || 迷宫.length == 0) return false;
+    int 行数 = 迷宫.length;
+    int 列数 = 迷宫[0].length;
+    if (起行 < 0 || 起行 >= 行数 || 起列 < 0 || 起列 >= 列数) return false;
+    if (终行 < 0 || 终行 >= 行数 || 终列 < 0 || 终列 >= 列数) return false;
+    if (迷宫[起行][起列] == 1 || 迷宫[终行][终列] == 1) return false;
+    boolean[][] 来过 = new boolean[行数][列数];
+    Deque<int[]> 队 = new ArrayDeque<>();
+    队.offer(new int[]{起行, 起列});
+    来过[起行][起列] = true;                  /* ⚠ 一进队列就标记，别等出队 */
+    while (!队.isEmpty()) {
+        int[] 当前 = 队.poll();
+        if (当前[0] == 终行 && 当前[1] == 终列) {
+            return true;
+        }
+        for (int d = 0; d < 4; d++) {
+            int 新行 = 当前[0] + 行方向[d];
+            int 新列 = 当前[1] + 列方向[d];
+            if (新行 < 0 || 新行 >= 行数 || 新列 < 0 || 新列 >= 列数) continue;
+            if (迷宫[新行][新列] == 1 || 来过[新行][新列]) continue;
+            来过[新行][新列] = true;
+            队.offer(new int[]{新行, 新列});
+        }
+    }
+    return false;                             /* 队列空了还碰不到 ⇒ 到不了 */
+}
+static int 最短步数(int[][] 迷宫, int 起行, int 起列, int 终行, int 终列) {
+    if (!能到达(迷宫, 起行, 起列, 终行, 终列)) return -1;
+    if (起行 == 终行 && 起列 == 终列) return 0;
+    int 行数 = 迷宫.length;
+    int 列数 = 迷宫[0].length;
+    int[][] 距离 = new int[行数][列数];        /* 0 表示还没去过（起点也是 0，所以起点先特判掉了） */
+    boolean[][] 来过 = new boolean[行数][列数];
+    Deque<int[]> 队 = new ArrayDeque<>();
+    队.offer(new int[]{起行, 起列});
+    来过[起行][起列] = true;
+    while (!队.isEmpty()) {
+        int[] 当前 = 队.poll();
+        for (int d = 0; d < 4; d++) {
+            int 新行 = 当前[0] + 行方向[d];
+            int 新列 = 当前[1] + 列方向[d];
+            if (新行 < 0 || 新行 >= 行数 || 新列 < 0 || 新列 >= 列数) continue;
+            if (迷宫[新行][新列] == 1 || 来过[新行][新列]) continue;
+            来过[新行][新列] = true;
+            距离[新行][新列] = 距离[当前[0]][当前[1]] + 1;
+            if (新行 == 终行 && 新列 == 终列) {
+                return 距离[新行][新列];           /* 第一次碰到就是最短 */
+            }
+            队.offer(new int[]{新行, 新列});
+        }
+    }
+    return -1;
+}
+static int 连通块数(int[][] 迷宫) {
+    if (迷宫 == null || 迷宫.length == 0) return 0;
+    int 行数 = 迷宫.length;
+    int 列数 = 迷宫[0].length;
+    boolean[][] 来过 = new boolean[行数][列数];
+    int 块数 = 0;
+    for (int i = 0; i < 行数; i++) {
+        for (int j = 0; j < 列数; j++) {
+            if (迷宫[i][j] == 1 || 来过[i][j]) continue;
+            块数 = 块数 + 1;
+            Deque<int[]> 队 = new ArrayDeque<>();
+            队.offer(new int[]{i, j});
+            来过[i][j] = true;
+            while (!队.isEmpty()) {
+                int[] 当前 = 队.poll();
+                for (int d = 0; d < 4; d++) {
+                    int 新行 = 当前[0] + 行方向[d];
+                    int 新列 = 当前[1] + 列方向[d];
+                    if (新行 < 0 || 新行 >= 行数 || 新列 < 0 || 新列 >= 列数) continue;
+                    if (迷宫[新行][新列] == 1 || 来过[新行][新列]) continue;
+                    来过[新行][新列] = true;
+                    队.offer(new int[]{新行, 新列});
+                }
+            }
+        }
+    }
+    return 块数;
+}
+
+──────────────────────────────────────────────────────────────────
+### 36   (1023 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static long 爬楼梯(int n) {
+    if (n == 0) {
+        return 1;                        /* 站在原地不动 —— 算一种"走法" */
+    }
+    long[] dp = new long[n + 1];
+    dp[0] = 1;
+    dp[1] = 1;
+    for (int i = 2; i <= n; i++) {
+        dp[i] = dp[i - 1] + dp[i - 2];
+    }
+    return dp[n];
+}
+static long 打家劫舍(int[] 金额) {
+    int 家数 = 金额.length;
+    if (家数 == 0) {
+        return 0;
+    }
+    long[] dp = new long[家数 + 1];
+    dp[0] = 0;
+    dp[1] = 金额[0];                      /* 只有一家 ⇒ 就偷它 */
+    for (int i = 2; i <= 家数; i++) {
+        long 偷这家 = 金额[i - 1] + dp[i - 2];   /* 偷了它，i-1 家就不能偷 */
+        long 不偷 = dp[i - 1];
+        dp[i] = 偷这家 > 不偷 ? 偷这家 : 不偷;
+    }
+    return dp[家数];
+}
+static int 背包(int[] 重量, int[] 价值, int 容量) {
+    int[] dp = new int[容量 + 1];         /* 初始全 0：容量 0 装不下任何东西 */
+    for (int i = 0; i < 重量.length; i++) {
+        for (int j = 容量; j >= 重量[i]; j--) {
+            int 拿这件 = 价值[i] + dp[j - 重量[i]];
+            if (拿这件 > dp[j]) {
+                dp[j] = 拿这件;
+            }
+        }
+    }
+    return dp[容量];
+}
+
+──────────────────────────────────────────────────────────────────
+### 37   (1017 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static double 两点距离(double 甲行, double 甲列, double 乙行, double 乙列) {
+    double 行差 = 乙行 - 甲行;
+    double 列差 = 乙列 - 甲列;
+    return Math.sqrt(行差 * 行差 + 列差 * 列差);      /* 平方用 d*d 最快也最准 */
+}
+static double 开方(double x) {
+    if (x < 0) {
+        return -1;                        /* 题目约定的"出错"返回值 */
+    }
+    return Math.sqrt(x);
+}
+static int 取整往下(double x) {
+    return (int) Math.floor(x);           /* 往负无穷：-3.7 → -4 */
+}
+static int 取整往上(double x) {
+    return (int) Math.ceil(x);            /* 往正无穷：-3.7 → -3 */
+}
+static long 四舍五入(double x) {
+    return Math.round(x);                 /* 它本来就返回 long，不用转 */
+}
+static boolean 几乎相等(double a, double b) {
+    return Math.abs(a - b) < 1e-9;
+}
+static long 组合数(int n, int k) {
+    if (k < 0 || k > n || n < 0) {
+        return 0;
+    }
+    if (k > n - k) {
+        k = n - k;                        /* 利用对称性少算几步，也少一点溢出风险 */
+    }
+    long 结果 = 1;
+    for (int i = 1; i <= k; i++) {
+        结果 = 结果 * (n - k + i) / i;      /* ⚠ 先乘后除：结果 * (...) 一定能被 i 整除 */
+    }
+    return 结果;
+}
+
+──────────────────────────────────────────────────────────────────
+### 38   (1149 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static long 网格路径数(int 行数, int 列数) {
+    if (行数 <= 0 || 列数 <= 0) {
+        return 0;
+    }
+    long[][] dp = new long[行数][列数];
+    for (int i = 0; i < 行数; i++) {
+        dp[i][0] = 1;                     /* ⚠ 第一列：只能一路往下走 ⇒ 1 种 */
+    }
+    for (int j = 0; j < 列数; j++) {
+        dp[0][j] = 1;                     /* ⚠ 第一行：只能一路往右走 ⇒ 1 种 */
+    }
+    for (int i = 1; i < 行数; i++) {
+        for (int j = 1; j < 列数; j++) {
+            dp[i][j] = dp[i - 1][j] + dp[i][j - 1];   /* 上面 + 左边 */
+        }
+    }
+    return dp[行数 - 1][列数 - 1];
+}
+static int 最长公共子序列(String 甲, String 乙) {
+    int 甲长 = 甲.length();
+    int 乙长 = 乙.length();
+    /* ⚠ 表要比字符串长一格：dp[i][j] 说的是"前 i 个"，i 要到 length() */
+    int[][] dp = new int[甲长 + 1][乙长 + 1];
+    for (int i = 1; i <= 甲长; i++) {
+        for (int j = 1; j <= 乙长; j++) {
+            if (甲.charAt(i - 1) == 乙.charAt(j - 1)) {   /* ⚠ 第 i 个字符的下标是 i-1 */
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                int 扔甲 = dp[i - 1][j];
+                int 扔乙 = dp[i][j - 1];
+                dp[i][j] = 扔甲 > 扔乙 ? 扔甲 : 扔乙;      /* ⚠ 这一支不能少 */
+            }
+        }
+    }
+    return dp[甲长][乙长];
+}
+
+──────────────────────────────────────────────────────────────────
+### 39   (1739 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static List<List<Integer>> 建图(int 点数, int[][] 边) {
+    List<List<Integer>> 图 = new ArrayList<>();
+    for (int i = 0; i < 点数; i++) {
+        图.add(new ArrayList<>());         /* ⚠ 忘了这一句，后面 图.get(i) 就 IndexOutOfBounds */
+    }
+    for (int i = 0; i < 边.length; i++) {
+        int 甲 = 边[i][0];
+        int 乙 = 边[i][1];
+        if (甲 < 0 || 甲 >= 点数 || 乙 < 0 || 乙 >= 点数) continue;   /* 越界的边跳过 */
+        图.get(甲).add(乙);
+        图.get(乙).add(甲);                 /* ⚠ 无向图：反方向也要加，否则 v 走不回 u */
+    }
+    return 图;
+}
+static boolean 能否到达(List<List<Integer>> 图, int 起, int 终) {
+    if (图 == null || 图.isEmpty()) return false;
+    int 点数 = 图.size();
+    if (起 < 0 || 起 >= 点数 || 终 < 0 || 终 >= 点数) return false;
+    if (起 == 终) return true;
+    boolean[] 来过 = new boolean[点数];
+    Deque<Integer> 队 = new ArrayDeque<>();
+    队.offer(起);
+    来过[起] = true;
+    while (!队.isEmpty()) {
+        int 当前 = 队.poll();
+        for (int 邻居 : 图.get(当前)) {       /* ⚠ 「一般图」就体现在这一行 */
+            if (来过[邻居]) continue;
+            if (邻居 == 终) return true;
+            来过[邻居] = true;
+            队.offer(邻居);
+        }
+    }
+    return false;
+}
+static int 连通块数(List<List<Integer>> 图) {
+    if (图 == null || 图.isEmpty()) return 0;
+    int 点数 = 图.size();
+    boolean[] 来过 = new boolean[点数];
+    int 块数 = 0;
+    for (int i = 0; i < 点数; i++) {
+        if (来过[i]) continue;
+        块数 = 块数 + 1;                    /* 每起一次搜索 = 发现一块新的 */
+        Deque<Integer> 队 = new ArrayDeque<>();
+        队.offer(i);
+        来过[i] = true;
+        while (!队.isEmpty()) {
+            int 当前 = 队.poll();
+            for (int 邻居 : 图.get(当前)) {
+                if (来过[邻居]) continue;
+                来过[邻居] = true;
+                队.offer(邻居);
+            }
+        }
+    }
+    return 块数;
+}
+
+──────────────────────────────────────────────────────────────────
+### 40   (2932 字符，去注释后)
+──────────────────────────────────────────────────────────────────
+
+static List<List<int[]>> 建带权图(int 点数, int[][] 边) {
+    List<List<int[]>> 图 = new ArrayList<>();
+    for (int i = 0; i < 点数; i++) {
+        图.add(new ArrayList<>());         /* ⚠ 先给每个点建空表 */
+    }
+    for (int i = 0; i < 边.length; i++) {
+        int 甲 = 边[i][0];
+        int 乙 = 边[i][1];
+        int 权 = 边[i][2];
+        if (甲 < 0 || 甲 >= 点数 || 乙 < 0 || 乙 >= 点数) continue;
+        图.get(甲).add(new int[]{乙, 权});
+        图.get(乙).add(new int[]{甲, 权});   /* ⚠ 无向图：反方向也要 */
+    }
+    return 图;
+}
+static long 最短距离(List<List<int[]>> 图, int 起, int 终) {
+    if (图 == null || 图.isEmpty()) return -1;
+    int 点数 = 图.size();
+    if (起 < 0 || 起 >= 点数 || 终 < 0 || 终 >= 点数) return -1;
+    if (起 == 终) return 0;
+    long 无穷 = Long.MAX_VALUE / 4;         /* 别用 MAX_VALUE：加权重时会溢出 */
+    long[] 最短 = new long[点数];
+    Arrays.fill(最短, 无穷);
+    最短[起] = 0;
+    /* ⚠ 比较器写 Long.compare，不要写 a[0] - b[0]（long 相减会溢出） */
+    PriorityQueue<long[]> 堆 = new PriorityQueue<>((a, b) -> Long.compare(a[0], b[0]));
+    堆.offer(new long[]{0, 起});
+    while (!堆.isEmpty()) {
+        long[] 当前 = 堆.poll();
+        long 距离 = 当前[0];
+        int 点 = (int) 当前[1];
+        if (距离 > 最短[点]) continue;       /* ⚠ 堆里的过期条目，跳过 */
+        if (点 == 终) return 距离;            /* 第一个被取出来的终点就是最短的 */
+        for (int[] 一条 : 图.get(点)) {
+            int 邻居 = 一条[0];
+            long 新距离 = 距离 + 一条[1];
+            if (新距离 < 最短[邻居]) {        /* ⚠ 只有更近才更新 —— 这就是"松弛" */
+                最短[邻居] = 新距离;
+                堆.offer(new long[]{新距离, 邻居});
+            }
+        }
+    }
+    return 最短[终] == 无穷 ? -1 : 最短[终];
+}
+static String 路径(List<List<int[]>> 图, int 起, int 终) {
+    if (图 == null || 图.isEmpty()) return "空";
+    int 点数 = 图.size();
+    if (起 < 0 || 起 >= 点数 || 终 < 0 || 终 >= 点数) return "空";
+    if (起 == 终) return "" + 起;
+    long 无穷 = Long.MAX_VALUE / 4;
+    long[] 最短 = new long[点数];
+    int[] 前驱 = new int[点数];
+    Arrays.fill(最短, 无穷);
+    Arrays.fill(前驱, -1);
+    最短[起] = 0;
+    PriorityQueue<long[]> 堆 = new PriorityQueue<>((a, b) -> Long.compare(a[0], b[0]));
+    堆.offer(new long[]{0, 起});
+    while (!堆.isEmpty()) {
+        long[] 当前 = 堆.poll();
+        long 距离 = 当前[0];
+        int 点 = (int) 当前[1];
+        if (距离 > 最短[点]) continue;
+        for (int[] 一条 : 图.get(点)) {
+            int 邻居 = 一条[0];
+            long 新距离 = 距离 + 一条[1];
+            if (新距离 < 最短[邻居]) {
+                最短[邻居] = 新距离;
+                前驱[邻居] = 点;              /* ⚠ 记下是从谁过来的 */
+                堆.offer(new long[]{新距离, 邻居});
+            }
+        }
+    }
+    if (最短[终] == 无穷) return "空";
+    /* 从终点一路往起点回溯，再翻过来 */
+    List<String> 倒着 = new ArrayList<>();
+    int 走 = 终;
+    while (走 != -1) {
+        倒着.add("" + 走);
+        if (走 == 起) break;                 /* ⚠ 到起点就停（起点也要放进路径里） */
+        走 = 前驱[走];
+    }
+    StringBuilder 串 = new StringBuilder();
+    for (int i = 倒着.size() - 1; i >= 0; i--) {
+        if (串.length() > 0) 串.append(" ");
+        串.append(倒着.get(i));
+    }
+    return 串.toString();
+}

@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HybridEngine-light 的测试 —— 纯控制台，零测试框架依赖（与包本身一样不依赖第三方）。 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>HybridEngineLight.Tests</AssemblyName>
+    <RootNamespace>HybridEngineLight.Tests</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HybridEngineLight\HybridEngineLight.csproj" />
+  </ItemGroup>
+</Project>

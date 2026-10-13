@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Java 课程：课程定义（.cs，装检查逻辑）+ 学生作业（.java，装学生代码）。 -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>HybridEngineLight.JavaLessons</AssemblyName>
+    <RootNamespace>HybridEngineLight.JavaLessons</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HybridEngineLight\HybridEngineLight.csproj" />
+  </ItemGroup>
+</Project>

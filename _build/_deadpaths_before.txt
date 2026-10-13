@@ -1,0 +1,83 @@
+<unknown>:653: SyntaxWarning: invalid escape sequence '\s'
+<unknown>:1509: SyntaxWarning: invalid escape sequence '\s'
+══════════════════════════════════════════════════════════════════════
+  死路径审计 —— 会**执行**的老仓库绝对路径
+══════════════════════════════════════════════════════════════════════
+  老路径：D:[\\/]Users[\\/]etgya[\\/]Desktop[\\/]Project(?:[\\/]引擎)?[\\/](?:LearnCode|HybridEngine-light)
+
+  **32 个脚本的字符串字面量里还有老路径**（运行时必然落空）：
+    _build/_apply_any.py
+        L18   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_audit_deadpaths.py
+        L13   D:\Users\etgya\Desktop\Project\引擎\LearnCode      （不存在）
+        L14   D:\Users\etgya\Desktop\Project\HybridEngine-light  （不存在）
+    _build/_audit_drift.py
+        L21   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_cmp_discover.py
+        L11   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_cmp_discover2.py
+        L9    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_cmp_thread.py
+        L10   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_cold.py
+        L8    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_diff_cpp.py
+        L7    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_fix_cs_class_public.py
+        L6    S = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\csharp\cs-lessons\Lessons"
+        L55   P = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\csharp\HybridEngineLight\CppLesson.cs"
+    _build/_fix_cs_entry.py
+        L9    P = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\csharp\HybridEngineLight\CppLesson.cs"
+        L73   S = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\csharp\cs-lessons\Lessons"
+    _build/_fix_cs_type_scan.py
+        L6    S = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\csharp\cs-lessons\Lessons"
+    _build/_gen_c16.py
+        L26   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_gen_compiled.py
+        L35   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_gesp_reference.py
+        L17   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_mk_cs_course.py
+        L6    ROOT = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_mk_cs_lessons.py
+        L6    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_mkjava.py
+        L9    P = (r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\_build"
+    _build/_peek2.py
+        L13   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_peek_templates.py
+        L7    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_peek_templates2.py
+        L8    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_peek_templates3.py
+        L6    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_rebuild_versions.py
+        L19   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_shot.py
+        L30   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_test_progress_gui.py
+        L18   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_time_discover.py
+        L7    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_trace2.py
+        L6    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_trace_gui.py
+        L7    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_unify_cmdname.py
+        L17   PKG = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\hybridengine_light"
+    _build/_unify_cs_entry.py
+        L7    S = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode\csharp\cs-lessons\Lessons"
+    _build/_where.py
+        L28   LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    _build/_where2.py
+        L9    LC = r"D:\Users\etgya\Desktop\Project\引擎\LearnCode"
+    tests/验收.py
+        L22   ROOT = r"D:\Users\etgya\Desktop\Project\HybridEngine-light"
+
+  ?? 解析不了、需要人看：
+    _build/_fix00j.py                              文件解析不了（SyntaxError）
+
+  -- 只在注释 / 文档字符串里提到老路径的（**不用改**，那是历史）：
+    _build/_verify_c_neg.py                        老路径只在注释里
+
+  == 死路径 32 处 / 存疑 1 处 / 仅注释 1 处 ==

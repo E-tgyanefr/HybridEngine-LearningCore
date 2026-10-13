@@ -1,0 +1,12 @@
+  课程线           模板行数    含讲解       模板开头两行
+  ────────────────────────────────────────────────────────────────────────────────────────────
+  python          112 行  4/5 项   """第 00 课：跑通第一个程序 —— 先确认你能把程序跑起来
+  games         （拿不到模板）
+  ai              181 行  3/5 项   r"""第 01 课：让程序"学"一条直线（线性回归）
+  embedded        138 行  3/5 项   r"""第 02 课：按钮控制 LED —— 让程序学会"听"
+  raspi           188 行  3/5 项   r"""第 01 课：点亮一盏 LED —— 树莓派和你以前听说的单片机不一样
+  enginecourse     81 行  3/5 项   r"""第 01 课：场景与对象 —— 先有个"东西"
+  csharp        取模板失败：PermissionError: [Errno 13] Permission denied: 'D:\\Users\\etgya\\Desktop\\Project\\引擎\\HybridEngine-LearningCore\\csharp\\cs-lessons'
+  cpp           取模板失败：PermissionError: [Errno 13] Permission denied: 'D:\\Users\\etgya\\Desktop\\Project\\引擎\\HybridEngine-LearningCore\\csharp\\cpp-lessons'
+  java          取模板失败：PermissionError: [Errno 13] Permission denied: 'D:\\Users\\etgya\\Desktop\\Project\\引擎\\HybridEngine-LearningCore\\csharp\\java-lessons'
+  c             取模板失败：PermissionError: [Errno 13] Permission denied: 'D:\\Users\\etgya\\Desktop\\Project\\引擎\\HybridEngine-LearningCore\\csharp\\c-lessons'

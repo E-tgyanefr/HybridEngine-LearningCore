@@ -1,0 +1,119 @@
+<unknown>:653: SyntaxWarning: invalid escape sequence '\s'
+<unknown>:1509: SyntaxWarning: invalid escape sequence '\s'
+════════════════════════════════════════════════════════════════════════
+  静态验证：改过路径的脚本 —— 老字面量没了、新路径指得到真东西
+════════════════════════════════════════════════════════════════════════
+  仓库根：D:\Users\etgya\Desktop\Project\引擎\HybridEngine-LearningCore
+  文件：31 个（其中 20 个另外真跑过）
+
+  ── 真跑过（另见 _run_fixed_scripts.py） ──
+    _build/_audit_drift.py
+        L21   LC   → <仓库>   存在
+        L0    （另有 8 个非纯表达式未求值） →    存在
+    _build/_cmp_discover.py
+        L11   LC   → <仓库>   存在
+        L0    （另有 3 个非纯表达式未求值） →    存在
+    _build/_cmp_discover2.py
+        L9    LC   → <仓库>   存在
+        L0    （另有 3 个非纯表达式未求值） →    存在
+    _build/_cmp_thread.py
+        L10   LC   → <仓库>   存在
+        L0    （另有 2 个非纯表达式未求值） →    存在
+    _build/_cold.py
+        L8    LC   → <仓库>   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    _build/_diff_cpp.py
+        L7    LC   → <仓库>   存在
+        L0    （另有 3 个非纯表达式未求值） →    存在
+    _build/_gesp_reference.py
+        L17   LC   → <仓库>   存在
+        L18   S    → <仓库>\lessons   存在
+        L0    （另有 4 个非纯表达式未求值） →    存在
+    _build/_mkjava.py
+        L8    LC   → <仓库>   存在
+        L11   P    → <仓库>\_build\_java_模板扩写.md   存在
+    _build/_peek2.py
+        L13   LC   → <仓库>   存在
+        L0    （另有 3 个非纯表达式未求值） →    存在
+    _build/_peek_templates.py
+        L7    LC   → <仓库>   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    _build/_peek_templates2.py
+        L8    LC   → <仓库>   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    _build/_peek_templates3.py
+        L6    LC   → <仓库>   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    _build/_shot.py
+        L30   LC   → <仓库>   存在
+    _build/_test_progress_gui.py
+        L18   LC   → <仓库>   存在
+        L0    （另有 5 个非纯表达式未求值） →    存在
+    _build/_time_discover.py
+        L7    LC   → <仓库>   存在
+        L0    （另有 2 个非纯表达式未求值） →    存在
+    _build/_trace2.py
+        L6    LC   → <仓库>   存在
+        L0    （另有 5 个非纯表达式未求值） →    存在
+    _build/_trace_gui.py
+        L7    LC   → <仓库>   存在
+        L0    （另有 4 个非纯表达式未求值） →    存在
+    _build/_where.py
+        L28   LC   → <仓库>   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    _build/_where2.py
+        L9    LC   → <仓库>   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    tests/验收.py
+        L22   ROOT → <仓库>   存在
+        L0    （另有 9 个非纯表达式未求值） →    存在
+
+  ── **没跑**（会写课程文件/一次性生成器）—— 只有静态验证 ──
+    _build/_apply_any.py
+        L18   LC   → <仓库>   存在
+        L0    （另有 8 个非纯表达式未求值） →    存在
+    _build/_fix_cs_class_public.py
+        L4    LC   → <仓库>   存在
+        L7    S    → <仓库>\csharp\cs-lessons\Lessons   存在
+        L56   P    → <仓库>\csharp\HybridEngineLight\CppLesson.cs   存在
+        L0    （另有 2 个非纯表达式未求值） →    存在
+    _build/_fix_cs_entry.py
+        L5    LC   → <仓库>   存在
+        L10   P    → <仓库>\csharp\HybridEngineLight\CppLesson.cs   存在
+        L74   S    → <仓库>\csharp\cs-lessons\Lessons   存在
+        L0    （另有 3 个非纯表达式未求值） →    存在
+    _build/_fix_cs_type_scan.py
+        L4    LC   → <仓库>   存在
+        L7    S    → <仓库>\csharp\cs-lessons\Lessons   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+    _build/_gen_c16.py
+        L26   LC   → <仓库>   存在
+        L0    （另有 5 个非纯表达式未求值） →    存在
+    _build/_gen_compiled.py
+        L35   LC   → <仓库>   存在
+        L0    （另有 5 个非纯表达式未求值） →    存在
+    _build/_mk_cs_course.py
+        L6    ROOT → <仓库>   存在
+    _build/_mk_cs_lessons.py
+        L6    LC   → <仓库>   存在
+        L8    S    → <仓库>\csharp\cs-lessons\Lessons   存在
+        L0    （另有 2 个非纯表达式未求值） →    存在
+    _build/_rebuild_versions.py
+        L19   LC   → <仓库>   存在
+        L0    （另有 2 个非纯表达式未求值） →    存在
+    _build/_unify_cmdname.py
+        L17   LC   → <仓库>   存在
+        L18   PKG  → <仓库>\hybridengine_light   存在
+        L21   P    → <仓库>\hybridengine_light\_paths.py   存在
+        L0    （另有 3 个非纯表达式未求值） →    存在
+    _build/_unify_cs_entry.py
+        L5    LC   → <仓库>   存在
+        L8    S    → <仓库>\csharp\cs-lessons\Lessons   存在
+        L0    （另有 1 个非纯表达式未求值） →    存在
+
+════════════════════════════════════════════════════════════════════════
+  == 31/31 个文件静态验证通过 ==
+  ⚠ 静态验证只回答「路径指得到真目录」。它**不等于**跑过 ——
+     真跑过的只有 20 个（见上）；另外 11 个**没跑**，
+     理由是跑它们会改课程文件（硬要求不允许），如实列出。
+════════════════════════════════════════════════════════════════════════

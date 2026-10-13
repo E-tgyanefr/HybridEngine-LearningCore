@@ -1,0 +1,12 @@
+{
+  "对": "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = 0\nfor 行 in 表:\n    for x in 行:\n        全部和 += x\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [['.' for _ in range(n)] for _ in range(n)]\n",
+  "错": [
+    ["全部和用 sum 偷懒", "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = sum(sum(行) for 行 in 表)\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [['.' for _ in range(n)] for _ in range(n)]\n"],
+    ["全部和只加外层", "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = 0\nfor 行 in 表:\n    全部和 += 行\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [['.' for _ in range(n)] for _ in range(n)]\n"],
+    ["全部和漏了最后一行", "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = 0\nfor 行 in 表:\n    for x in 行[:2]:\n        全部和 += x\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [['.' for _ in range(n)] for _ in range(n)]\n"],
+    ["取一列变成了取一行", "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = 0\nfor 行 in 表:\n    for x in 行:\n        全部和 += x\n\n\ndef 取一列(表, 列号):\n    return 表[列号]\n\n\ndef 造棋盘(n):\n    return [['.' for _ in range(n)] for _ in range(n)]\n"],
+    ["造棋盘三行连体", "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = 0\nfor 行 in 表:\n    for x in 行:\n        全部和 += x\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [['.'] * n] * n\n"],
+    ["表写成了三个一维列表", "表 = [1, 2, 3, 4, 5, 6]\n全部和 = 0\nfor 行 in 表:\n    for x in 行:\n        全部和 += x\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [['.' for _ in range(n)] for _ in range(n)]\n"],
+    ["棋盘格子用了 x", "表 = [[1, 2, 3], [4, 5, 6]]\n全部和 = 0\nfor 行 in 表:\n    for x in 行:\n        全部和 += x\n\n\ndef 取一列(表, 列号):\n    return [行[列号] for 行 in 表]\n\n\ndef 造棋盘(n):\n    return [[0 for _ in range(n)] for _ in range(n)]\n"]
+  ]
+}

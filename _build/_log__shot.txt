@@ -1,0 +1,3 @@
+  动作：（不动作，停在主页）
+    客户区：1180x760 @ (8,31)  屏幕 1707x1067
+    存到 C:\Users\etgya\AppData\Local\Temp\gui_shot.png（3503.2 KB）

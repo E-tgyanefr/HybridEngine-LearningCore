@@ -1,0 +1,18 @@
+══════════════════════════════════════════════════════════════════════
+  死路径审计 —— 会**执行**的老仓库绝对路径
+══════════════════════════════════════════════════════════════════════
+  老路径：D:[\\/]Users[\\/]etgya[\\/]Desktop[\\/]Project(?:[\\/]引擎)?[\\/](?:LearnCode|HybridEngine-light)
+
+  **1 个脚本的字符串字面量里还有老路径**（运行时必然落空）：
+    _build/_fix_deadpaths.py
+        L14   D:\Users\etgya\Desktop\Project\引擎\LearnCode      （不存在）
+        L15   D:\Users\etgya\Desktop\Project\HybridEngine-light  （不存在）
+
+  ?? 解析不了、需要人看：
+    _build/_fix00j.py                              文件解析不了（SyntaxError）
+
+  -- 只在注释 / 文档字符串里提到老路径的（**不用改**，那是历史）：
+    _build/_audit_deadpaths.py                     本审计脚本自己的说明文字
+    _build/_verify_c_neg.py                        老路径只在注释里
+
+  == 死路径 1 处 / 存疑 1 处 / 仅注释 2 处 ==

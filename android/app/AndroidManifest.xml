@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HybridEngine-light · Android
+     ────────────────────────────────────────────────────────────────
+     ⚠ 这里大部分内容 .NET Android 会自动生成（Activity、Application 等）。
+       这个文件只补两件它不知道的事 —— **两件都是真机实测撞出来的**，
+       而且都是"界面能编译、能装、能起，但 WebView 加载不出来"。 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <!-- ⚠⚠ ① INTERNET 权限：**绑本地 socket 也需要它**。
+       真机实测：没有这一条时 `HttpListener.Start()` 直接抛，
+       而症状是「41000~41200 一个端口都挑不到」—— 看着像端口被占，
+       其实是权限问题。
+       这个应用不上网，但要把界面发给 WebView 就得在本机起一个小 HTTP 服务，
+       原因见 LocalServer.cs：**WebView 默认禁止 fetch 访问 file://**。
+       ⚠ 只监听 127.0.0.1，不监听 0.0.0.0 —— 同 WiFi 下别人访问不到。 -->
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <application
+      android:label="学编程"
+      android:icon="@mipmap/icon"
+      android:networkSecurityConfig="@xml/network_security_config" />
+</manifest>

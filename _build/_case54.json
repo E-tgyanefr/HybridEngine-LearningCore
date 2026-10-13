@@ -1,0 +1,25 @@
+{
+ "对": "\"\"\"第 54 课参考答案 —— 最小生成树。\"\"\"\n\n\ndef 找根(父, x):\n    # ⚠ 必须一路跟到底。写成 return 父[x] 在链式合并之后就会判错\n    while 父[x] != x:\n        x = 父[x]\n    return x\n\n\ndef 合并(父, 甲, 乙):\n    根甲, 根乙 = 找根(父, 甲), 找根(父, 乙)\n    if 根甲 == 根乙:\n        return False            # 本来就在一个集合里\n    父[根甲] = 根乙\n    return True\n\n\ndef 最小生成树(点数, 边列表):\n    if 点数 <= 1:\n        return 0, []            # 一个点（或没有点）本来就是一整棵树\n    父 = list(range(点数))\n    总权值, 选中 = 0, []\n    for 权, 甲, 乙 in sorted(边列表):          # ① 按权从小到大\n        if 甲 == 乙:\n            continue                        # 自环没用\n        if 合并(父, 甲, 乙):                # ② 不在同一集合就选它\n            总权值 += 权\n            选中.append((权, 甲, 乙))\n            if len(选中) == 点数 - 1:       # ③ 够了就停\n                break\n    if len(选中) != 点数 - 1:\n        return None, []                     # 凑不够 = 不连通\n    return 总权值, 选中\n\n\ndef 普里姆(点数, 边列表):\n    if 点数 <= 1:\n        return 0\n    连 = {i: [] for i in range(点数)}\n    for 权, 甲, 乙 in 边列表:\n        if 甲 != 乙:\n            连[甲].append((权, 乙))\n            连[乙].append((权, 甲))\n    进树, 总 = {0}, 0\n    while len(进树) < 点数:\n        最好 = None\n        for 点 in 进树:                      # 已进树的点连出去的边全看一遍\n            for 权, 邻 in 连[点]:\n                if 邻 not in 进树 and (最好 is None or 权 < 最好[0]):\n                    最好 = (权, 邻)\n        if 最好 is None:\n            return None                     # 拉不动了：图不连通\n        总 += 最好[0]\n        进树.add(最好[1])\n    return 总\n",
+ "错": [
+  [
+   "不判连通",
+   "\"\"\"错答案：凑不够边也照样返回，把「最小生成森林」当成了生成树。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"54\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最小生成树(点数, 边列表):\n    if 点数 <= 1:\n        return 0, []\n    父 = list(range(点数))\n    总权值, 选中 = 0, []\n    for 权, 甲, 乙 in sorted(边列表):\n        if 甲 != 乙 and 合并(父, 甲, 乙):\n            总权值 += 权\n            选中.append((权, 甲, 乙))\n    return 总权值, 选中             # ❌ 没检查 len(选中) == 点数-1，也没返回 (None, [])\n"
+  ],
+  [
+   "不查环",
+   "\"\"\"错答案：不查环，直接拿最小的 n-1 条边（会挑出一条带环的「树」）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"54\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最小生成树(点数, 边列表):\n    if 点数 <= 1:\n        return 0, []\n    选 = [e for e in sorted(边列表) if e[1] != e[2]][:点数 - 1]     # ❌ 没查环\n    if len(选) != 点数 - 1:\n        return None, []\n    return sum(e[0] for e in 选), 选\n"
+  ],
+  [
+   "找根只看一层",
+   "\"\"\"错答案：找根只往上看一层，链式合并之后就不对了。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"54\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 找根(父, x):\n    return 父[x]                    # ❌ 要一路跟到 父[x] == x\n"
+  ],
+  [
+   "普里姆不连通给0",
+   "\"\"\"错答案：普里姆碰到不连通返回 0（应当返回 None）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"54\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 普里姆(点数, 边列表):\n    if 点数 <= 1:\n        return 0\n    连 = {i: [] for i in range(点数)}\n    for 权, 甲, 乙 in 边列表:\n        if 甲 != 乙:\n            连[甲].append((权, 乙))\n            连[乙].append((权, 甲))\n    进树, 总 = {0}, 0\n    while len(进树) < 点数:\n        最好 = None\n        for 点 in 进树:\n            for 权, 邻 in 连[点]:\n                if 邻 not in 进树 and (最好 is None or 权 < 最好[0]):\n                    最好 = (权, 邻)\n        if 最好 is None:\n            return 0                # ❌ 不连通应当返回 None\n        总 += 最好[0]\n        进树.add(最好[1])\n    return 总\n"
+  ],
+  [
+   "边从大到小",
+   "\"\"\"错答案：边按权从大到小挑（贪心的方向反了）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"54\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 最小生成树(点数, 边列表):\n    if 点数 <= 1:\n        return 0, []\n    父 = list(range(点数))\n    总权值, 选中 = 0, []\n    for 权, 甲, 乙 in sorted(边列表, reverse=True):     # ❌ 要从**小**到大\n        if 甲 == 乙:\n            continue\n        if 合并(父, 甲, 乙):\n            总权值 += 权\n            选中.append((权, 甲, 乙))\n            if len(选中) == 点数 - 1:\n                break\n    if len(选中) != 点数 - 1:\n        return None, []\n    return 总权值, 选中\n"
+  ]
+ ]
+}

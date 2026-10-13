@@ -1,0 +1,25 @@
+{
+ "对": "\"\"\"第 52 课参考答案 —— 倍增法。\"\"\"\n\n\ndef 幂(底, 指数):\n    结果 = 1                    # ⚠ 从 1 起：从 0 起的话乘什么都还是 0\n    while 指数 > 0:\n        if 指数 % 2 == 1:\n            结果 *= 底           # 这一位是 1，就把当前的 底 乘进结果\n        底 *= 底                 # 平方：底 依次变成 底²、底⁴、底⁸…\n        指数 //= 2               # 指数右移一位（丢一位就够）\n    return 结果\n\n\ndef 幂取模(底, 指数, 模):\n    结果 = 1 % 模               # 模是 1 时一切结果都是 0\n    while 指数 > 0:\n        if 指数 % 2 == 1:\n            结果 = 结果 * 底 % 模\n        底 = 底 * 底 % 模        # ⚠ 每一步都取模，别等乘完再取\n        指数 //= 2\n    return 结果\n\n\ndef 第一个不小于(表, 目标):\n    跳 = 1\n    while 跳 < len(表):\n        跳 *= 2                 # 先把步长放大到 ≥ 表长，再从大到小试\n    位置 = 0\n    while 跳 > 0:\n        # ⚠ 先问「跳过去还在表内吗」，取元素用 位置 + 跳 - 1\n        if 位置 + 跳 <= len(表) and 表[位置 + 跳 - 1] < 目标:\n            位置 += 跳\n        跳 //= 2\n    return 位置\n\n\ndef 翻倍步数(n):\n    数, 步 = 1, 0\n    while 数 < n:\n        数 *= 2\n        步 += 1\n    return 步\n",
+ "错": [
+  [
+   "取模底加倍",
+   "\"\"\"错答案：快速幂取模里底数该平方，写成了加倍。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"52\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 幂取模(底, 指数, 模):\n    结果 = 1 % 模\n    while 指数 > 0:\n        if 指数 % 2 == 1:\n            结果 = 结果 * 底 % 模\n        底 += 底                 # ❌ 应该是 底 *= 底\n        指数 //= 2\n    return 结果\n"
+  ],
+  [
+   "幂从0起",
+   "\"\"\"错答案：快速幂的结果从 0 起，乘什么都还是 0。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"52\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 幂(底, 指数):\n    结果 = 0                    # ❌ 乘法要拿 1 起头\n    while 指数 > 0:\n        if 指数 % 2 == 1:\n            结果 *= 底\n        底 *= 底\n        指数 //= 2\n    return 结果\n"
+  ],
+  [
+   "找位置差一位",
+   "\"\"\"错答案：倍增跳跃时下标差一位，跳到表尾就 IndexError。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"52\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 第一个不小于(表, 目标):\n    跳 = 1\n    while 跳 < len(表):\n        跳 *= 2\n    位置 = 0\n    while 跳 > 0:\n        if 位置 + 跳 <= len(表) and 表[位置 + 跳] < 目标:    # ❌ 越界一位\n            位置 += 跳\n        跳 //= 2\n    return 位置\n"
+  ],
+  [
+   "找位置线性扫",
+   "\"\"\"错答案：第一个不小于用从头挨着扫的写法（答案对，但不是倍增）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"52\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 第一个不小于(表, 目标):\n    i = 0\n    while i < len(表) and 表[i] < 目标:      # ❌ O(n) 线性扫，不是「翻着倍跳」\n        i += 1\n    return i\n"
+  ],
+  [
+   "翻倍步数多一",
+   "\"\"\"错答案：翻倍步数从 1 开始数（0 步的情况也报成 1）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"52\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 翻倍步数(n):\n    数, 步 = 1, 1               # ❌ 步应该从 0 起\n    while 数 < n:\n        数 *= 2\n        步 += 1\n    return 步\n"
+  ]
+ ]
+}

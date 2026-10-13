@@ -1,0 +1,11 @@
+{
+  "对": "原句 = \"  你好，世界  \"\n干净 = 原句.strip()\n切开的 = \"苹果,香蕉,橘子\".split(\",\")\n粘回去 = \"-\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.count(要找的)\n\n\ndef 倒过来(文字):\n    return 文字[::-1]\n\n\ndef 取前三个(文字):\n    return 文字[:3]\n",
+  "错": [
+    ["strip 没接住", "原句 = \"  你好，世界  \"\n干净 = 原句\n切开的 = \"苹果,香蕉,橘子\".split(\",\")\n粘回去 = \"-\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.count(要找的)\n\n\ndef 倒过来(文字):\n    return 文字[::-1]\n\n\ndef 取前三个(文字):\n    return 文字[:3]\n"],
+    ["join 用空串", "原句 = \"  你好，世界  \"\n干净 = 原句.strip()\n切开的 = \"苹果,香蕉,橘子\".split(\",\")\n粘回去 = \"\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.count(要找的)\n\n\ndef 倒过来(文字):\n    return 文字[::-1]\n\n\ndef 取前三个(文字):\n    return 文字[:3]\n"],
+    ["split 没用逗号", "原句 = \"  你好，世界  \"\n干净 = 原句.strip()\n切开的 = \"苹果,香蕉,橘子\".split()\n粘回去 = \"-\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.count(要找的)\n\n\ndef 倒过来(文字):\n    return 文字[::-1]\n\n\ndef 取前三个(文字):\n    return 文字[:3]\n"],
+    ["数一数用了 find", "原句 = \"  你好，世界  \"\n干净 = 原句.strip()\n切开的 = \"苹果,香蕉,橘子\".split(\",\")\n粘回去 = \"-\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.find(要找的)\n\n\ndef 倒过来(文字):\n    return 文字[::-1]\n\n\ndef 取前三个(文字):\n    return 文字[:3]\n"],
+    ["倒过来没倒", "原句 = \"  你好，世界  \"\n干净 = 原句.strip()\n切开的 = \"苹果,香蕉,橘子\".split(\",\")\n粘回去 = \"-\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.count(要找的)\n\n\ndef 倒过来(文字):\n    return 文字\n\n\ndef 取前三个(文字):\n    return 文字[:3]\n"],
+    ["取前三个取到整串", "原句 = \"  你好，世界  \"\n干净 = 原句.strip()\n切开的 = \"苹果,香蕉,橘子\".split(\",\")\n粘回去 = \"-\".join(切开的)\n\n\ndef 数一数(文字, 要找的):\n    return 文字.count(要找的)\n\n\ndef 倒过来(文字):\n    return 文字[::-1]\n\n\ndef 取前三个(文字):\n    return 文字\n"]
+  ]
+}

@@ -1,0 +1,57 @@
+Exception in thread Thread-68 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\etgya\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\etgya\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\etgya\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 145: invalid start byte
+============================================================
+  全仓逐课验收
+============================================================
+
+  ── Python ──
+    合计 : 2/2 课全过
+
+  ── 嵌入式 ──
+      01 : （无答题文件）
+    合计 : 4/4 课全过
+
+  ── 树莓派 ──
+      01 : 通过 0/4。
+    合计 : 4/5 课全过
+
+  ── AI ──
+    合计 : 5/5 课全过
+
+  ── C++ ──
+      01 : （无答题文件）
+      02 : （无答题文件）
+      03 : （无答题文件）
+      04 : （无答题文件）
+      05 : （无答题文件）
+      06 : （无答题文件）
+      07 : （无答题文件）
+      08 : （无答题文件）
+    合计 : 0/0 课全过
+
+  ── Java ──
+      01 : （无答题文件）
+      02 : （无答题文件）
+      03 : （无答题文件）
+      04 : （无答题文件）
+      05 : （无答题文件）
+      06 : （无答题文件）
+      07 : （无答题文件）
+      08 : （无答题文件）
+    合计 : 0/0 课全过
+
+============================================================
+  测试套件
+============================================================
+  === 通过 74，失败 0 ===
+
+  答题区已还原成跑之前的样子。

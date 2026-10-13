@@ -1,0 +1,29 @@
+══════════════════════════════════════════════════════════════════════
+  改过死路径的脚本：逐个真跑（只跑不会写课程文件的那批）
+══════════════════════════════════════════════════════════════════════
+  仓库根：D:\Users\etgya\Desktop\Project\引擎\HybridEngine-LearningCore
+
+  OK   _build/_mkjava.py                退出码 0       0.0s   2 行  打印类；这一条是路径修复最直接的证据
+  OK   _build/_cmp_discover.py          退出码 0       0.1s   8 行  读 Lessons/*.cs vs dotnet 的课程表
+  OK   _build/_cmp_discover2.py         退出码 0       0.1s   6 行  逐字符扫描版
+  OK   _build/_cmp_thread.py            退出码 0       0.1s  17 行  主线程 vs 后台线程
+  OK   _build/_diff_cpp.py              退出码 0       0.1s  126 行  C++ 课程表逐条比
+  OK   _build/_time_discover.py         退出码 0       0.1s  55 行  逐条计时
+  OK   _build/_cold.py                  退出码 0       0.3s  22 行  冷启动实测
+  OK   _build/_audit_drift.py           退出码 0       0.2s  17 行  四条线 drift：无写操作，只比内容
+  OK   _build/_peek_templates.py        退出码 0       2.9s  10 行  量答题模板
+  OK   _build/_peek_templates2.py       退出码 0       0.1s  12 行  清模板重建再看（答题区，非课程）
+  OK   _build/_peek_templates3.py       退出码 0       0.1s  12 行  直接调模板生成器
+  OK   _build/_gesp_reference.py        退出码 0       0.8s  15 行  35~46 用参考答案跑（写 lessons/answers/，gitignore 的答题区）
+  OK   _build/_peek2.py                 退出码 0       2.0s  258 行  GUI：语言列表树
+  OK   _build/_trace_gui.py             退出码 0       3.1s  23 行  GUI：通知原始值
+  OK   _build/_trace2.py                退出码 0       0.5s  20 行  GUI：等够久看 C 到不到
+  OK   _build/_where.py                 退出码 0       3.4s   9 行  GUI：量控件绝对坐标
+  OK   _build/_where2.py                退出码 0       3.6s   6 行  GUI：量学习界面几何
+  OK   _build/_shot.py                  退出码 0       6.3s   3 行  GUI：截图
+  OK   _build/_test_progress_gui.py     退出码 0      12.3s  17 行  GUI：进度功能（会备份/还原真实进度）
+  OK   tests/验收.py                      退出码 0     163.8s  57 行  全仓验收（会清并重建 lessons/ answers 等答题区）
+
+══════════════════════════════════════════════════════════════════════
+  == 20/20 个脚本：跑到了、退出码 0、正向信号齐全 ==
+══════════════════════════════════════════════════════════════════════

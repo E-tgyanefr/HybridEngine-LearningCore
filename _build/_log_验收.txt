@@ -1,0 +1,57 @@
+============================================================
+  全仓逐课验收
+============================================================
+
+  ── Python ──
+    合计 : 2/2 课全过
+
+  ── 嵌入式 ──
+      01 : （无答题文件）
+    合计 : 4/4 课全过
+
+  ── 树莓派 ──
+      01 : 通过 0/4。
+    合计 : 4/5 课全过
+
+  ── AI ──
+    合计 : 5/5 课全过
+
+  ── C++ ──
+      01 : 通过 1/5。
+      02 : 通过 0/5。
+      03 : 通过 0/6。
+      04 : 通过 1/6。
+      05 : 通过 1/6。
+      06 : 通过 0/5。
+      07 : 通过 2/9。
+      08 : 通过 0/4。
+    合计 : 0/8 课全过
+
+  ── Java ──
+      01 : 通过 2/6。
+      02 : 通过 0/6。
+      03 : 通过 0/7。
+      04 : 通过 1/9。
+      05 : 通过 1/6。
+      06 : 通过 1/7。
+      07 : 通过 1/7。
+      08 : 通过 2/6。
+    合计 : 0/8 课全过
+
+============================================================
+  测试套件
+============================================================
+  === 通过 74，失败 0 ===
+
+  答题区已还原成跑之前的样子。
+Exception in thread Thread-68 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\etgya\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\Users\etgya\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\etgya\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "<frozen codecs>", line 322, in decode
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xb5 in position 145: invalid start byte

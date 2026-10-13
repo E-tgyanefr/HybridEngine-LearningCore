@@ -1,0 +1,784 @@
+"""生成手机版界面（`android/app/web/index.html`）。
+
+⚠⚠ 这个脚本存在的理由 —— 三个真实教训：
+
+  ① **`web/` 是源文件，不是生成物。**
+     我原来把它和三个生成目录（python-stdlib / lib-dynload / python-app）
+     一起放进了「打完 zip 就删」的名单，而它当时**还没被 git 跟踪**
+     ⇒ 文件真的没了。真机表现是 `net::ERR_FILE_NOT_FOUND`。
+     ⇒ **「生成物」和「源文件」不能混在一个删除名单里。**
+
+  ② **页面是 Python 字符串，所以 JS 里不能写 `${…}`。**
+     第一版用 JS 模板字面量生成课程卡 —— Python 会把 `${` 后面当自己的
+     表达式求值，**生成页面时就抛**；而 "Build succeeded" 是 C# 编译的输出，
+     **不会**因此失败 ⇒ 错误被完全掩盖，真机上只看到"界面不渲染"。
+     ⇒ 这一版**全部用字符串拼接**，末尾有自检：不许出现 `${`。
+
+  ③ **手机不是小号桌面。**
+     桌面版是左右分栏（左课程列表 / 右编辑器），宽屏才放得下。
+     手机必须：**单列 · 拇指可达 · 大触控区 · 安全区适配 · 正文可长按选中**。
+
+═══ 这一版手机界面的设计约束（都是"手机才有的"）═══
+
+  · **拇指可达**：主要操作在**屏幕下半部**（底部按钮区）
+  · **触控目标 ≥ 48px**：手指不是鼠标，小按钮点不中
+  · **安全区**：刘海/挖孔/手势条用 `env(safe-area-inset-*)` 让开
+  · **单列滚动**：不做横向分栏 —— 手机上左右分栏等于两边都太窄
+  · **正文优先**：这是阅读器，顶栏要薄、且滚动时收起
+  · **不依赖网络**：数据在 `course-data.js`，`file://` 直接读
+  · **动态视口**：地址栏收放会改视口高度，用 `100dvh` 兜住
+
+⚠ **课程正文一个字都不改** —— 它由 `make_course_data.py` 从课程文件搬来。
+  这个脚本只负责**怎么显示**。
+"""
+import io
+import os
+import sys
+
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+LC = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+目标目录 = os.path.join(LC, "android", "app", "web")
+目标 = os.path.join(目标目录, "index.html")
+
+#: ⚠ 用普通字符串，**不用 f-string / .format** ——
+#:   页面里满屏是 `{` `}`（CSS 和 JS 都要），.format 会把它们当占位符。
+页面 = """<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover 是安全区适配的**前提**：没有它 env(safe-area-inset-*) 全是 0，
+     刘海和手势条会压住内容。 -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>学编程</title>
+<style>
+:root {
+  color-scheme: dark;
+  --底:#1e1f22; --面:#2b2d30; --面2:#34363a; --线:#3a3d41;
+  --字:#d6d6d6; --暗:#8a8f98; --强:#4a9eff; --好:#4ec9b0; --警示:#dcdcaa;
+  /* 手指不是鼠标：触控目标最小 48px（Material/Apple 都这么建议） */
+  --碰:48px;
+  /* 安全区：刘海、挖孔、手势条。兜底 0，没有安全区的设备也正常 */
+  --上:env(safe-area-inset-top,0px);
+  --下:env(safe-area-inset-bottom,0px);
+  --左:env(safe-area-inset-left,0px);
+  --右:env(safe-area-inset-right,0px);
+}
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { margin:0; padding:0; }
+body {
+  background:var(--底); color:var(--字);
+  font:16px/1.7 system-ui,"Noto Sans CJK SC","Source Han Sans SC",sans-serif;
+  /* 用 dvh 而不是 vh：手机地址栏收放会改视口高度，vh 会留白或把底部按钮顶出屏幕 */
+  min-height:100dvh;
+  overscroll-behavior-y:contain;
+}
+
+/* 顶栏：薄，滚动时收起（阅读器要让位给正文） */
+#顶 {
+  position:fixed; top:0; left:0; right:0; z-index:30;
+  padding:calc(var(--上) + 9px) calc(var(--右) + 14px) 9px calc(var(--左) + 14px);
+  background:linear-gradient(var(--底) 72%,transparent);
+  display:flex; align-items:center; gap:8px;
+  transition:transform .2s ease;
+}
+#顶.收起 { transform:translateY(-100%); }
+#回 {
+  width:var(--碰); height:var(--碰); flex:none;
+  display:none; place-items:center;
+  margin-left:-12px; font-size:24px; line-height:1; color:var(--字);
+  background:none; border:0; border-radius:50%;
+}
+#顶.可回 #回 { display:grid; }
+#题 { font-size:17px; font-weight:600; line-height:1.35;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#副 { font-size:12px; color:var(--暗); margin-top:1px;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+#主 { padding:calc(var(--上) + 62px) calc(var(--右) + 14px)
+            calc(var(--下) + 82px) calc(var(--左) + 14px); }
+
+/* 课程线选择：横向滚动（比竖排五个大块省地方） */
+#线条 { display:flex; gap:8px; overflow-x:auto; padding:2px 0 10px;
+        scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+#线条::-webkit-scrollbar { display:none; }
+.线钮 {
+  flex:none; min-height:40px; padding:0 16px;
+  display:flex; align-items:center;
+  background:var(--面); color:var(--暗);
+  border:1px solid var(--线); border-radius:20px;
+  font-size:14px; white-space:nowrap;
+}
+.线钮.选 { background:var(--强); color:#fff; border-color:var(--强); font-weight:600; }
+
+/* 课程列表项：整行都是触控区，高度 ≥ 64px */
+.课 {
+  min-height:64px; padding:12px 14px; margin-bottom:8px;
+  background:var(--面); border-radius:12px;
+  display:flex; align-items:center; gap:12px;
+  transition:background .15s, transform .1s;
+}
+.课:active { background:var(--面2); transform:scale(.985); }
+.号 { flex:none; width:38px; height:38px; border-radius:10px;
+      display:grid; place-items:center;
+      background:var(--底); color:var(--暗);
+      font:600 14px/1 ui-monospace,Consolas,monospace; }
+.课.读 .号 { background:#2a4a6a; color:#9fc9ff; }
+.正文块 { min-width:0; flex:1; }
+.名 { font-size:15.5px; line-height:1.4; }
+.元 { font-size:12px; color:var(--暗); margin-top:3px; }
+
+/* ══ 进度：手机判不了分，所以「读过多少」是**唯一**的进度信号 ══
+   它必须显眼、而且会动 —— 可见的进度是坚持下来的关键。 */
+#进度 { display:flex; align-items:center; gap:10px; padding:0 2px 12px; }
+#进度条外 { flex:1; height:6px; background:var(--面); border-radius:3px; overflow:hidden; }
+#进度条 { height:100%; width:0; border-radius:3px;
+          background:linear-gradient(90deg,#3d7ecc,var(--强));
+          /* 增长动画：学员刚读完一课，退回列表就能看到它长了一截 */
+          transition:width .5s cubic-bezier(.2,.8,.2,1); }
+#进度字 { flex:none; font-size:12.5px; color:var(--暗);
+          font-variant-numeric:tabular-nums; }
+
+/* 「读完」的反馈：号牌转一圈 + ✓ 弹入。
+   ⚠ 只在**刚刚读完**那一课播一次 —— 每次进列表都播会变成噪音，
+     而噪音会让人不再注意它（那这个反馈就白做了）。 */
+@keyframes 转 { from{transform:rotate(0) scale(1)} 50%{transform:rotate(180deg) scale(1.14)} to{transform:rotate(360deg) scale(1)} }
+.号.刚读 { animation:转 .5s ease; }
+@keyframes 勾 { 0%{opacity:0;transform:scale(.3)} 70%{transform:scale(1.18)} 100%{opacity:1;transform:scale(1)} }
+.勾 { display:inline-block; margin-left:6px; color:var(--好); font-weight:700;
+      animation:勾 .3s .1s ease both; }
+
+/* 正文即**等宽**排版 —— 这一条是量过数据才定的，不是随手选的。
+   ────────────────────────────────────────────────────────────
+   课程正文的排版**本来就靠缩进对齐**（那是给人看的"速查表"格式）：
+
+       0格 6723 行 · 1格 3961 · 2格 2985 · 4格 4505 · 8格 1520 · 12格 867
+
+   ⚠ 我第一版按"缩进 ≥4 格 = 代码块"给它套等宽+底色，结果**错了**：
+     实测缩进 ≥4 的行里，"像代码"7206 行、**"像散文"2940 行**。
+     例：「    怎么跑一个 Python 程序，以及 print 和它的括号引号」
+     是一句**散文**，但套上等宽大字就变成折行的怪东西。
+
+   ⇒ 正确做法：**整篇用等宽**，缩进的空格自然对齐，
+     不猜谁是代码。代价是散文也用等宽 —— 但课程作者本来就是
+     在等宽环境（编辑器注释块）里排版这份文本的，
+     换比例字体反而会把它辛苦对齐的表格拆散。
+   ⇒ 字号配 15px：等宽比比例字体显宽，15px 能在 1080 宽屏上放约 40 个汉字，
+     不至于频繁折行。 */
+#文 { font-size:15px; line-height:1.78;
+      font-family:ui-monospace,Consolas,"Noto Sans Mono",
+                  "Noto Sans CJK SC","Source Han Sans SC",monospace; }
+.分节 { margin:20px 0 8px; padding-top:12px;
+        border-top:1px solid var(--线);
+        font-size:15.5px; font-weight:700; color:var(--强);
+        font-family:system-ui,"Noto Sans CJK SC",sans-serif; }
+/* ⚠ 行首**不 trim**、保留缩进（white-space:pre-wrap 才有这个效果）——
+   那正是正文的对齐方式。折行用 pre-wrap 自带的软换行。 */
+.段 { margin:0; white-space:pre-wrap; word-break:break-word; }
+/* 带 ⚠ 的行是"这一课要记住的坑" —— 这些是**作者刻意标出的**，
+   单独框出来，别让它淹在正文里 */
+.坑 { margin:10px 0; padding:9px 11px;
+      background:#2e2c22; border-left:3px solid var(--警示); border-radius:6px;
+      color:#e8e2c0;
+      font-family:system-ui,"Noto Sans CJK SC",sans-serif; font-size:15px; }
+#文 b { color:#fff; font-weight:700; }
+
+/* 答案块：左边绿色条区别于正文；**默认不展开**（见下面的确认门） */
+#答 { margin:10px 0 0; padding:12px 13px; border-radius:10px;
+      background:#23262b; border-left:3px solid var(--好);
+      font:14px/1.75 ui-monospace,Consolas,"Noto Sans Mono",monospace;
+      white-space:pre-wrap; word-break:break-word; color:#cfd6dd; }
+.看答案 { width:100%; min-height:var(--碰); margin-top:12px;
+          display:flex; align-items:center; justify-content:center;
+          background:var(--面); color:var(--字);
+          border:1px solid var(--线); border-radius:12px; font-size:15px; }
+.看答案:active { background:var(--面2); }
+/* 确认门：一眼看出这是「先自己写」的提醒，而不是普通提示 */
+.门 { margin-top:12px; padding:13px 14px; border-radius:10px;
+      background:#2e2c22; border-left:3px solid var(--警示); color:#e8e2c0;
+      font-size:14.5px; line-height:1.7; }
+.门 .两钮 { display:flex; gap:10px; margin-top:11px; }
+.门 button { flex:1; min-height:var(--碰); border-radius:10px; font-size:15px;
+             border:1px solid var(--线); background:var(--面); color:var(--字); }
+.门 button.主 { background:var(--好); color:#10231f; border-color:var(--好);
+                font-weight:700; }
+
+/* ══ 答题区：手机上**能写**，存在本机（localStorage）══
+   ⚠ 为什么不写到文件：安卓上 WebView 的 file:// 页面不能随便写磁盘，
+     而走桥要 Java 侧配合 —— 先用 localStorage，零权限、够用。
+     （桌面版的答案文件在电脑上，这边是"先在手机上写下来"。） */
+#写 { width:100%; min-height:200px; margin-top:6px;
+      padding:12px 13px; border-radius:10px;
+      background:#17181a; color:#e6e6e6;
+      border:1px solid var(--线);
+      font:14px/1.65 ui-monospace,Consolas,"Noto Sans Mono",monospace;
+      resize:vertical; tab-size:4; }
+#写:focus { outline:none; border-color:var(--强); }
+.写条 { display:flex; align-items:center; gap:8px; margin-top:8px;
+        font-size:12.5px; color:var(--暗); }
+.写条 .活 { color:var(--好); }
+.小钮 { min-height:36px; padding:0 13px; border-radius:9px; font-size:13.5px;
+        background:var(--面2); color:var(--字); border:1px solid var(--线); }
+.小钮:active { background:var(--强); color:#fff; border-color:var(--强); }
+.小钮.成 { background:var(--好); color:#10231f; border-color:var(--好);
+           font-weight:700; }
+
+/* 底部：**拇指区**。主操作放这里，不放顶部 */
+#底 {
+  position:fixed; left:0; right:0; bottom:0; z-index:30;
+  padding:8px calc(var(--右) + 12px) calc(var(--下) + 8px) calc(var(--左) + 12px);
+  background:linear-gradient(transparent,var(--底) 34%);
+}
+.主钮 {
+  width:100%; min-height:52px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--强); color:#fff; border:0; border-radius:14px;
+  font-size:16.5px; font-weight:600;
+  transition:transform .1s,opacity .15s;
+}
+.主钮:active { transform:scale(.97); opacity:.9; }
+.主钮[disabled] { opacity:.45; }
+
+.提示 { padding:12px 14px; margin-bottom:12px;
+        background:#2e2c22; border-left:3px solid var(--警示); border-radius:8px;
+        font-size:14px; line-height:1.7; color:#e8e2c0; }
+.说明 { color:var(--暗); font-size:13px; line-height:1.7; }
+
+/* 动画：都要短、都要能被打断。
+   刻意全部 ≤ 240ms —— 手机上的动画一超过 300ms 就开始"拖"，
+   而这是教学应用，学员等的是内容不是特效。
+   prefers-reduced-motion 要尊重：有些人不适动画。 */
+@keyframes 淡入 { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.进 { animation:淡入 .2s ease both; }
+@keyframes 弹 { 0%{transform:scale(.92)} 60%{transform:scale(1.02)} 100%{transform:scale(1)} }
+.弹 { animation:弹 .22s ease both; }
+@media (prefers-reduced-motion:reduce) {
+  * { animation:none !important; transition:none !important; }
+}
+</style>
+</head>
+<body>
+
+<div id="顶">
+  <button id="回" aria-label="返回">&#8249;</button>
+  <div style="min-width:0;flex:1">
+    <div id="题">学编程</div>
+    <div id="副"></div>
+  </div>
+</div>
+
+<div id="主"></div>
+
+<div id="底"><button class="主钮" id="行动">开始</button></div>
+
+<script src="course-data.js"></script>
+<script>
+// 先把错误显示出来 —— 否则 JS 一抛，页面就停在初始状态，
+// 看起来像「卡住了」，其实是在报错。真机调试时这省两轮往返。
+window.onerror = function (m, u, l) {
+  window.最后一个错 = m + "@" + l;
+  var e = document.getElementById("主");
+  if (e) e.innerHTML = '<div class="提示">✗ 页面脚本报错<br>' + m + '<br>（第 ' + l + ' 行）</div>';
+  return false;
+};
+
+(function () {
+  "use strict";
+
+  var 主 = document.getElementById("主"),
+      顶 = document.getElementById("顶"),
+      题 = document.getElementById("题"),
+      副 = document.getElementById("副"),
+      回 = document.getElementById("回"),
+      行动 = document.getElementById("行动");
+
+  // ⚠⚠ **自检通道**：把页面状态写进 「document.title」，宿主（adb）读得到。
+  //   为什么需要：真机上我看不见 DOM，只能看截图 —— 于是"进度条没显示"
+  //   这种问题只能靠猜（我为此绕了好几轮）。有了这条通道，
+  //   「adb shell dumpsys」 或宿主日志就能直接读到：
+  //     有几个课程行 / 进度条在不在 / localStorage 里记了几课 / 有没有 JS 报错
+  //   ⚠ URL 上加 「?自检=1」 才启用 —— 正常使用时不改标题（标题是给用户看的）。
+  window.自检 = function () {
+    var 行数 = 主.querySelectorAll(".课").length;
+    var 有进度 = !!主.querySelector("#进度");
+    var 条宽 = "";
+    var 条 = 主.querySelector("#进度条");
+    if (条) 条宽 = 条.style.width || "(空)";
+    var 记住 = 0;
+    try { 记住 = Object.keys(JSON.parse(localStorage.getItem(键) || "{}")).length; }
+    catch (e) { 记住 = -1; }
+    return "行=" + 行数 + " 进度=" + (有进度 ? "有" : "无") +
+           " 宽=" + 条宽 + " 记=" + 记住 + " 视图=" + 视图 +
+           " 线=" + 当前线 + " 错=" + (window.最后一个错 || "无");
+  };
+  window.最后一个错 = null;
+
+  if (typeof courseData === "undefined" || !courseData.length) {
+    主.innerHTML = '<div class="提示">✗ 没有读到课程数据（course-data.js）</div>';
+    return;
+  }
+
+  // 进度只存本地（localStorage）。手机版判不了分，所以"读过没读过"
+  // 是唯一的进度信号 —— 这个信号必须可靠，所以存在设备上、不上传、不靠网络。
+  var 键 = "hel-读过";
+  var 读过 = {};
+  try { 读过 = JSON.parse(localStorage.getItem(键) || "{}") || {}; } catch (e) { 读过 = {}; }
+  var 刚读 = null;                 // 刚读完那一课（用来只播一次反馈动画）
+  function 记读(k) {
+    if (读过[k]) return false;
+    读过[k] = 1;
+    刚读 = k;
+    try { localStorage.setItem(键, JSON.stringify(读过)); } catch (e) {}
+    return true;
+  }
+  // ⚠ 防"一路狂滑到底"：手机判不了分，"读过"是唯一的进度信号，
+  //   所以它至少该表示"真的看过一会儿"，而不是"手指划过"。
+  //   做法：进课程页后**停留够久**才记读过；滑动不算。
+  //   阈值取 8 秒 —— 比最短的一课（约 3 分钟）短得多，
+  //   正常读一定会超过；而狂滑一定不到。
+  var 停留计时 = null;
+  function 开始计时(k) {
+    if (停留计时) clearTimeout(停留计时);
+    停留计时 = setTimeout(function () {
+      停留计时 = null;
+      if (视图 === "课" && 当前课 && id(当前课) === k) 记读(k);
+    }, 8000);
+  }
+  function 停掉计时() {
+    if (停留计时) { clearTimeout(停留计时); 停留计时 = null; }
+  }
+
+  // ── 草稿（手机上写的东西）────────────────────────────────────────
+  //  ⚠ 和"读过"分开存：读过是进度，草稿是内容。
+  //    混在一起的话，清进度会把学员写的东西一起清掉。
+  var 草稿键 = "hel-草稿";
+  var 草稿 = {};
+  try { 草稿 = JSON.parse(localStorage.getItem(草稿键) || "{}") || {}; }
+  catch (e) { 草稿 = {}; }
+
+  var 线们 = [], i;
+  for (i = 0; i < courseData.length; i++) {
+    if (线们.indexOf(courseData[i].线) < 0) 线们.push(courseData[i].线);
+  }
+  var 当前线 = 线们[0], 视图 = "列表", 当前课 = null, 上个滚动 = 0;
+
+  function 线课(名) {
+    var 出 = [], k;
+    for (k = 0; k < courseData.length; k++) {
+      if (courseData[k].线 === 名) 出.push(courseData[k]);
+    }
+    return 出;
+  }
+  function id(c) { return c.线 + c.编; }
+  function 转义(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // 顶栏跟着滚动收起。手机上垂直空间最贵，读正文时收掉能多出两行。
+  // 但**往回滚要立刻放出来** —— 不然用户找不到返回键。
+  window.addEventListener("scroll", function () {
+    var y = window.scrollY || 0;
+    if (y > 上个滚动 && y > 60) 顶.classList.add("收起");
+    else 顶.classList.remove("收起");
+    上个滚动 = y;
+  }, { passive: true });
+
+  function 画列表() {
+    视图 = "列表";
+    顶.classList.remove("可回", "收起");
+    题.textContent = "学编程";
+    var 本线 = 线课(当前线), 过 = 0, k;
+    for (k = 0; k < 本线.length; k++) { if (读过[id(本线[k])]) 过++; }
+    副.textContent = 本线.length + " 课 · 读过 " + 过 + " 课";
+
+    var 百分 = 本线.length ? Math.round(过 * 100 / 本线.length) : 0;
+    var h = [];
+    // ⚠ 进度条放在**课程线选择下面、提示上面** —— 这是列表页最显眼的位置，
+    //   而且它每次从课程页回来都会"长一截"，那个增长本身就是奖励。
+    h.push('<div id="进度"><div id="进度条外"><div id="进度条" style="width:' + 百分 +
+           '%"></div></div><div id="进度字">' + 过 + '/' + 本线.length +
+           ' · ' + 百分 + '%</div></div>');
+    h.push('<div id="线条">');
+    for (k = 0; k < 线们.length; k++) {
+      h.push('<button class="线钮' + (线们[k] === 当前线 ? ' 选' : '') +
+             '" data-线="' + 转义(线们[k]) + '">' + 转义(线们[k]) + '</button>');
+    }
+    h.push('</div>');
+
+    // 手机上判不了分这件事**要说在前面**，不能等学员写完才发现。
+    // 依据：PEP 738 说安卓只允许执行系统目录里的可执行文件，
+    // 而那些目录运行时不可写 ⇒ 真编译真运行做不到。
+    h.push('<div class="提示">手机上<b>只能读课程和看要求</b>，判不了分 —— ' +
+           '判分要把你写的代码真编译真运行，而安卓不允许。<br>' +
+           '要判分请用电脑版（Windows / Linux）。</div>');
+
+    for (k = 0; k < 本线.length; k++) {
+      var c = 本线[k];
+      var 已 = 读过[id(c)];
+      var 是刚读 = (刚读 === id(c));
+      var 勾 = (已 && 是刚读) ? '<span class="勾">✓</span>' : '';
+      h.push('<div class="课' + (已 ? ' 读' : '') + ' 进" data-课="' + k +
+             '" style="animation-delay:' + (是刚读 ? 0 : Math.min(k * 12, 150)) + 'ms">' +
+             '<div class="号' + (是刚读 ? ' 刚读' : '') + '">' + 转义(c.编) + '</div>' +
+             '<div class="正文块"><div class="名">' + 转义(c.题) + 勾 + '</div>' +
+             '<div class="元">' + c.分 + ' 分钟 · ' + 转义(c.覆盖) + '</div></div></div>');
+    }
+    主.innerHTML = h.join("");
+    刚读 = null;                    // 只播一次：下一次进列表就是普通状态
+    行动.textContent = "从第 00 课开始读";
+    行动.disabled = false;
+    window.scrollTo(0, 0);
+  }
+
+  function 画课(k) {
+    视图 = "课";
+    当前课 = 线课(当前线)[k];
+    压历史();                       // ⚠ 每次进课程都压 —— 返回键才吃得住
+    开始计时(id(当前课));          // ⚠ 不在这里记读 —— 停留够久才算（见上）
+    顶.classList.add("可回");
+    // ⚠ 顶栏要**立刻**更新，而不是等下一帧 —— 实测过：
+    //   不显式设置的话，截图里顶栏还停在上一个视图的标题上，
+    //   看着像"点了没反应"。
+    题.textContent = 当前课.编 + "  " + 当前课.题;
+    副.textContent = 当前课.线 + " · 约 " + 当前课.分 + " 分钟";
+    行动.disabled = false;
+
+    // 正文按行渲染。
+    //
+    // ⚠⚠ **别按缩进猜"这是代码"** —— 量过数据才知道不行：
+    //   缩进 ≥4 的行里，"像代码"7206 行、**"像散文"2940 行**
+    //   （例：「    怎么跑一个 Python 程序，以及 print 和它的括号引号」）。
+    //   所以正文整体用等宽字体（CSS 里的 #文），缩进的空格自然对齐，
+    //   渲染这边**只做两件事**：
+    //     · 「---」 ⇒ 分节线（作者用它分段）
+    //     · 行首是 ⚠ ⇒ 单独框出来（作者刻意标出的"要记住的坑"）
+    //   ⚠ 两件事都**只改呈现，不改文字**。
+    var 行 = 当前课.文.split("\\n");
+    var h = ['<div id="文">'], j;
+    for (j = 0; j < 行.length; j++) {
+      var 身 = 行[j].replace(/\\s+$/, "");
+      var 内 = 身.replace(/^\\s+/, "");
+      if (!内) { h.push('<div style="height:6px"></div>'); continue; }
+      if (内 === "---") { h.push('<div class="分节"></div>'); continue; }
+      if (内.charAt(0) === "⚠") {
+        //: 坑：保留原缩进的样子，但用框和比例字体让人一眼看到
+        h.push('<div class="坑">' +
+               转义(内).replace(/\\*\\*(.+?)\\*\\*/g, "<b>$1</b>") + '</div>');
+        continue;
+      }
+      h.push('<div class="段">' +
+             转义(身).replace(/\\*\\*(.+?)\\*\\*/g, "<b>$1</b>") + '</div>');
+    }
+    h.push("</div>");
+
+    // 要求单列一块（正文里切出来的，一字未改）
+    if (当前课.要) {
+      h.push('<div class="分节">要做的事</div>');
+      var 要行 = 当前课.要.split("\\n");
+      for (j = 0; j < 要行.length; j++) {
+        if (!要行[j].trim()) continue;
+        h.push('<div class="段">' + 转义(要行[j]) + '</div>');
+      }
+    }
+    // ⚠⚠ **看答案必须先过一道确认门**。
+    //   桌面端就是这么做的（「learn_gui.py」：
+    //   「抄一遍不如写错一遍学得多 —— 确定要看吗？」），手机版照搬这个态度：
+    //   **答案不是不让看，是别一上来就看。**
+    //   ⚠ 实测过的理由：直接给按钮的话，学员会先点答案再倒推 —— 那样学到的最少。
+    // ══ 答题区：手机上**能写** ══════════════════════════════════════
+    //  ⚠ 手机判不了分（PEP 738：安卓不允许执行应用自己的可执行文件），
+    //    但"能写下来"本身有价值 —— 学员在手机上读、在手机上写，
+    //    回到电脑再粘进答题文件检查。
+    //  ⚠ 存 localStorage（零权限、不联网）。键按"线+课号"分开。
+    h.push('<div class="分节">在手机上写下来</div>');
+    // ⚠⚠ placeholder 里**不要写换行转义** —— 这条是踩出来的：
+    //   模板里 JS 的转义要穿两层（Python 字符串 → 生成的 JS），
+    //   我实测写错了，生成的 JS 在**字符串中间真的断了行** ⇒
+    //   整段脚本解析失败 ⇒ **页面全白，而且连 window.onerror 都不触发**
+    //   （语法错误发生在解析期，而 onerror 是运行期的）。
+    //   症状看起来像"应用崩了"，我为此白查了一轮。
+    //   ⇒ 现在末尾有 node --check 自检挡这件事（比装机看截图快得多）。
+    // ⚠⚠ 另外：**JS 里不要用反引号**，注释里也不行 ——
+    //   它是模板字面量的定界符，一个落单的反引号会开一个跨多行的
+    //   模板字符串去吞后面的代码，而报错指向的是别的地方。
+    h.push('<textarea id="写" spellcheck="false" autocapitalize="off" ' +
+           'autocorrect="off" placeholder="在这里写这一课的代码（手机上判不了分，' +
+           '写下来是给你自己留的；回到电脑可以粘进答题文件）">' +
+           '</textarea>');
+    h.push('<div class="写条"><span id="写况"></span>' +
+           '<button class="小钮" data-做="分享" style="margin-left:auto">' +
+           '发到电脑</button></div>');
+
+    if (当前课.答) h.push('<div id="答位"></div>');
+    h.push('<div style="height:18px"></div>');
+    h.push('<div class="说明">手机上判不了分。要判分请用电脑版：把这一课照着' +
+           '写进电脑上的答题文件，再跑「检查」。</div>');
+
+    主.innerHTML = h.join("");
+
+    var 本 = 线课(当前线);
+    // ⚠ 按钮上带进度：学员随时知道"我在 55 课里的第几课" ——
+    //   比单独一个"下一课"有方向感得多。
+    行动.textContent = (k + 1 < 本.length)
+      ? "下一课 · " + (k + 1) + "/" + 本.length
+      : "读完这一课，回到列表";
+    行动.disabled = false;
+    // ⚠ 草稿要在**画完 DOM 之后**再灌进去 —— 先设 value 再插进文档，
+    //   textarea 的内容会丢（实测过的坑：插进去是空的）。
+    var 写框 = document.getElementById("写");
+    if (写框) {
+      var 号 = id(当前课);
+      写框.value = 草稿[号] || "";
+      var 况 = document.getElementById("写况");
+      function 报况(s) { if (况) 况.textContent = s; }
+      function 存() {
+        草稿[号] = 写框.value;
+        try { localStorage.setItem(草稿键, JSON.stringify(草稿)); } catch (e) {}
+      }
+      //: ⚠ 边写边存（input 事件），不要等"保存"按钮 ——
+      //  手机随时可能被切走/杀掉，等按钮就丢了。
+      // ⚠⚠ **Tab 键要能按出 4 个空格** —— 手机键盘上 Tab 默认是"下一个
+      //   输入框"，而 Python 的缩进就是语法的一部分，按不出缩进就没法写。
+      //   ⚠ 顺带处理**多行缩进**（选中几行按 Tab，整块缩进）——
+      //     这在手机上尤其重要：一行行按太痛苦了。
+      写框.addEventListener("keydown", function (ev) {
+        if (ev.key !== "Tab") return;
+        ev.preventDefault();                 //: 别让焦点跳走
+        var s = 写框.selectionStart, e2 = 写框.selectionEnd, v = 写框.value;
+        if (s === e2) {                      //: 没选东西 ⇒ 插入 4 空格
+          写框.value = v.slice(0, s) + "    " + v.slice(e2);
+          写框.selectionStart = 写框.selectionEnd = s + 4;
+        } else {                             //: 选了 ⇒ 整块缩进/反缩进
+          //: ⚠⚠ 这里必须写成**两个字符**的反斜杠+n（JS 的转义），
+          //:   不能是真换行 —— 否则 JS 字符串在中间断开、整页白屏。
+          //:   我在这上面栽了三次，所以现在末尾有 node --check 挡它。
+          var 头 = v.lastIndexOf("\\n", s - 1) + 1;
+          var 块 = v.slice(头, e2);
+          var 新块 = ev.shiftKey
+            ? 块.replace(/^ {1,4}/gm, "")
+            : 块.replace(/^/gm, "    ");
+          写框.value = v.slice(0, 头) + 新块 + v.slice(e2);
+          写框.selectionStart = 头;
+          写框.selectionEnd = 头 + 新块.length;
+        }
+        存();
+        var n2 = 写框.value.length;
+        报况(n2 ? ("已存在本机 · " + n2 + " 字") : "");
+      });
+
+      写框.addEventListener("input", function () {
+        存();
+        var n = 写框.value.length;
+        报况(n ? ("已存在本机 · " + n + " 字") : "");
+      });
+      存();
+      var n0 = (草稿[号] || "").length;
+      报况(n0 ? ("已存在本机 · " + n0 + " 字") : "写下来会存在本机，不会丢");
+    }
+
+    //: 看答案的入口按钮（点它才弹确认门）
+    var 答位0 = document.getElementById("答位");
+    if (答位0) 答位0.innerHTML =
+      '<button class="看答案" data-做="问答案">看参考答案</button>';
+    // ⚠ 「window.scrollTo(0,0)」 在部分机型的 WebView 上不生效
+    //   （实测：点进课程后停在上一屏的位置）⇒ 两种都设一遍。
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+
+  // 用**一个委托**监听，不给每个元素挂 —— 手机上列表有 55 行，
+  // 逐个挂监听在低端机上是能感觉出来的。
+  主.addEventListener("click", function (ev) {
+    var t = ev.target;
+    while (t && t !== 主) {
+      if (t.dataset && t.dataset.线) { 当前线 = t.dataset.线; 画列表(); return; }
+      if (t.dataset && t.dataset.课 !== undefined) {
+        画课(parseInt(t.dataset.课, 10)); return;
+      }
+      if (t.dataset && t.dataset.做 === "分享") {
+        // ⚠⚠ 走**原生分享**（安卓的 Intent.ACTION_SEND），不走剪贴板。
+        //   剪贴板那条路在这个 .NET 绑定上卡了三次（详见 JsBridge.cs 的记录），
+        //   而分享对"手机 → 电脑"这个真实需求**还更合适** ——
+        //   系统面板里微信 / QQ / 邮件 / 笔记 / 蓝牙都能直接用，
+        //   而剪贴板只在本机有效，跨设备还得再找地方粘一次。
+        // ⚠ 默认发**草稿**；带了 data-源="答案" 就发参考答案。
+        //   两个入口共用一个处理器，靠这个属性分辨。
+        var 文;
+        if (t.dataset.源 === "答案") {
+          文 = 当前课 ? 当前课.答 : "";
+          if (!文) { alert("这一课没有参考答案。"); return; }
+        } else {
+          var 框 = document.getElementById("写");
+          文 = 框 ? 框.value : "";
+          if (!文.trim()) { alert("还没写东西。"); return; }
+        }
+        var 结 = "没成功";
+        try {
+          if (桥 && 桥.分享) {
+            var r = JSON.parse(桥.分享(文, 当前课.编 + " " + 当前课.题));
+            //: ⚠ 文案说"已打开分享面板"，不说"已发送" ——
+            //:   面板打开之后发不发是用户的事，我验不了。
+            结 = r.ok ? "已打开分享面板" : ("失败：" + r.错);
+          } else {
+            结 = "这台设备不支持";
+          }
+        } catch (e) { 结 = "失败：" + e; }
+        var 钮 = t;
+        var 旧字 = 钮.textContent;
+        钮.textContent = 结;
+        钮.classList.add("成");
+        setTimeout(function () {
+          钮.textContent = 旧字;
+          钮.classList.remove("成");
+        }, 2200);
+        return;
+      }
+      if (t.dataset && t.dataset.做 === "问答案") {
+        var 位 = document.getElementById("答位");     // 第一道门：先提醒
+        if (位) 位.innerHTML =
+          '<div class="门">参考答案会直接给答案。' +
+          '抄一遍不如写错一遍学得多 —— 确定要看吗？' +
+          '<div class="两钮"><button data-做="算了">先自己写</button>' +
+          '<button class="主" data-做="看答案">看答案</button></div></div>';
+        return;
+      }
+      if (t.dataset && t.dataset.做 === "算了") {
+        var 位2 = document.getElementById("答位");
+        if (位2) 位2.innerHTML =
+          '<button class="看答案" data-做="问答案">看参考答案</button>';
+        return;
+      }
+      if (t.dataset && t.dataset.做 === "看答案") {
+        var 位3 = document.getElementById("答位");
+        // ⚠ 答案也给一个"发到电脑" —— 学员看完答案想照着抄时，
+        //   把答案发到自己电脑上比在手机上对着抄舒服得多。
+        //   ⚠ 复用同一个 data-做="分享"，但分享的是**答案**不是草稿 ——
+        //     所以在按钮上带一个 data-源="答案" 让事件处理器分辨。
+        if (位3) 位3.innerHTML = '<div id="答">' + 转义(当前课.答) + '</div>' +
+          '<div style="display:flex;gap:8px;margin-top:10px">' +
+          '<button class="看答案" style="margin-top:0" data-做="问答案">收起</button>' +
+          '<button class="看答案" style="margin-top:0" data-做="分享" ' +
+          'data-源="答案">答案发到电脑</button></div>';
+        return;
+      }
+      t = t.parentNode;
+    }
+  });
+
+  // ⚠⚠ 顶栏这个 「‹」 **不走 history.back()** —— 直接回列表。
+  //
+  //   为什么：真机上试过三种"靠安卓返回键/历史栈"的办法，**全部失效**
+  //   （详见下面 popstate 那段的长注释）。而这个是**纯 JS 内部导航**，
+  //   不依赖任何宿主行为 —— 它一定能用。
+  //   ⇒ 返回键那条路留给系统默认（退出应用），但这个按钮保证学员
+  //     永远能回到列表。
+  回.addEventListener("click", function () {
+    停掉计时();
+    画列表();
+  });
+
+  行动.addEventListener("click", function () {
+    if (视图 === "列表") { 画课(0); return; }
+    var 本 = 线课(当前线), k = 本.indexOf(当前课);
+    if (k + 1 < 本.length) 画课(k + 1); else 画列表();
+  });
+
+  // ⚠⚠ 安卓返回键：默认会**退出应用**，而学员想的是"回到列表"。
+  //
+  //   试过并**失败**的两种：
+  //     ① 只 「history.pushState」 一次 + 「popstate」 里回列表
+  //        —— 实测按返回**直接退出应用**
+  //     ② Android 侧 「OnBackPressed」 里 「evaluateJavascript」 问网页，
+  //        用 「document.title」 当同步信箱
+  //        —— 实测**还是退出**（异步回调赶不上"这一帧退不退"的决定）
+  //
+  //   ⇒ 现在这一版：**进课程页压一条历史**，在 「popstate」 里回列表。
+  //     关键差别是"每次进课程都压"（而不是只在启动时压一次）——
+  //     这样历史栈里**永远有一条可以回退的记录**，返回键就被它吃掉了。
+  //   ⚠ 另外顶栏那个 「‹」 按钮也走同一条路（「history.back()」），
+  //     所以两条路行为一致。
+  function 压历史() {
+    try { history.pushState({ v: (history.state && history.state.v || 0) + 1 }, ""); }
+    catch (e) {}
+  }
+  window.addEventListener("popstate", function () {
+    停掉计时();
+    if (视图 === "课") 画列表();
+  });
+
+  画列表();
+
+  // ⚠ 自检模式：把状态写进标题，宿主读得到。
+  //   真机调试时我看不见 DOM，这条通道比截图快得多。
+  // ⚠⚠ 标题里**必须带一个每帧都变的东西**（这里用秒计数）。
+  //   实测踩到：「OnReceivedTitle」 **只在标题真的变了时才回调** ——
+  //   自检每秒产出**同样的字符串**，于是宿主再也收不到更新，
+  //   我看到的一直是**卡住的旧值**（还以为点击没生效，白绕一轮）。
+  //   ⇒ 加个计数器，强制它每次都变。
+  var 帧 = 0;
+  if (String(location.search).indexOf("%E8%87%AA%E6%A3%80") >= 0 ||
+      String(location.search).indexOf("自检") >= 0 ||
+      String(location.search).indexOf("check") >= 0) {
+    setInterval(function () {
+      帧++;
+      document.title = "#" + 帧 + " " + window.自检();
+    }, 1000);
+  }
+})();
+</script>
+</body>
+</html>
+"""
+
+os.makedirs(目标目录, exist_ok=True)
+io.open(目标, "w", encoding="utf-8", newline="\n").write(页面)
+
+文 = io.open(目标, encoding="utf-8").read()
+print("  写了 %s（%d 字节）" % (目标, len(文.encode("utf-8"))))
+if "${" in 文:
+    print("  XX 页面里还有 ${ —— 会被 Python 吃掉，必须去掉")
+    sys.exit(1)
+print("  自检：页面里没有 ${       OK")
+print("  自检：引了 course-data.js  %s"
+      % ("OK" if 'src="course-data.js"' in 文 else "**缺**"))
+print("  自检：有安全区适配        %s"
+      % ("OK" if "env(safe-area-inset" in 文 else "**缺**"))
+
+#: ⚠⚠ **内联 JS 里不许出现反引号**。
+#:   它是模板字面量的定界符 —— 一个落单的反引号会开一个跨多行的模板字符串
+#:   去吞后面的代码，而报错指向的是**别处**。实测栽过：
+#:   报错指着一行无关的 `window.scrollTo`，真凶在 40 行前的一条注释里。
+#:   ⇒ 直接禁掉，比事后查便宜得多。
+_i = 文.find("<script>", 文.find("course-data.js"))
+_j = 文.rfind("</script>")
+if _i >= 0 and _j > _i:
+    _js = 文[_i + 8:_j]
+    if "`" in _js:
+        print("  XX 内联 JS 里有反引号 —— 注释里也不行（见脚本里的说明）")
+        sys.exit(1)
+    print("  自检：JS 里没有反引号     OK")
+
+#: ⚠⚠ **用 node 查一遍内联 JS 的语法**。
+#:   为什么必须查：模板里 JS 的转义要穿两层（Python 字符串 → 生成的 JS），
+#:   我实测就栽在这上面 —— 「\\n」 没穿透，生成的 JS 在**字符串中间断了行**，
+#:   整段脚本解析失败 ⇒ 页面空白、**连 window.onerror 都不触发**
+#:   （语法错误发生在解析期），症状看起来像"应用崩了"。
+#:   一行 「node --check」 就能挡掉，比装机看截图快得多。
+import subprocess as _sp, tempfile as _tf
+_i = 文.rfind("<script>"); _j = 文.rfind("</script>")
+if _i >= 0 and _j > _i:
+    _js = 文[_i + 8:_j]
+    _f = os.path.join(_tf.gettempdir(), "hel_chk.js")
+    io.open(_f, "w", encoding="utf-8", newline="\n").write(_js)
+    try:
+        _r = _sp.run(["node", "--check", _f], capture_output=True, text=True,
+                     encoding="utf-8", errors="replace", timeout=60)
+        if _r.returncode == 0:
+            print("  自检：内联 JS 语法      OK（node --check）")
+        else:
+            print("  XX 内联 JS 语法错了 —— 页面会是空白，且不会触发 onerror：")
+            print("     " + (_r.stderr or "").strip().split("\n")[-3:][0])
+            sys.exit(1)
+    except FileNotFoundError:
+        print("  ⚠ 自检：没装 node，跳过 JS 语法检查")

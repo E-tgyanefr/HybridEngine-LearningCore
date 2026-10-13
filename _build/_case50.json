@@ -1,0 +1,25 @@
+{
+ "对": "\"\"\"第 50 课参考答案 —— 泛洪与哈希。\"\"\"\n\n\ndef 数岛屿(网格):\n    行数 = len(网格)\n    列数 = len(网格[0]) if 行数 else 0\n    见过 = set()\n\n    def 灌(r, c):\n        # ⚠ 先问界，再问色 —— 反过来就读到网格外面去了\n        if not (0 <= r < 行数 and 0 <= c < 列数):\n            return\n        if 网格[r][c] != 1 or (r, c) in 见过:\n            return\n        见过.add((r, c))\n        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):       # 只有上下左右\n            灌(r + dr, c + dc)\n\n    块 = 0\n    for r in range(行数):\n        for c in range(列数):\n            if 网格[r][c] == 1 and (r, c) not in 见过:\n                块 += 1\n                灌(r, c)\n    return 块\n\n\ndef 染色面积(网格, 行, 列):\n    行数 = len(网格)\n    列数 = len(网格[0]) if 行数 else 0\n    if not (0 <= 行 < 行数 and 0 <= 列 < 列数):\n        return 0                        # 起点越界：面积就是 0，不能崩\n    颜色 = 网格[行][列]\n    见过 = set()\n    栈 = [(行, 列)]\n    while 栈:\n        r, c = 栈.pop()\n        if not (0 <= r < 行数 and 0 <= c < 列数) or (r, c) in 见过:\n            continue\n        if 网格[r][c] != 颜色:\n            continue\n        见过.add((r, c))\n        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n            栈.append((r + dr, c + dc))\n    return len(见过)\n\n\ndef 第一个重复的(列表):\n    见过 = set()                        # 集合的 in 是 O(1)，整体才是 O(n)\n    for 数 in 列表:\n        if 数 in 见过:\n            return 数\n        见过.add(数)\n    return None\n\n\ndef 桶分布(键们, 表长):\n    桶 = [[] for _ in range(表长)]      # ⚠ 空桶也要开出来，别只建有键的那些\n    for 键 in 键们:\n        桶[键 % 表长].append(键)\n    return 桶\n",
+ "错": [
+  [
+   "斜着也算连通",
+   "\"\"\"错答案：把斜着的四个方向也算成连通了。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"50\", \"对.py\"), encoding=\"utf-8\").read())\n\n八方 = ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1))\n\n\ndef 数岛屿(网格):\n    行数 = len(网格)\n    列数 = len(网格[0]) if 行数 else 0\n    见过 = set()\n\n    def 灌(r, c):\n        if not (0 <= r < 行数 and 0 <= c < 列数):\n            return\n        if 网格[r][c] != 1 or (r, c) in 见过:\n            return\n        见过.add((r, c))\n        for dr, dc in 八方:             # ❌ 对角不算连通\n            灌(r + dr, c + dc)\n\n    块 = 0\n    for r in range(行数):\n        for c in range(列数):\n            if 网格[r][c] == 1 and (r, c) not in 见过:\n                块 += 1\n                灌(r, c)\n    return 块\n"
+  ],
+  [
+   "染色不判界",
+   "\"\"\"错答案：染色时不判起点的界，越界直接崩。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"50\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 染色面积(网格, 行, 列):\n    行数 = len(网格)\n    列数 = len(网格[0]) if 行数 else 0\n    颜色 = 网格[行][列]                 # ❌ 没判界就读\n    见过 = set()\n    栈 = [(行, 列)]\n    while 栈:\n        r, c = 栈.pop()\n        if not (0 <= r < 行数 and 0 <= c < 列数) or (r, c) in 见过:\n            continue\n        if 网格[r][c] != 颜色:\n            continue\n        见过.add((r, c))\n        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n            栈.append((r + dr, c + dc))\n    return len(见过)\n"
+  ],
+  [
+   "桶用整除",
+   "\"\"\"错答案：桶位置用了整除 //，而且只建有键的桶。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"50\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 桶分布(键们, 表长):\n    桶 = []\n    for 键 in 键们:\n        桶.append(键 // 表长)           # ❌ 哈希取的是余数 %，不是商 //\n    return 桶\n"
+  ],
+  [
+   "泛洪不标记",
+   "\"\"\"错答案：泛洪时忘了标记「见过」，同一块被数好几次。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"50\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 数岛屿(网格):\n    行数 = len(网格)\n    列数 = len(网格[0]) if 行数 else 0\n\n    def 灌(r, c):\n        if not (0 <= r < 行数 and 0 <= c < 列数):\n            return\n        if 网格[r][c] != 1:\n            return\n        for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n            灌(r + dr, c + dc)          # ❌ 没有「见过」，有环就绕不出来\n\n    块 = 0\n    for r in range(行数):\n        for c in range(列数):\n            if 网格[r][c] == 1:\n                块 += 1\n                灌(r, c)\n    return 块\n"
+  ],
+  [
+   "重复返回真假",
+   "\"\"\"错答案：第一个重复的返回了 True / False，题目要的是那个元素（或 None）。\"\"\"\nimport io\nimport os\n\n_根 = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nexec(io.open(os.path.join(_根, \"_build\", \"cases\", \"50\", \"对.py\"), encoding=\"utf-8\").read())\n\n\ndef 第一个重复的(列表):\n    见过 = set()\n    for 数 in 列表:\n        if 数 in 见过:\n            return True                 # ❌ 要返回 数 本身\n        见过.add(数)\n    return None\n"
+  ]
+ ]
+}
