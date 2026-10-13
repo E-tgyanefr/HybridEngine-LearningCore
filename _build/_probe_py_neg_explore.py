@@ -77,6 +77,7 @@ import hybridengine_light.run as R
 R.ANSWERS_DIR = os.environ["PYNEG_ANS"]
 计划 = json.load(io.open(sys.argv[1], encoding="utf-8"))
 出 = []
+好 = 0
 for 项 in 计划:
     p = R._find(项["编号"])
     if p is None:
@@ -88,7 +89,16 @@ for 项 in 计划:
     缓 = io.StringIO()
     with contextlib.redirect_stdout(缓):
         R._cmd_check(项["编号"])
-    出.append(dict(项, out=缓.getvalue()))
+    o = 缓.getvalue()
+    出.append(dict(项, out=o))
+    # ⚠ 够用就停：目标是给每课找**一个**能用的错答案，
+    #   不是把所有变异都跑完（第一版跑全量，某一课转不停，整批白跑）。
+    勾 = sum(1 for l in o.splitlines() if l.strip().startswith("√ "))
+    叉 = sum(1 for l in o.splitlines() if l.strip().startswith("× "))
+    if 叉 == 1 and 勾 >= 1:
+        好 += 1
+        if 好 >= 3:
+            break
 json.dump(出, io.open(sys.argv[2], "w", encoding="utf-8"), ensure_ascii=False)
 '''
 
@@ -240,7 +250,7 @@ def 主(选):
         基线[编] = 原文
         变异们 = 生成变异(原文)
         print("  %s 生成 %d 条候选变异" % (编, len(变异们)))
-        for i, 变 in enumerate(变异们):
+        for i, 变 in enumerate(变异们[:30]):
             计划.append({"编号": 编, "序号": i, "源码": 变,
                          "描述": 变异描述(原文, 变)})
 
@@ -251,53 +261,67 @@ def 主(选):
     临时 = tempfile.mkdtemp(prefix="pyneg_")
     壳路 = os.path.join(临时, "_shell.py")
     io.open(壳路, "w", encoding="utf-8").write(外壳 % {"root": ROOT})
-    计划路 = os.path.join(临时, "计划.json")
-    出路 = os.path.join(临时, "结果.json")
-    io.open(计划路, "w", encoding="utf-8").write(json.dumps(计划, ensure_ascii=False))
+    每课计划 = {}
+    for 项 in 计划:
+        每课计划.setdefault(项["编号"], []).append(项)
+
+    # ⚠ **一课一个子进程**，各有超时。
+    #   第一版是 19 课全塞进一个子进程、给 30 分钟总超时 ——
+    #   结果某条变异让某一课**转不停**（算法课很容易），整批全废，
+    #   而且连"跑到哪一课了"都看不出来。分课跑：挂只挂那一课。
+    print()
+    print("═" * 70)
+    没跑到 = []
     try:
-        r = subprocess.run([sys.executable, 壳路, 计划路, 出路],
-                           cwd=ROOT, timeout=1800,
-                           env={**os.environ, "PYNEG_ANS": 临时,
-                                "PYTHONIOENCODING": "utf-8"})
-        if not os.path.isfile(出路):
-            print("  **探索子进程没出结果（退出码 %d）**" % r.returncode)
-            print((r.stdout or b"").decode("utf-8", "replace")[-1500:])
-            return 1
-        结果 = json.load(io.open(出路, encoding="utf-8"))
+        for 编 in [c for c in 选 if c in 每课计划]:
+            计划路 = os.path.join(临时, "计划_%s.json" % 编)
+            出路 = os.path.join(临时, "结果_%s.json" % 编)
+            io.open(计划路, "w", encoding="utf-8").write(
+                json.dumps(每课计划[编], ensure_ascii=False))
+            结果 = None
+            try:
+                子 = subprocess.run([sys.executable, 壳路, 计划路, 出路],
+                                    cwd=ROOT, timeout=150,
+                                    env={**os.environ, "PYNEG_ANS": 临时,
+                                         "PYTHONIOENCODING": "utf-8"})
+                if os.path.isfile(出路):
+                    结果 = json.load(io.open(出路, encoding="utf-8"))
+                else:
+                    print("  !! 第 %s 课：子进程没出结果（退出码 %d）"
+                          % (编, 子.returncode))
+            except subprocess.TimeoutExpired:
+                print("  !! 第 %s 课：150 秒没跑完（多半是某条变异转不停）"
+                      "—— 这一课要人工看" % 编)
+            候选 = []
+            for 项 in (结果 or []):
+                全过, 过, 叉 = 判(项["out"])
+                候选.append(dict(项, 全过=全过, 过=过, 叉=叉))
+            if not 候选:
+                没跑到.append(编)
+                continue
+            好 = [c for c in 候选 if not c["全过"]]
+            # 排序：恰好一条 × 的最干净 → √ 多的 → 描述短的
+            好.sort(key=lambda c: (len(c["叉"]) != 1, -len(c["过"]), len(c["描述"])))
+            print()
+            print("  ── 第 %s 课：%d 条候选，%d 条能被拒（%d 条全过）"
+                  % (编, len(候选), len(好), len(候选) - len(好)))
+            if not 好:
+                print("     ⚠ 一条都拒绝不了 —— 这一课要人工写")
+            for c in 好[:5]:
+                print("     [%d√ %d×] %s" % (len(c["过"]), len(c["叉"]), c["描述"]))
+                print("            被拒于：%s" % " · ".join(c["叉"][:3]))
+                if len(c["过"]) == 0:
+                    print("            ⚠ 弱捕获（一个 √ 都没有）—— 不要用这条")
+                if not c["过"] and not c["叉"]:
+                    摘 = [x.strip() for x in c["out"].splitlines() if x.strip()][:3]
+                    print("            ⚠ 连 √/× 都没有（检查没跑到）：%s"
+                          % " | ".join(摘))
     finally:
         shutil.rmtree(临时, ignore_errors=True)
 
-    print()
-    每课 = {}
-    for 项 in 结果:
-        全过, 过, 叉 = 判(项["out"])
-        每课.setdefault(项["编号"], []).append(
-            dict(项, 全过=全过, 过=过, 叉=叉))
-
-    print("═" * 70)
-    for 编 in sorted(每课):
-        候选 = 每课[编]
-        # 排序：不是全过（能被拒）→ 恰好一条 × → √ 多
-        好 = [c for c in 候选 if not c["全过"]]
-        好.sort(key=lambda c: (len(c["叉"]) != 1, -len(c["过"])))
+    if 没跑到:
         print()
-        print("  ── 第 %s 课：%d 条候选，其中 %d 条能被拒（%d 条全过）"
-              % (编, len(候选), len(好), len(候选) - len(好)))
-        if not 好:
-            print("     ⚠ 一条都拒绝不了 —— 这一课要人工看")
-        for c in 好[:6]:
-            print("     [%d√ %d×] %s" % (len(c["过"]), len(c["叉"]), c["描述"]))
-            print("            被拒于：%s" % " · ".join(c["叉"][:3]))
-            if len(c["过"]) == 0:
-                print("            ⚠ 弱捕获（一个 √ 都没有）—— 不要用这条")
-            if not c["过"] and not c["叉"]:
-                摘 = [x.strip() for x in c["out"].splitlines() if x.strip()][:4]
-                print("            ⚠ 连 √/× 都没有（检查没跑到？）：%s"
-                      % " | ".join(摘))
-    剩 = sorted(set(缺的课) - set(每课))
-    if 剩:
-        print()
-        print("  **没跑到的课**：%s" % " ".join(剩))
+        print("  **没跑到的课**：%s" % " ".join(没跑到))
     return 0
 
 

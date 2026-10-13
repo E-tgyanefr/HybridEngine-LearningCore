@@ -354,6 +354,23 @@ else:
         "**测试夹具**：monkey-patch `_paths.命令名()` 成 `HybridEngine-light.exe`，"
         "专门验「冻结后界面显示 exe 名」这条 —— 是**被测的输入**，不是平台假设。"
         "⚠ 该文件不在本任务写入范围（另有 owner），此处仅登记",
+    # ── 下面三条：反面验证那两条线的**新增脚本**（task-6）──────────────
+    #  ⚠ 命中来自两处：① 代码里真的调 `taskkill /F /T`；
+    #                ② 注释里在解释**为什么必须这么杀**。
+    ("_build/_probe_c_neg_explore.py", "tasklist"):
+        "**C 线错答案探索器**（开发工具，只在本机跑）。`taskkill /F /T` 是**必须的**："
+        "`subprocess.run(timeout=)` 只杀得掉 `dotnet run`，杀不掉它拉起的孙进程"
+        "（`%TEMP%\\hybridengine_light_c\\prog.exe`）—— 孙进程攥着 stdout 管道不放，"
+        "`communicate()` 连 timeout 都等不到尽头（实测卡 11 分钟）。不带进产品。",
+    ("_build/_probe_cs_neg_explore.py", "tasklist"):
+        "同上：**C# 线**探索器，同一套杀进程树的写法与注释。不带进产品。",
+    ("_build/_verify_c_neg2.py", "tasklist"):
+        "**C 线反面验证脚本**（补账本里缺的 24 课）。同样用 `Popen` + `taskkill /F /T`"
+        "兜住「学员错答案死循环」。它是判据脚本，**不参与产品运行路径**；"
+        "跑它本来就要 Windows 上的 dotnet + gcc（课程工具链）。",
+    ("_build/_verify_cs_neg2.py", "tasklist"):
+        "**C# 线反面验证脚本**（补账本里缺的 33 课）—— 和 `_verify_c_neg2.py` 同一形态、"
+        "同一段杀进程树的兜底。判据脚本，不参与产品运行路径。",
 }
 
 源码文件 = []
