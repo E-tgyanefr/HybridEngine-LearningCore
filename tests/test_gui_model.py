@@ -367,8 +367,23 @@ class 便携工具链测试(unittest.TestCase):
         shutil.rmtree(self.根, ignore_errors=True)
 
     def _放假工具(self, 相对: str) -> str:
+        """造一个假的可执行文件，返回它的路径。
+
+        ⚠⚠ **必须 `.resolve()`** —— 这条是三平台 CI 在 **macOS** 上抓出来的：
+
+            AssertionError: '/private/var/folders/.../dotnet.exe'
+                         != '/var/folders/.../dotnet.exe'
+
+          macOS 上 `/var` 是 `/private/var` 的**符号链接**，而 `tempfile.mkdtemp()`
+          给的是 `/var/...`；`M._找工具()` 内部会 `resolve()` ⇒ 返回 `/private/var/...`。
+          **两边都没错，是"同一个目录的两种写法"** —— 拿未 resolve 的去比就永远不等。
+
+        ⚠ 在 Windows 上 `resolve()` 是恒等的（本机路径没有软链）⇒ 加了不改变行为。
+        ⚠ 这不是"为了让测试过而放宽判据"：比的是**同一个文件**，
+          只是先归一化写法。**判据的强度没变**（还是 `==`，不是 `in` 或 `samefile` 之外的宽松比较）。
+        """
         import pathlib
-        p = pathlib.Path(self.根) / 相对
+        p = (pathlib.Path(self.根) / 相对).resolve()
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("#!/bin/sh\n", encoding="utf-8")
         return str(p)
