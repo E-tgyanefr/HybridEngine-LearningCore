@@ -569,6 +569,37 @@ namespace HybridEngineLight.Android
                      }
                      catch (Exception e) { return "jit 实验抛：" + e.GetType().Name + ": " + e.Message; }
 
+                case "进度":
+                    装重定向(家, 步);
+                    try
+                    {
+                        //: ⚠ 查**学员进度**有没有落盘 —— `dump` 只看 `hel*.txt`，看不到它。
+                        //:
+                        //:   ⚠ 这是"完整移植"里最该验的一条：**判分成功 ≠ 进度记住了**。
+                        //:     学员判完分退出、再进来发现"还是没读过"，那这个工具就废了。
+                        var 报 = new StringBuilder();
+                        foreach (var 名 in new[] { ".学习进度.json", ".示例进度.json" })
+                        {
+                            string[] 些 = Directory.GetFiles(家, 名, SearchOption.AllDirectories);
+                            if (些.Length == 0) { 报.Append(名).Append("：**没找到**").Append('\n'); continue; }
+                            foreach (var f in 些)
+                            {
+                                var 文 = File.ReadAllText(f);
+                                报.Append(名).Append(" @ ").Append(f.Replace(家, ""))
+                                  .Append("  (").Append(文.Length).Append(" 字节)").Append('\n')
+                                  .Append("  ").Append(文.Length > 500 ? 文.Substring(0, 500) : 文)
+                                  .Append('\n');
+                            }
+                        }
+                        报.Append("家目录里的 json：");
+                        foreach (var f in Directory.GetFiles(家, "*.json"))
+                            报.Append(Path.GetFileName(f)).Append(' ');
+                        string 果 = 报.ToString();
+                        Log.Info(标签, "进度实验：" + 果);
+                        return 果;
+                    }
+                    catch (Exception e) { return "进度实验抛：" + e.GetType().Name + ": " + e.Message; }
+
                 case "判":
                     装重定向(家, 步);
                     try
