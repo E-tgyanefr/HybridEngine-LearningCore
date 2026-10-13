@@ -145,12 +145,38 @@ def 颜色(名: str) -> str:
 
 
 class Tk后端:
-    """tkinter Canvas 后端。**只在真的要用窗口时才建 Tk。**"""
+    """tkinter Canvas 后端。**只在真的要用窗口时才建 Tk。**
+
+    ## ⚠ `烘焙` 这个开关（默认关）
+
+    **实测**（`_build/_bench_pyengine.py`，2026-10-13）：真渲染是瓶颈 ——
+    1000 个对象时，引擎逻辑只要 **1.7 ms/帧**，而**画出来要 35 ms/帧**。
+
+    两种优化试下来：
+      · **item 复用**（每帧 `delete("all")` + 重建 → 复用 item）⇒ **1.0x，无效**
+      · **静态烘焙**（不动的东西只画一次，每帧只删动态层）⇒ **约 2x**
+
+    ⇒ 原因一句话：**瓶颈是「每帧渲染多少个 item」，不是「怎么创建它们」。**
+
+    `烘焙=True` 时：画出来的东西打 `动态` 标签，**每帧只删 `动态`**；
+    不动的那些用 `烘焙静态()` 画一次，之后永远留着。
+
+    ⚠⚠ **默认是关的**，因为烘焙有个**前提**：被烘焙的东西**必须真的不动**。
+      它动了而你没把它算进动态层 ⇒ **画面上留残影**（旧的还贴在那儿）。
+      ⇒ 所以这是个**要你自己保证正确**的开关，不是自动优化。
+
+    什么时候值得开：画面里**大部分东西是静止的**（背景、地形、UI），
+    只有少数在动。实测 80% 静止 / 20% 在动 ⇒ **1.9x**。
+    """
+
+    #: 烘焙模式下，逐帧重画的东西都打这个标签
+    动标签 = "动态"
 
     def __init__(self, 宽: int, 高: int, size: int, 标题: str = "HybridEngine",
-                 背景: str = "白") -> None:
+                 背景: str = "白", 烘焙: bool = False) -> None:
         import tkinter as tk
         self.宽, self.高, self.size = 宽, 高, size
+        self.烘焙 = bool(烘焙)
         self._tk = tk
         self._root = tk.Tk()
         self._root.title(标题)
@@ -161,6 +187,25 @@ class Tk后端:
         self._关 = False
         self._root.protocol("WM_DELETE_WINDOW", self.关闭)
 
+    def 烘焙静态(self, 画法) -> None:
+        """画一次、之后**永远留着**的东西（背景、地形、UI…）。
+
+        ⚠ 只在 `烘焙=True` 时有意义（关着的时候**什么都不做**）。
+        ⚠ **画进来的东西不许再动** —— 动了就会留残影。
+
+        ⚠⚠ 传进去的 `画法` 必须用 **`tags=()`** 画，否则它会被打上 `动态` 标签
+          ⇒ 每帧被删掉重画 ⇒ 等于没烘焙（而且 item 越积越多）。
+          所以这里**代你把 tags 传好** —— 你不用自己记这件事：
+
+              from hybridengine_light.pyengine import Tk后端
+              后 = Tk后端(..., 烘焙=True)
+              后.烘焙静态(lambda b: (b.画矩形(0, 0, 100, 100, "绿", tags=()),
+                                     b.画文字(50, 50, "背景", "黑", 12, tags=())))
+        """
+        if not self.烘焙:
+            return
+        画法(self)
+
     # 坐标换算：虚拟坐标 → 屏幕像素（**两个轴各用各的比例**）
     def _xy(self, x: float, y: float) -> tuple[float, float]:
         kx = self.宽 / self.size
@@ -170,34 +215,57 @@ class Tk后端:
     def _r(self, r: float) -> float:
         return r * (self.宽 / self.size)
 
+    def _标(self) -> tuple:
+        """逐帧重画的东西要打的标签（烘焙关着时**不打**，行为和原来一样）。"""
+        return (self.动标签,) if self.烘焙 else ()
+
+    def _签(self, tags):
+        """`tags` 为 `None` ⇒ 用默认（动态）标签；显式传值 ⇒ 用它。
+
+        ⚠⚠ 这个参数是**被测试逼出来的**：
+           `烘焙静态()` 原来直接调 `画矩形()`，而那个方法**会打 `动态` 标签**
+           ⇒ 静态内容被标成动态 ⇒ 每帧被删掉重画 ⇒ **等于没烘焙**，
+           而且 item 越积越多（越跑越卡）。
+           ⇒ 判据 `test_开着的时候静态的留着` 和 `test_连续多帧不会越积越多`
+             **当场抓到**（0 != 1、10 != 6）。
+
+        ⇒ 教训：**"烘焙"必须能画出"不打标签"的东西**，否则它自己就把自己删了。
+        """
+        return self._标() if tags is None else tuple(tags)
+
     def 清屏(self, 色: str) -> None:
-        self._canvas.delete("all")
+        #: ⚠ 烘焙时**只删动态层** —— 静态的是用 `烘焙静态()` 画进来的一次性内容，
+        #:   删了就白烘焙了。（这也是"约 2x"的来源：每帧少渲染很多 item。）
+        self._canvas.delete(self.动标签 if self.烘焙 else "all")
         try:
             self._canvas.configure(bg=颜色(色))
         except Exception:
             pass
 
-    def 画圆(self, x, y, r, 色) -> None:
+    def 画圆(self, x, y, r, 色, tags=None) -> None:
         px, py = self._xy(x, y)
         pr = self._r(r)
         self._canvas.create_oval(px - pr, py - pr, px + pr, py + pr,
-                                 fill=颜色(色), outline="")
+                                 fill=颜色(色), outline="", tags=self._签(tags))
 
-    def 画矩形(self, x, y, w, h, 色) -> None:
+    def 画矩形(self, x, y, w, h, 色, tags=None) -> None:
         x1, y1 = self._xy(x, y + h)          # 左下角在屏幕上是"下方"
         x2, y2 = self._xy(x + w, y)
-        self._canvas.create_rectangle(x1, y1, x2, y2, fill=颜色(色), outline="")
+        self._canvas.create_rectangle(x1, y1, x2, y2, fill=颜色(色), outline="",
+                                      tags=self._签(tags))
 
-    def 画线(self, x1, y1, x2, y2, 色, 粗) -> None:
+    def 画线(self, x1, y1, x2, y2, 色, 粗, tags=None) -> None:
         a = self._xy(x1, y1)
         b = self._xy(x2, y2)
         self._canvas.create_line(a[0], a[1], b[0], b[1],
-                                 fill=颜色(色), width=max(1, int(self._r(粗))))
+                                 fill=颜色(色), width=max(1, int(self._r(粗))),
+                                 tags=self._签(tags))
 
-    def 画文字(self, x, y, 内容, 色, 字号) -> None:
+    def 画文字(self, x, y, 内容, 色, 字号, tags=None) -> None:
         px, py = self._xy(x, y)
         self._canvas.create_text(px, py, text=str(内容), fill=颜色(色),
-                                 font=("Microsoft YaHei UI", int(字号)))
+                                 font=("Microsoft YaHei UI", int(字号)),
+                                 tags=self._签(tags))
 
     def 呈现(self) -> None:
         if self._关:
