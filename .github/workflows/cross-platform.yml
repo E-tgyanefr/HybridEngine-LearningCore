@@ -163,6 +163,15 @@ jobs:
           python - <<'PY'
           import os
           import sys
+          #: ⚠⚠ **必须 reconfigure** —— 2026-10-14 实测踩到：
+          #:   Windows runner 的 Python 默认编码是 **cp1252**，
+          #:   而下面的 `print` 里有中文和 `⚠` ⇒
+          #:     `UnicodeEncodeError: 'charmap' codec can't encode characters`
+          #:   ⇒ **脚本崩在"打印"这一步**，而报错看起来像"判据没过"。
+          #:   ⚠ 本仓已经踩过两次（`build_hblight.py` 的 `_说()`、`diff_python.py`），
+          #:     这是**第三次**，而且是我自己写的 CI 步骤里。
+          #:   ⇒ 规矩：**任何会被 CI 跑的 Python，print 中文前先 reconfigure。**
+          sys.stdout.reconfigure(encoding="utf-8", errors="replace")
           sys.path.insert(0, ".")
           from hybridengine_light import pyengine as E
           from hybridengine_light import pyengine_c as C
@@ -189,6 +198,7 @@ jobs:
           set -e
           python - <<'PY'
           import sys
+          sys.stdout.reconfigure(encoding="utf-8", errors="replace")
           sys.path.insert(0, ".")
           from hybridengine_light import pyengine as E
           mod = E.向量.__module__
