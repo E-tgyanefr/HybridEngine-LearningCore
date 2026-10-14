@@ -78,3 +78,10 @@ hybridengine_light/pyengine_c/*.so
 hybridengine_light/pyengine_c/*.dylib
 hybridengine_light/pyengine_c/hblight_selftest
 hybridengine_light/pyengine_c/hblight_selftest.exe
+
+
+#: ⚠⚠ 判据脚本的**备份目录**（`_verify_reference_all.py` 跑之前备份答题区用）。
+#:   它应该跑完就还原、自己删掉 —— **但脚本被中途打断时就会留下**。
+#:   ⚠ 实测留过一次（`c-answers.判据备份/`，42 个文件）⇒ 加规则兜住。
+#:   ⚠ 更好的做法是脚本用 `try/finally` 保证清理 —— **那个没做**，如实记下。
+*.判据备份/
