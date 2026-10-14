@@ -88,12 +88,29 @@ print()
 print("  ── ② C++ 后端 ──")
 try:
     父 = None
+    _根 = None
     try:
         import tkinter as tk
-        _r = tk.Tk()
-        _r.withdraw()
-        父 = _r.winfo_id()
-        print("     （给了父窗口 HWND，走子窗口路线）")
+        import ctypes as _ct
+        _根 = tk.Tk()
+        _根.geometry("%dx%d+40+40" % (宽, 高))
+        _根.update()
+        #: ⚠⚠⚠ **不能用 `_根.winfo_id()`，也不能 `withdraw()`** —— 两条都是实测踩出来的：
+        #:
+        #:   ① **Tk 的 `winfo_id()` 返回的不是顶层窗**：
+        #:        `GetAncestor(winfo_id(), GA_ROOT)` 与 `winfo_id()` **不相等**（实测过）。
+        #:      ⇒ 要挂子窗口就该挂**顶层窗**，用 `GA_ROOT` 取。
+        #:
+        #:   ② ⚠ **`withdraw()` 会让子窗口的 `IsWindowVisible()` 变成假** ——
+        #:        因为 `IsWindowVisible` 对**后代**会一直查到根：
+        #:        根被 withdraw ⇒ **整棵子树都算不可见**。
+        #:      ⇒ 我第一版 withdraw 了根，看到 `子窗口可见=False`，
+        #:        **一度以为是这个 API 误报**（还在文档里标了"待办"）。
+        #:      ⚠ **真相是我自己的测量前提错了** —— 又一次"仪器坏了，不是被测物坏了"。
+        _ct.windll.user32.GetAncestor.restype = _ct.c_void_p
+        父 = _ct.windll.user32.GetAncestor(_根.winfo_id(), 2)   #: GA_ROOT = 2
+        print("     （父窗口用 GetAncestor(GA_ROOT)：winfo_id=%d → 顶层=%d）"
+              % (_根.winfo_id(), 父 or 0))
     except Exception as e:
         print("     （拿不到 Tk 父窗，走顶层窗口路线：%s）" % type(e).__name__)
 
