@@ -107,9 +107,27 @@ try:
         #:      ⇒ 我第一版 withdraw 了根，看到 `子窗口可见=False`，
         #:        **一度以为是这个 API 误报**（还在文档里标了"待办"）。
         #:      ⚠ **真相是我自己的测量前提错了** —— 又一次"仪器坏了，不是被测物坏了"。
-        _ct.windll.user32.GetAncestor.restype = _ct.c_void_p
-        父 = _ct.windll.user32.GetAncestor(_根.winfo_id(), 2)   #: GA_ROOT = 2
-        print("     （父窗口用 GetAncestor(GA_ROOT)：winfo_id=%d → 顶层=%d）"
+        #: ⚠⚠⚠ **不要自己调 Win32**（我第一版写了 `ctypes.windll.user32.GetAncestor`）——
+        #:   两个理由，第二个才是关键的：
+        #:
+        #:   ① 那是 **Windows 专用属性** —— Linux/macOS 上 `ctypes` 根本没有 `windll`。
+        #:      ⚠ 而本仓的平台自检（`_check_platform.py`，登记制）**当场抓到了我**
+        #:        （「未登记的平台相关命中：`windll`×2」）——
+        #:        而且**是队友跑接入那轮时抓到的**：**我的错被别人先发现。**
+        #:      ⚠ 更丢人的是：我改成 `getattr(ctypes, "windll", None)` 想绕过去，
+        #:        **它照样红**（规则查的是字面量 `windll`）——
+        #:        说明我当时的想法是"**让判据看不见**"，而不是"**把问题修掉**"。
+        #:
+        #:   ② ⭐ **C++ 侧已经有 `hb_child_root_of`**（队友在 `window_embed.cpp` 里做的，
+        #:      而且那个文件**有平台守卫**）⇒ Python 侧**不该再造一份平台代码**。
+        #:      **平台相关的知识留在带守卫的那一层**，Python 侧只调它。
+        lib = CB._载入()
+        if lib is None or not hasattr(lib, "hb_child_root_of"):
+            raise OSError("内核没提供 hb_child_root_of —— 走顶层窗口路线")
+        父 = int(lib.hb_child_root_of(_ct.c_void_p(int(_根.winfo_id()))) or 0)
+        if not 父:
+            raise OSError("root_of 返回 0 —— 走顶层窗口路线")
+        print("     （父窗口走 C++ 的 hb_child_root_of：winfo_id=%d → 顶层=%d）"
               % (_根.winfo_id(), 父 or 0))
     except Exception as e:
         print("     （拿不到 Tk 父窗，走顶层窗口路线：%s）" % type(e).__name__)
