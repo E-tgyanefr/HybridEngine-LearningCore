@@ -756,8 +756,44 @@ def _定义名(标题: str) -> str:
 
 
 def _清理文件名(s: str) -> str:
-    """只留字母和数字。⚠ 与 C# 的 `CppCourse.清理` 一致（`char.IsLetterOrDigit`）。"""
-    净 = "".join(c for c in s if c.isalnum())
+    """只留字母和数字。⚠ 必须与 C# 的 `char.IsLetterOrDigit` **逐字符一致**。
+
+    ⚠⚠⚠ 2026-10-14 修课 20 时查出来的**第四个变种**（前三个：文件名规则、后缀、目录名）：
+
+        Python `str.isalnum()` 比 C# `char.IsLetterOrDigit()` **宽得多**。
+        实测（两侧各写一个探针跑出来的）：
+
+            字符        Python isalnum   C# IsLetterOrDigit
+            '²' U+00B2      **True**          **False**
+            '³' U+00B3      **True**          **False**
+            '½' U+00BD      **True**          **False**
+            '①' U+2460      **True**          **False**
+            '一' A 5 O n     True              True
+            '_' '—' '：'     False             False
+
+        ⇒ 第 20 课的标题是
+              「第 20 课：算法复杂度 —— O(1) / O(n) / O(n²)，n=100000 时谁不能用」
+          里面有个 **`²`** ⇒ 两侧文件名不一致：
+
+              C# 侧     cs-answers/20_第20课算法复杂度O1OnOnn100000时谁不能用.cs     ← 空模板
+              Python 侧 cs-answers/20_第20课算法复杂度O1OnOn²n100000时谁不能用.cs    ← 参考答案
+
+        ⇒ 症状和前面三个一样：**参考答案写进 A，课程程序读 B** ⇒
+          「编译成功、程序跑了、一行都没打印」（其实读的是空模板）。
+        ⚠ 而**其余 40 课都过**，就因为**它们的标题里没有这类字符** ——
+          这种"只有一课中招"的 bug 最难靠抽查发现。
+
+    ⇒ 修法：**用 Unicode 类别，只认 `L*`（字母）+ `Nd`（十进制数字）** ——
+      这正是 C# `char.IsLetterOrDigit` 的语义（它按 `UnicodeCategory` 判定，
+      `Letter*` 与 `DecimalDigitNumber`）。
+      ⚠ 不用 `isalnum()`：它把 `No`（上标/带圈数字）、`Nl`、`Numeric` 都算进来了。
+    """
+    import unicodedata
+    净 = ""
+    for c in s:
+        类 = unicodedata.category(c)
+        if 类.startswith("L") or 类 == "Nd":
+            净 += c
     return 净 or "作业"
 
 
