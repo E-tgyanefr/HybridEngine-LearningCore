@@ -192,11 +192,27 @@ def main() -> int:
     # 自检程序也搬回去 —— diff_python.py 要用它
     自检源 = None
     名 = "hblight_selftest.exe" if sys.platform.startswith("win") else "hblight_selftest"
-    for 子 in ("", "Release", "Debug"):
-        p = os.path.join(工作构建, 子, 名) if 子 else os.path.join(工作构建, 名)
-        if os.path.isfile(p):
-            自检源 = p
-            break
+    #: ⚠⚠⚠ 2026-10-14 修：原来**只在三个位置找**（`工作构建/`、`/Release`、`/Debug`）
+    #:   ⇒ **在 Linux/macOS 上找不到**，而对账 `diff_python.py` 会以
+    #:     `FileNotFoundError` 崩（CI 实测，见下）。
+    #:
+    #:   为什么：`CMakeLists.txt` 里是
+    #:       `add_executable(hblight_selftest ${CMAKE_CURRENT_SOURCE_DIR}/tests/selftest.cpp)`
+    #:     —— 它在 **`tests/` 子目录**里，而 CMake 把产物放在**对应源码目录的镜像位置**：
+    #:       · Linux/Ninja   → `build/tests/hblight_selftest`     ← 原来找不到
+    #:       · Windows/MinGW → `build/hblight_selftest.exe`（平铺）← 本机碰巧找到了
+    #:     ⇒ **本机过、CI 红** —— 正是"只在本机构建过"的典型后果。
+    #:
+    #:   ⇒ 改成**递归找**：不再猜布局。
+    #:   ⚠ 但要**跳过 CMake 的中间产物**（`CMakeFiles/` 里可能有同名对象/临时件），
+    #:     否则会搬错文件、而症状是"对账结果不对"（比崩溃更难查）。
+    for 根2, 目录们, 文件们 in os.walk(工作构建):
+        目录们[:] = [d for d in 目录们 if d != "CMakeFiles"]
+        if 名 in 文件们:
+            p = os.path.join(根2, 名)
+            if os.path.isfile(p):
+                自检源 = p
+                break
     if 自检源:
         自检目标 = os.path.join(绑定目录, 名)
         shutil.copyfile(自检源, 自检目标)
