@@ -82,6 +82,27 @@ def 跑一个模式(名: str) -> int:
         后.关闭()
         return 0 if ok else 1
 
+    if 名 in ("接入", "接入默认"):
+        # ⭐ 这一段才是"**接进了 pyengine**"的证据：
+        #   ⚠ **不传 `后端=`** ⇒ 走的是 `游戏.后端` 那个 property（本轮改的那一处）
+        g = E.游戏(场景=E.场景("t"), 尺寸=100, 宽=400, 高=300)
+        类名 = type(g.后端).__name__
+        print("游戏()_拿到后端=%s" % 类名)
+        # ⚠ `装输入` 是**键盘唯一的接线点**：它被调过 ⇒ 说明 engine.py 那段**还在**
+        #   （`_engine_fingerprint` **看不见**这个 —— 无头判据不按键）
+        装输入调过 = bool(getattr(g.后端, "_输入没接", False))
+        print("装输入被调过=%d" % (1 if 装输入调过 else 0))
+        预期 = "Cpp后端" if 名 == "接入" else "Tk后端"
+        ok = (类名 == 预期)
+        print("预期=%s 对上了=%d" % (预期, 1 if ok else 0))
+        if 名 == "接入":
+            print("INPUT_NOT_WIRED=%d" % (1 if 装输入调过 else 0))
+        try:
+            g.后端.关闭()
+        except Exception:
+            pass
+        return 0 if ok else 1
+
     # ── 启用：必须真的用 C++ 后端，而且真的画了 ──
     import ctypes
     import tkinter as tk
@@ -138,7 +159,9 @@ def main() -> int:
         i = sys.argv.index("--跑")
         return 跑一个模式(sys.argv[i + 1])
 
-    模式表 = [("默认", {}), ("启用", {"HBLIGHT_RENDER": "1"}), ("缺库", {"HBLIGHT_RENDER": "1"})]
+    模式表 = [("默认", {}), ("启用", {"HBLIGHT_RENDER": "1"}), ("缺库", {"HBLIGHT_RENDER": "1"}),
+              # ⭐ 这两个才是"接进 pyengine"的证据：**不传 后端=**，走 `游戏.后端`
+              ("接入", {"HBLIGHT_RENDER": "1"}), ("接入默认", {})]
     全过 = True
     for 名, 环境 in 模式表:
         env = dict(os.environ)

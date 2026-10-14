@@ -196,7 +196,29 @@ class 游戏:
     @property
     def 后端(self):
         if self._后端 is None:
-            self._后端 = R.Tk后端(self.宽, self.高, self.尺寸, self.标题, self.背景)
+            # ⚠⚠ **只改了这一处**：从"写死 `Tk后端`"改成"问一句默认后端是谁"。
+            #   `HBLIGHT_RENDER=1` 且 C++ 后端的库在 ⇒ `Cpp后端`；否则**还是 `Tk后端`**。
+            #
+            # ⚠ import 放在**函数体内**（延迟导入）—— 这是循环导入的**唯一**破法：
+            #   `pyengine.engine` → `pyengine_c.backend`，而 `pyengine_c` 那边也有
+            #   指向 `pyengine` 的引用；写成模块级 import 会成环。
+            #   ⚠ 这条是**想清楚**的，不是试出来的。
+            #
+            # ⚠ 拿不到就退回 `Tk后端` —— `pyengine_c` **绝不许**变成硬依赖
+            #   （手机版 Chaquopy 上根本没有它，而且它只有 Windows）。
+            try:
+                from ..pyengine_c.backend import 默认后端 as _默认后端
+                self._后端 = _默认后端(self.宽, self.高, self.尺寸, self.标题, self.背景)
+            except Exception:
+                self._后端 = R.Tk后端(self.宽, self.高, self.尺寸, self.标题, self.背景)
+
+            # ⚠⚠ **下面这一段一个字都不许删。**
+            #   它是**键盘输入唯一的接线点**：`Tk后端.装输入` 把 tkinter 的
+            #   `KeyPress`/`KeyRelease` 接到 `输入` 上。
+            #   丢了它的症状是 **GUI 里键盘静默失灵**，而
+            #   `_engine_fingerprint` **看不见**（无头判据不按键）⇒ 判据会全绿。
+            #   ⇒ 所以 `Cpp后端` 也提供一个**明确 no-op** 的 `装输入`
+            #     （带 `_输入没接` 状态位）：让"没接"是**可断言的**，不是"看不出来"。
             if hasattr(self._后端, "装输入"):
                 self._后端.装输入(self.输入._按下, self.输入._按, self.输入._放)
         return self._后端
