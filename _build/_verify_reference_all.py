@@ -80,12 +80,35 @@ def 报告里有记号吗(报: str) -> bool:
       （比如答题文件写坏了 ⇒ 加载失败 ⇒ 报告只有一句说明文字）。
       这两种情况必须分开判，否则就是假绿。
     """
-    return any(s in 报 for s in 通过记号) or any(s in 报 for s in 不通过记号)
+    #: ⚠ 同样按**行首**认 —— 正文里出现 `×`（乘号）不算"跑到了"。
+    for l in 报.split("\n"):
+        s = l.strip()
+        if s.startswith(通过记号) or s.startswith(不通过记号):
+            return True
+    return False
 
 
 def 数不过(报: str) -> int:
-    """报告里"不过"的记号个数。⚠ 用一组符号，不是单个字符。"""
-    return sum(报.count(s) for s in ("✗", "✕", "✘", "❌", "×"))
+    """报告里"不过"的记号个数。
+
+    ⚠⚠⚠ **必须按【行首】判，不能用【全串计数】** —— 这里栽过两次：
+
+      第一次（假绿）：只数 `✗`，而 python 线用 `√`/`×` ⇒ 恒等于 0 ⇒ 永远报"过"。
+      第二次（假红）：改成数一组符号，但用的是**全串 `count`**，
+        而 **`×` 在中文里还是乘号** —— 好几课的**检查名字里就带 `×`**：
+
+            课 45  六棵树 × 三种遍历都对（含空树、单节点、满树、缺孩子、斜树）
+            课 46  八组都对（含空迷宫、起点=终点、走不通、一行、50×50 全空 98 步）
+            课 48  6 组都和暴力枚举一致（含 1×1、单行、单列）
+            课 50  3×3 的 512 种网格全试过，一块都没数错
+
+        ⇒ 这 4 课**参考答案其实全过**，却各被判一次"不过"（每课全串 `×=1`、行首 `×=0`）。
+
+    ⇒ 教训：`√`/`×` 是**行首记号**，不是正文里随便出现的字符。
+      正文里的 `×`（乘号）、`✓`（说明文字里的对勾）都不该算数。
+    """
+    return sum(1 for l in 报.split("\n")
+               if l.strip().startswith(("✗", "✕", "✘", "❌", "×")))
 
 #: ⚠ 编译型的答题区 —— 跑之前要清，因为这些线的验证器会 `rmtree` 它，
 #:   残留别的答案会让这条判据**假红**（我第一次就被这个坑了）。
@@ -110,8 +133,29 @@ def 跑一条(轨: str, 限课: str | None = None) -> tuple[int, int, list[str]]
         return 0, 0, ["（这条线没有课）"]
 
     #: ⚠ 清答题区 —— 不清会被上一条线的残留弄成假红
+    #:
+    #: ⚠⚠ **清之前先备份，跑完还原** —— 否则会把别的判据弄挂（实测）：
+    #:   本判据走 `M.检查(课, M.参考答案(课))`，而 `M.检查` 会 `保存答案(...)`
+    #:   ⇒ **把参考答案写进了答题区**。而 `读答案()` 看到文件就直接返回、
+    #:     不再生成模板 ⇒ `tests/test_gui_model.py` 那条
+    #:     「每条线都能生成非空的答题模板」读到的是参考答案（3 行）⇒ 报红：
+    #:
+    #:         FAIL: test_每条线都能生成非空的答题模板
+    #:               python：模板只有 3 行非空（像没生成）
+    #:
+    #:   ⚠ 这类"共享状态被清了不还原"在本仓**踩过第二次**了
+    #:     （第一次是 `tests/验收.py`）⇒ 判据脚本必须自己收尾。
+    _备份目录 = None
     if 轨 in 答题区:
-        shutil.rmtree(os.path.join(ROOT, 答题区[轨]), ignore_errors=True)
+        _原 = os.path.join(ROOT, 答题区[轨])
+        if os.path.isdir(_原):
+            _备份目录 = _原 + ".判据备份"
+            shutil.rmtree(_备份目录, ignore_errors=True)
+            try:
+                shutil.copytree(_原, _备份目录)
+            except OSError:
+                _备份目录 = None
+        shutil.rmtree(_原, ignore_errors=True)
 
     好 = 坏 = 0
     问题 = []
@@ -136,13 +180,22 @@ def 跑一条(轨: str, 限课: str | None = None) -> tuple[int, int, list[str]]
             坏 += 1
             #: 取前两条 ✗ 的行当指纹
             指纹 = [l.strip()[:70] for l in 报.split("\n")
-                    if any(s in l for s in ("✗", "✕", "✘", "❌", "×"))][:2]
+                    if l.strip().startswith(("✗", "✕", "✘", "❌", "×"))][:2]
             if not 指纹:
                 指纹 = [l.strip()[:70] for l in 报.split("\n") if "没跑到" in l][:1]
             问题.append("课 %s：✗%d  %s（%.1fs）"
                         % (课.编号, 错, " | ".join(指纹), 用))
         else:
             好 += 1
+
+    #: ⚠ 收尾：把答题区还原成跑之前的样子（见上面那段说明）
+    if _备份目录:
+        _原 = os.path.join(ROOT, 答题区[轨])
+        shutil.rmtree(_原, ignore_errors=True)
+        try:
+            shutil.move(_备份目录, _原)
+        except OSError:
+            shutil.rmtree(_备份目录, ignore_errors=True)
     return 好, 坏, 问题
 
 
