@@ -144,7 +144,46 @@ jobs:
       #:   ⚠ 队友第一次就差点报了假绿：dll 加载失败 ⇒ 按设计静默退回
       #:     ⇒ `test_pyengine` 全绿，**但绿的是 Python 版**。
       #:   ⇒ 所以"生效"必须**单独断言一次**，不能靠"测试通过了"推断。
+      #: ⚠⚠⚠ **必须显式 `HBLIGHT_ENABLE=1`** —— 这一点我第一版写漏了。
+      #:
+      #:   `pyengine_c` 的默认是**关**（`HBLIGHT_ENABLE=1` 才启用），
+      #:   理由是实测：逐操作粒度的 ctypes 包一层会让产品**慢 4.5 倍**
+      #:   （0.7335 → 3.3097 ms/帧，1000 对象；几百万次跨语言往返）。
+      #:   ⇒ 所以"内核在"**不等于**"内核在用"。
+      #:
+      #:   ⚠ 我第一版没设这个变量 ⇒ 这一步骤会看到"走的是 Python"而误报失败，
+      #:     或者更坏：**它根本证明不了 C++ 路**。
+      #:   ⇒ 想验 C++ 路，必须**显式开**，再断言真的走了。
       - name: Prove the C++ path is actually taken
+        shell: bash
+        env:
+          HBLIGHT_ENABLE: "1"
+        run: |
+          set -e
+          python - <<'PY'
+          import os
+          import sys
+          sys.path.insert(0, ".")
+          from hybridengine_light import pyengine as E
+          from hybridengine_light import pyengine_c as C
+          print("HBLIGHT_ENABLE =", os.environ.get("HBLIGHT_ENABLE"))
+          print("可用 =", C.可用())
+          if not C.可用():
+              print("!! C++ 内核没加载上 —— 那这个 runner 的构建是坏的")
+              sys.exit(1)
+          mod = E.向量.__module__
+          print("向量.__module__ =", mod)
+          if "pyengine_c" not in mod:
+              print("!! 内核可用、但**没被启用** ⇒ 走的是 Python 版")
+              print("   （检查 HBLIGHT_ENABLE 有没有传进来）")
+              sys.exit(1)
+          print("OK：C++ 内核真的**在用**")
+          PY
+
+      #: ⭐ **反面**：默认（不开）时必须**退回 Python**，而且**不许崩**。
+      #:   ⚠ 这条同样重要 —— 手机版 Chaquopy 里加载不到 `.so`，
+      #:     靠的就是"不在就用 Python"。**"默认关"本身也是产品行为，要钉住。**
+      - name: Default must fall back to Python (no crash)
         shell: bash
         run: |
           set -e
@@ -152,18 +191,12 @@ jobs:
           import sys
           sys.path.insert(0, ".")
           from hybridengine_light import pyengine as E
-          from hybridengine_light import pyengine_c as C
-          print("可用 =", C.可用())
-          print("状态 =", C.状态() if hasattr(C, "状态") else "(无)")
-          if not C.可用():
-              print("!! C++ 内核没加载上 —— 下面那些'通过'绿的是 Python 版")
+          mod = E.向量.__module__
+          print("默认 向量.__module__ =", mod)
+          if "pyengine_c" in mod:
+              print("!! 默认竟然是 C++ —— 那产品默认会慢 4.5 倍")
               sys.exit(1)
-          mod = type(E.向量).__module__ if not isinstance(E.向量, type) else E.向量.__module__
-          print("向量.__module__ =", mod)
-          if "pyengine_c" not in mod:
-              print("!! 走的不是 C++ 那条路")
-              sys.exit(1)
-          print("OK：C++ 内核真的生效了")
+          print("OK：默认走 Python（回退路成立）")
           PY
 
       #: 主判据②：全套测试。退出码就是判据。

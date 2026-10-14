@@ -1,0 +1,20 @@
+# ⚠ 这个目录里**只提交源码** —— `libhblight.*` 是**构建产物**。
+#
+# 为什么不提交产物：
+#   · 它是 `python _build/build_hblight.py --go` 生成的，CI 里也会现建
+#     （见 `.github/workflows/` 里那三步：构建 / 逐位对账 / 证走的是 C++ 路）
+#   · 二进制进仓库会让"哪份才是当前源码的产物"变成一个新谜题 ——
+#     本仓已经吃过一次这个亏（SampleCore 里预构建的 dll 与源码不一致）
+#
+# ⚠ 而默认**不需要**它：`HBLIGHT_ENABLE=1` 才走 C++ 路，
+#   默认走 Python 版（实测逐操作粒度下 C++ 慢 4.5 倍，见 pyengine_c 抬头）。
+libhblight.dll
+hblight.dll
+libhblight.so
+libhblight.dylib
+hblight_selftest
+hblight_selftest.exe
+*.o
+*.obj
+__pycache__/
+*.pyc

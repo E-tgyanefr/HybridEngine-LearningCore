@@ -60,3 +60,21 @@ out.txt
 #    ? 它是"这个学员读到哪了"，不是课程内容。
 #      提交上去的话，别人 clone 下来会看到你的进度（而且会互相覆盖）。
 .学习进度.json
+
+
+#: ⚠⚠ C++ 内核 `libhblight` 的**构建产物**不入库（2026-10-14）。
+#:
+#:   为什么：CI 检出后**第一件事就是构建它**（见 `.github/workflows/cross-platform.yml`
+#:   的 `Build C++ core` 步）⇒ 仓库里再放一份产物是：
+#:     · **平台专属**的（Windows `.dll` / Linux `.so` / macOS `.dylib`）⇒ 放哪个都错
+#:     · **会过期**（源码改了、二进制没重建）⇒ 比没有更危险
+#:
+#:   ⚠ 而"没有产物"这件事**产品是要能扛住的**：
+#:     `pyengine_c` 的设计就是"内核在就用、不在就退回 Python"（手机版 Chaquopy 就靠它）。
+#:     实测：移走产物后 `import` 不崩、`可用()=False`、`run_tests.py` **456 + 7 全过** ✅
+#:   ⇒ 所以忽略它们是安全的，不是省事。
+hybridengine_light/pyengine_c/*.dll
+hybridengine_light/pyengine_c/*.so
+hybridengine_light/pyengine_c/*.dylib
+hybridengine_light/pyengine_c/hblight_selftest
+hybridengine_light/pyengine_c/hblight_selftest.exe
