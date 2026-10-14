@@ -215,7 +215,28 @@ def main() -> int:
                 break
     if 自检源:
         自检目标 = os.path.join(绑定目录, 名)
+        #: ⚠⚠⚠ **必须补可执行位** —— 2026-10-14 CI 实测（Linux/macOS 都红）：
+        #:
+        #:       PermissionError: [Errno 13] Permission denied:
+        #:           '.../hybridengine_light/pyengine_c/hblight_selftest'
+        #:
+        #:   为什么：**`shutil.copyfile` 只拷内容，不拷权限位**（它不 `copystat`）。
+        #:   而 CMake 在 POSIX 上产出的可执行是 `rwxr-xr-x` ⇒ 拷完变成 `rw-r--r--`
+        #:   ⇒ 对账脚本 `subprocess.run([自检])` **跑不起来**。
+        #:
+        #:   ⚠⚠ **这是"只在本机构建过"的第五个变种**（前四个：
+        #:     写死的 `C:\hblight` · 自检程序搜索路径 · `.gitignore` 漏文件 ·
+        #:     `git ls-files` 的八进制转义）。
+        #:   ⚠ 而 **Windows 上没有"可执行位"这个概念** ⇒ 本机**永远发现不了**。
+        #:
+        #:   ⇒ 修法：拷完**显式 `chmod` 补上执行位**（`os.name == "nt"` 时跳过 —— 那边没这回事）。
         shutil.copyfile(自检源, 自检目标)
+        if os.name != "nt":
+            try:
+                模式 = os.stat(自检源).st_mode
+                os.chmod(自检目标, 模式 | 0o755)
+            except OSError as e:
+                _说("  ⚠ 补可执行位失败（对账可能起不来）：%s" % e)
         _说("  ✓ %s  (%d 字节)" % (os.path.relpath(自检目标, 根), os.path.getsize(自检目标)))
     else:
         _说("  ⚠ 没找到自检程序 %s（对账要用它）" % 名)
