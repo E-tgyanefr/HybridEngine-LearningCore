@@ -423,15 +423,104 @@ def main() -> int:
             print("   只在 Py  : %s" % x)
         return 4
 
-    不同 = [(i, a, b) for i, (a, b) in enumerate(zip(cpp行, py行), 1) if a != b]
-    if not 不同:
-        print("✓ 全部 %d 行**逐位相同**" % len(cpp行))
-        print("   （两边都用 %s 往返精度打印 ⇒ 同一个 double）" % "%.17g")
+    #: ════════════════════════════════════════════════════════════════
+    #:  ⚠⚠⚠ **"逐位相同"在跨平台上是过严的判据**（2026-10-14 CI 实测）
+    #: ════════════════════════════════════════════════════════════════
+    #:
+    #:    macOS 上实测差 **约 2 ULP**（同一行、同一个公式）：
+    #:
+    #:        C++ : cam1.smooth_60fps_2s=99.995460007016092,0.0022699964919576567
+    #:        Py  : cam1.smooth_60fps_2s=99.995460007016092,0.0022699964919576611
+    #:
+    #:    ⚠ 真因不是我们的代码 —— 是 **`pow` / `exp` 这类超越函数的 libm 实现不同**
+    #:      （macOS 的 libm vs Windows/MinGW 的 ucrt）。
+    #:    ⚠ **队友早就写了这条风险**：「75/75 是**本机 ucrt** 的结果，
+    #:      `hypot/cos/sin/pow` 换 libm 可能差最后一位」—— 他预判对了。
+    #:
+    #:    ⇒ 所以判据要分**两档**，而且**都要报出来**：
+    #:
+    #:       逐位相同       ← 首选，跨平台也应该尽量达到
+    #:       ULP 容差内     ← 允许，但**容差必须显式、有上界、且要打印出来**
+    #:       超容差         ← **红**（那才是真差异：算错了，不是舍入）
+    #:
+    #:    ⚠⚠ **容差不能暗中放宽** —— 那会让"算错了"混进"舍入差异"里，
+    #:       正是本仓最忌讳的那类（"没跑到"和"过了"长得一样）。
+    #:       ⇒ 所以下面**两档分开计数**，而且 `ULP上限` 写死在源码里（不给环境变量改）。
+    #: ⚠ 写死（不给环境变量改）—— 容差**暗中放宽**会让"算错了"混进"舍入差异"里。
+    #:
+    #:   怎么定的这个数（**实测，不是估的**）：
+    #:     · macOS 上真实差 **10 ULP**（我一开始凭"末位差几位"估成 ~2 ULP，
+    #:       写了个上限 8 ⇒ **反面判据当场把它判红了** ⇒ 才发现估错了）
+    #:     · 而"算错了"的量级是 **10^15 ULP**（实测 `1.5` vs `2.5` ⇒
+    #:       3377699720527872 ULP）
+    #:   ⇒ 64 落在两者之间，**跨了 14 个数量级的余量** ⇒ 界线非常清。
+    ULP上限 = 64
+
+    import struct as _struct
+
+    def _ulp差(a: str, b: str) -> float | None:
+        """两行若"键相同、值是数字"，返回最大 ULP 差；否则 None（视为不可比）。"""
+        if a.split("=", 1)[0] != b.split("=", 1)[0]:
+            return None
+        try:
+            va = [float(x) for x in a.split("=", 1)[1].split(",")]
+            vb = [float(x) for x in b.split("=", 1)[1].split(",")]
+        except ValueError:
+            return None
+        if len(va) != len(vb):
+            return None
+        最大 = 0.0
+        for x, y in zip(va, vb):
+            if x == y:
+                continue
+            #: IEEE-754：把 double 位模式当有符号整数，差的绝对值就是 ULP 距离
+            ix = _struct.unpack("<q", _struct.pack("<d", x))[0]
+            iy = _struct.unpack("<q", _struct.pack("<d", y))[0]
+            if ix < 0:
+                ix = -(1 << 63) - ix          #: 反向映射负数的位模式
+            if iy < 0:
+                iy = -(1 << 63) - iy
+            最大 = max(最大, float(abs(ix - iy)))
+        return 最大
+
+    逐位同 = 0
+    容差内 = []
+    超差 = []
+    for i, (a, b) in enumerate(zip(cpp行, py行), 1):
+        if a == b:
+            逐位同 += 1
+            continue
+        u = _ulp差(a, b)
+        if u is not None and u <= ULP上限:
+            容差内.append((i, a, b, u))
+        else:
+            超差.append((i, a, b, u))
+
+    print("逐位相同 %d 行 · ULP 容差内 %d 行 · **超差 %d 行**（容差上限 %d ULP）"
+          % (逐位同, len(容差内), len(超差), ULP上限))
+
+    if 容差内:
+        print("⚠ 以下 %d 行**不是逐位相同**，但在 %d ULP 内（libm 实现差异，不是算错）："
+              % (len(容差内), ULP上限))
+        for i, a, b, u in 容差内[:8]:
+            print("   行%d  （%.0f ULP）" % (i, u))
+            print("      C++ : %s" % a)
+            print("      Py  : %s" % b)
+        if len(容差内) > 8:
+            print("   …… 还有 %d 行" % (len(容差内) - 8))
+
+    if not 超差:
+        if not 容差内:
+            print("✓ 全部 %d 行**逐位相同**" % len(cpp行))
+            print("   （两边都用 %s 往返精度打印 ⇒ 同一个 double）" % "%.17g")
+        else:
+            print("✓ 没有超差的行 —— **跨平台可接受**（差异全在 libm 舍入范围内）")
         return 0
 
-    print("!! 有 %d 行不同：" % len(不同))
-    for i, a, b in 不同:
-        print("   行%d" % i)
+    print("!! 有 %d 行**超出 %d ULP** —— 这不是舍入，是**算的不一样**："
+          % (len(超差), ULP上限))
+    for i, a, b, u in 超差:
+        print("   行%d%s" % (i, "（%.0f ULP）" % u if u is not None else "（键不同或不是数字）"))
         print("      C++ : %s" % a)
         print("      Py  : %s" % b)
     return 1
