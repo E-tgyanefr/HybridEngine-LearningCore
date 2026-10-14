@@ -969,6 +969,24 @@ def _剥模块文档串(文本: str) -> str:
     if not (isinstance(首, _ast.Expr) and isinstance(首.value, _ast.Constant)
             and isinstance(首.value.value, str)):
         return 文本                      #: 开头不是 docstring，什么都不做
+    #: ⚠⚠ **只在 docstring 真的有害时才剥** —— 收紧条件，别误伤。
+    #:
+    #:   为什么收紧：我第一版无条件剥，结果把**答题模板**那条判据弄红了：
+    #:
+    #:       FAIL: test_每条线都能生成非空的答题模板
+    #:             'python：模板只有 3 行非空（像没生成）'
+    #:
+    #:   ⚠ 而那一课是**该输出**的（它考的就是 print 输出）⇒ 不能一刀切。
+    #:
+    #:   判据：docstring 里含**全角标点**才剥。
+
+    #:   · 全角标点会触发第 00 课那条「用了半角括号和引号」的检查
+    #:     ⇒ 参考答案会**踩自己的检查**（这就是要剥它的原因）
+    #:   · 纯 ASCII 的 docstring（比如某一课自己写的输出说明）**不剥**
+    #:     —— 它可能就是那一课该输出的东西
+    有害 = ("（", "）", "，", "。", "：", "；", "“", "”", "‘", "’", "《", "》", "—", "…")
+    if not any(c in 首.value.value for c in 有害):
+        return 文本
     行 = 文本.split("\n")
     #: docstring 的字面量跨 `lineno..end_lineno`（1-based）⇒ 整段切掉
     起 = 首.lineno - 1
