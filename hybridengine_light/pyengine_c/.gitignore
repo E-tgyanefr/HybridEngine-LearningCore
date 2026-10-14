@@ -14,6 +14,9 @@ libhblight.so
 libhblight.dylib
 hblight_selftest
 hblight_selftest.exe
+# ⚠ 渲染后端的靶子实测程序（task-12）也是构建产物 —— `build_hblight.py --go` 会搬进来
+bench_backend
+bench_backend.exe
 *.o
 *.obj
 __pycache__/

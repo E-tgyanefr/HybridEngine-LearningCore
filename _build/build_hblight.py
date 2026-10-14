@@ -241,6 +241,35 @@ def main() -> int:
     else:
         _说("  ⚠ 没找到自检程序 %s（对账要用它）" % 名)
 
+    # ── 渲染后端的靶子实测程序（task-12）──────────────────────────────────
+    #: ⚠ 和上面自检程序**完全同样的两件事**，别再犯一遍：
+    #:   ① **递归找** —— `tests/bench_backend.cpp` 的产物按 CMake 布局放在镜像目录
+    #:      （Linux/Ninja → `build/tests/`；Windows/MinGW → `build/` 平铺）
+    #:   ② **补可执行位** —— `shutil.copyfile` 不拷权限位（CI 已经因此红过一轮）
+    #:
+    #:   ⚠ 缺口是 Lead 复核时发现的：**构建**带出来了新目标，
+    #:     但**搬回仓库**这一步没带 —— 于是报告里那句"exit 0（含新目标）"**只对了一半**。
+    实测名 = "bench_backend.exe" if sys.platform.startswith("win") else "bench_backend"
+    实测源 = None
+    for 子根, 子目录们, 子文件们 in os.walk(工作构建):
+        子目录们[:] = [d for d in 子目录们 if d != "CMakeFiles"]
+        if 实测名 in 子文件们:
+            p = os.path.join(子根, 实测名)
+            if os.path.isfile(p):
+                实测源 = p
+                break
+    if 实测源:
+        实测目标 = os.path.join(绑定目录, 实测名)
+        shutil.copyfile(实测源, 实测目标)
+        if os.name != "nt":
+            try:
+                os.chmod(实测目标, os.stat(实测源).st_mode | 0o755)
+            except OSError as e:
+                _说("  ⚠ 补可执行位失败（靶子实测可能起不来）：%s" % e)
+        _说("  ✓ %s  (%d 字节)" % (os.path.relpath(实测目标, 根), os.path.getsize(实测目标)))
+    else:
+        _说("  ⚠ 没找到实测程序 %s（1000 圆那个靶子要用它）" % 实测名)
+
     _说()
     _说("完成。跑对账：python native/hblight/tests/diff_python.py")
     return 0

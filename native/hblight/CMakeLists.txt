@@ -67,3 +67,52 @@ if(MINGW)
   target_link_options(hblight PRIVATE -static -static-libgcc -static-libstdc++)
   target_link_options(hblight_selftest PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
+
+# ══════════════════════════════════════════════════════════════════════════
+# 渲染后端（task-12）—— 轻量版**自己的**软件光栅化器 + 自己的窗口
+#
+# ⚠ 独立性红线（作者裁决）：**不共用专业版任何代码**。
+#   这里没有 link 专业版的任何 target，也没有它的 include 目录。
+#
+# ⚠ 窗口实现按平台选：Windows 用 win32，其余用**兜底的空实现**
+#   （`window_null.cpp` 不是占位符 —— CI/无头/手机本来就没有窗口，
+#     而 `hb_window_backend()` 会明说 `"null"` ⇒ "没开窗"是可观测的）。
+# ══════════════════════════════════════════════════════════════════════════
+set(HBLIGHT_RENDER_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/raster.cpp
+)
+if(WIN32)
+  list(APPEND HBLIGHT_RENDER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/window_win32.cpp)
+else()
+  list(APPEND HBLIGHT_RENDER_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/window_null.cpp)
+endif()
+
+# ⚠ STATIC 而不是 SHARED：这一版的消费者是 `bench_backend`（同一个构建里的可执行）。
+#   要暴露给 Python 侧是**下一步**（怎么嵌回学习内核的 GUI 还没定，别抢跑）。
+add_library(hblight_render STATIC ${HBLIGHT_RENDER_SOURCES})
+target_include_directories(hblight_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+if(WIN32)
+  # 窗口 + StretchDIBits：user32 / gdi32 是**系统库**，不算第三方依赖
+  target_link_libraries(hblight_render PUBLIC user32 gdi32)
+endif()
+
+if(MSVC)
+  target_compile_options(hblight_render PRIVATE /W4)
+else()
+  target_compile_options(hblight_render PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+#: 那个靶子的实测程序（1000 个圆 ⇒ ms/帧 + "真的画了"的证据）
+add_executable(bench_backend ${CMAKE_CURRENT_SOURCE_DIR}/tests/bench_backend.cpp)
+target_link_libraries(bench_backend PRIVATE hblight_render)
+if(MSVC)
+  target_compile_options(bench_backend PRIVATE /W4)
+else()
+  target_compile_options(bench_backend PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+if(MINGW)
+  target_link_options(hblight_render PRIVATE -static -static-libgcc -static-libstdc++)
+  target_link_options(bench_backend PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
