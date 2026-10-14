@@ -162,10 +162,59 @@ env["PYTHONDONTWRITEBYTECODE"] = "1"
 #:     而**报错能逼人做出选择**并写下理由。
 import glob as _glob
 import os as _os
+import subprocess as _sub
 
 _测试目录 = _os.path.join(LC, "tests")
-_盘上 = {_os.path.splitext(_os.path.basename(p))[0]
-         for p in _glob.glob(_os.path.join(_测试目录, "test_*.py"))}
+
+
+def _仓库里的测试文件() -> tuple[set, str]:
+    """返回 (模块名集合, 来源说明)。
+
+    ⚠⚠⚠ **必须看 git，不能只看盘上** —— 这是 2026-10-14 CI 抓到的**我自己的设计错**：
+
+        本机盘上有 `tests/test_neural.py` ⇒ 自检过；
+        而**它没进 git** ⇒ CI 检出后没有这个文件
+          ⇒ `ModuleNotFoundError: No module named 'tests.test_neural'`
+          ⇒ `Ran 425 tests`（预期 456），**整条门禁红**。
+
+        ⇒ **一个"防判据跑不到"的机制，因为看错了地方，
+           反而放行了一个"仓库里根本没有"的状态。**
+
+    ⚠ 而"本机看得见"和"仓库里有"是两件事 —— **CI 是唯一能发现这个差别的地方**。
+
+    ⚠ 兜底：不是 git 仓库时（比如打成发行物、或用户解压了 tar.gz）
+      退回"扫盘"，并**在输出里说清用的是哪个来源** ——
+      免得以后有人看到"清单自检通过"却不知道它核的是什么。
+    """
+    try:
+        #: ⚠⚠⚠ **必须加 `-z`** —— 2026-10-14 实测踩到：
+        #:
+        #:   不加 `-z` 时，`git ls-files` 对**含非 ASCII 的文件名**会
+        #:   **加引号 + 八进制转义**：
+        #:
+        #:       "tests/test_\346\236\234\350\235\207.py"     ← 其实是 test_果蝇.py
+        #:
+        #:   而我们的代码拿它 `basename` + `splitext` ⇒ 得到了 **`207`**
+        #:   ⇒ 自检报「有 1 个测试文件没被跑到：tests/207.py」——
+        #:     **一个不存在的文件**，而真正的问题是**它自己解析错了**。
+        #:
+        #:   ⚠ 教训：**解析"别的工具的输出"时，先问它的输出格式是什么**
+        #:     （git 的 `-z` / `-z` 的 NUL 分隔 / `core.quotepath` 都能改这个行为）。
+        #:     我第一版按 `\n` 切 —— 那是**假设**，不是契约。
+        r = _sub.run(["git", "ls-files", "-z", "tests/test_*.py"], cwd=LC,
+                     capture_output=True, timeout=20)
+        if r.returncode == 0 and r.stdout.strip():
+            名 = {_os.path.splitext(_os.path.basename(x.decode("utf-8", "replace")))[0]
+                  for x in r.stdout.split(b"\0") if x.strip()}
+            return 名, "git ls-files -z（**仓库里真正有的**）"
+    except Exception:                                            # noqa: BLE001
+        pass
+    名 = {_os.path.splitext(_os.path.basename(p))[0]
+          for p in _glob.glob(_os.path.join(_测试目录, "test_*.py"))}
+    return 名, "扫描 tests/ 目录（⚠ **不是 git 仓库** —— 只反映本机盘上有什么）"
+
+
+_在仓库里, _来源 = _仓库里的测试文件()
 _已列 = set()
 for _名, _命令 in 批次:
     for _a in _命令:
@@ -178,11 +227,12 @@ for _名, _命令 in 批次:
         "修法有两种（加令牌 / 放宽判据），属**设计决定**，等作者裁决。"
         "⚠ 临时，不是处理完了。",
 }
-漏 = sorted(_盘上 - _已列 - set(故意不跑))
+漏 = sorted(_在仓库里 - _已列 - set(故意不跑))
 
 if 漏:
     print()
     print("=" * 60)
+    print("  自检来源：%s" % _来源)
     print("  ⚠⚠ **有 %d 个测试文件没被跑到**：" % len(漏))
     for _m in 漏:
         print("        tests/%s.py" % _m)
