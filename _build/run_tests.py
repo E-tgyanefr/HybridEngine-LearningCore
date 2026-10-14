@@ -84,6 +84,24 @@ env["PYTHONDONTWRITEBYTECODE"] = "1"
          "tests.test_ui_split",
          "tests.test_watchdog",
          "tests.test_version",
+         #: ⚠⚠ 2026-10-14 补：下面两个**一直是漏的** ——
+         #:
+         #:   `test_果蝇.py`（17 条）和 `test_neural.py`（32 条）是队友新写的，
+         #:   而本清单是**显式列出**的（见上面那段注释：本版本的 `unittest discover`
+         #:   不认 `--ignore`）⇒ **新加的文件不会自动被跑到**。
+         #:
+         #:   实测：它们在清单外时，`run_tests.py` 报 `Ran 380 tests`，
+         #:   而这两个文件**一次都没被执行** —— 49 条判据形同不存在。
+         #:
+         #:   ⚠ 这是"判据跑不到"那一类风险，而且它**长得和"全过"一模一样**
+         #:     （退出码 0、结论「两批都通过 ✅」）。⇒ 判据写出来还不够，
+         #:     **必须确认它真的在门禁里跑**。
+         #:
+         #:   ⚠ 以后**任何人新加 `tests/test_*.py`，都要回来加一行**。
+         #:     更好的做法是让本脚本**发现没在清单里的 `test_*.py` 并报错** ——
+         #:     ⚠ **那个没做**（如实记下）。
+         "tests.test_果蝇",
+         "tests.test_neural",
      ]),
     ("第二批：界面全流程（必须独占一个进程）",
      [sys.executable, "-m", "unittest", "tests.test_gui_flow"]),
