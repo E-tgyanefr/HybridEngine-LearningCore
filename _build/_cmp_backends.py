@@ -16,7 +16,11 @@ import sys
 import time
 
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-根 = r"D:\Users\etgya\Desktop\Project\引擎\HybridEngine-LearningCore"
+#: ⚠ **不能硬编码盘符** —— 本仓的 `_check_platform.py` 是**登记制**，
+#:   "清单外的平台命中 = 失败"。而这里**根本不需要**硬编码：
+#:   用 `__file__` 往上推两级就是仓库根，跨平台都对。
+#:   （我第一版写死了 `D:\...` ⇒ 把三平台 CI 的 `Platform self-check` 弄红了。）
+根 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, 根)
 os.chdir(根)
 
