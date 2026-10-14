@@ -924,6 +924,60 @@ def 剥装饰(文本: str) -> str:
     return 剩 if 剩.strip() else 文本
 
 
+
+def _剥模块文档串(文本: str) -> str:
+    """把**模块开头的那个 docstring** 删掉，只留可跑的代码。
+
+    ⚠⚠ **为什么必须剥**（2026-10-14 实测）：
+
+      python 线的参考答案长这样（`lessons/solutions/00_….py`）：
+
+          '''参考答案 —— 第 00 课：跑通第一个程序。
+
+          ⚠ 这个文件放在 `lessons/solutions/`，是**只读的课程作者提供**的答案。
+            学生自己写的那份在 `lessons/answers/` …
+          '''
+          print("工具链就绪")
+          print("我准备好学 Python 了")
+          print("第一步：写，第二步：跑")
+
+      ⚠ 那段 docstring 是**给读者看的说明**，里面有**全角括号**（`（` `）`）。
+      而第 00 课有一条检查叫「**用了半角括号和引号**」——
+      它扫**整个文件**，于是**参考答案踩了自己的检查**：
+
+          × 用了半角括号和引号
+              你的文件里有全角标点：全角左括号、全角右括号。
+
+      ⇒ `M.检查(课, M.参考答案(课))` 对**每一课 python 都不过**。
+
+    ⚠ 为什么这个 bug 活了这么久：判据脚本当时数的是 `✗`，
+      而 python 线用的是 `√`/`×` ⇒ **恒等于 0** ⇒ 永远报"过"（假绿）。
+      队友 `learning-verify` 查出来后，真相才露出来。
+
+    ⚠ 只剥**模块开头那一个** docstring（AST 说了算），
+      不碰函数/类里的、也不碰后面的字符串。
+    """
+    try:
+        import ast as _ast
+
+        树 = _ast.parse(文本)
+    except SyntaxError:
+        return 文本                      #: 解析不了就原样返回，别更糟
+    if not 树.body:
+        return 文本
+    首 = 树.body[0]
+    if not (isinstance(首, _ast.Expr) and isinstance(首.value, _ast.Constant)
+            and isinstance(首.value.value, str)):
+        return 文本                      #: 开头不是 docstring，什么都不做
+    行 = 文本.split("\n")
+    #: docstring 的字面量跨 `lineno..end_lineno`（1-based）⇒ 整段切掉
+    起 = 首.lineno - 1
+    止 = getattr(首, "end_lineno", 首.lineno)      #: 切到它**含**的那一行
+    剩 = 行[:起] + 行[止:]
+    出 = "\n".join(剩).lstrip("\n")
+    return 出 if 出.strip() else 文本
+
+
 def 参考答案(k: 课) -> str:
     """这一课的参考答案（**先自己写再看**）。"""
     if k.轨道 in ("csharp", "cpp", "java", "c") and k.工程:
@@ -934,18 +988,32 @@ def 参考答案(k: 课) -> str:
         from . import run as R
         with _截获输出() as 缓:
             R._cmd_answer(k.编号)
-        return 缓.getvalue()
+        #: ⚠⚠ **补 剥装饰**（2026-10-14，队友 `learning-verify` 查出来的）：
+        #:   原来只有编译型那条分支剥了 ⇒ python 线返回的答案**带着展示抬头**：
+        #:
+        #:       （空行）
+        #:       ── 参考答案 ────────────────────────────
+        #:         （先自己写一遍再看。抄一遍不如写错一遍学得多。）
+        #:       ────────────────────────────────────────
+        #:       """第 54 课参考答案 —— 最小生成树。"""
+        #:
+        #:   ⇒ `M.检查(课, M.参考答案(课))` 会把带 `─` 的文字写进答题文件
+        #:     ⇒ **SyntaxError** ⇒ 检查全跑不了。
+        #:   ⚠ 而它一直没被发现，因为**记号不匹配**盖住了（见下条）。
+        #: ⚠ 先剥展示抬头，再剥**模块 docstring** ——
+        #:   后者里有全角括号，会让第 00 课那条「用了半角括号和引号」判它不过。
+        return _剥模块文档串(剥装饰(缓.getvalue()))
     if k.轨道 == "enginecourse":
         from . import enginecourse as EC
         with _截获输出() as 缓:
             EC._答案(项目根(), k.编号)
-        return 缓.getvalue()
+        return 剥装饰(缓.getvalue())   #: ⚠ 同 python 分支：不剥就是带抬头的展示文本
     if k.轨道 in ("ai", "embedded", "raspi"):
         模块 = {"ai": "aicourse", "embedded": "embedded", "raspi": "raspi_course"}[k.轨道]
         m = __import__(f"hybridengine_light.{模块}", fromlist=["x"])
         with _截获输出() as 缓:
             m._答案(项目根(), k.编号)
-        return 缓.getvalue()
+        return 剥装饰(缓.getvalue())   #: ⚠ 同上
     try:
         解 = k.源文件.parent / "solutions" / k.源文件.name
         return 解.read_text(encoding="utf-8", errors="replace") if 解.is_file() else "（这一课没有参考答案）"
