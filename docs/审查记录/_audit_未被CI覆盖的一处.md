@@ -82,3 +82,72 @@
    ⇒ 那说明我的形态抄错了（或 `PUBLIC`/`PRIVATE` 用错）—— **那正是我要的发现**
 ③ 若它绿 ⇒ 「`hybridengine_ai` 在 Linux 上可构建」**才算验过**
 ```
+
+
+---
+
+# ⭐ 附（Round 26）：**我把理由查错了，已更正**
+
+> 上一节记的是「`Threads::Threads` 这处**未被 CI 覆盖**」。这一节记的是**更基本的一件事**：
+> ⚠ **我给的那个理由本身是错的**，而且我是**抄来的、没实测过**。
+
+## 一、⚠ 原话（错的）
+
+我在 `src/ai/CMakeLists.txt` 里写：
+> 「⚠ 为什么必须加：`tensor.cpp` 的 `矩阵乘` 现在可以按输出行分块并行（`std::thread`）
+> ⇒ **POSIX 上要链 pthread**。⚠ 而在 MinGW/Windows 上**不加也能编过**（所以本机发现不了）」
+
+⚠ 而 `native/hblight/CMakeLists.txt:151`（队友写的）是**同一句**：
+> 「为什么必须显式加：POSIX 上 `std::thread` 要链 pthread（GCC 用 `-pthread`），
+> **不链的话是链接期报 `undefined reference to pthread_create`** —— 而 Windows（MinGW）上什么都不需要。」
+
+⇒ ⭐ **两个人写的是同一句话** ⇒ 那说明它是**流传的说法**，而**我们都当成了事实**。
+
+## 二、⭐ 实测（`C:\he_ai\pthread_probe.cpp`）
+
+```
+① 不带 `-pthread`：编译 **0** · 链接 **0** · **运行成功**（汇=6）· 依赖里**没有** libwinpthread
+② 带   `-pthread`：同上
+③ ⭐ **目标文件的未定义符号**（`nm -u`）：
+     p_none.o（不带）：只有 `_ZNSt6thread15_M_start_threadESt10unique_ptrI...` 与 `_ZNSt6thread4joinEv`
+                       ⚠ **连一个 `pthread_*` 都没有**
+     p_yes.o（带）    ：**完全相同**
+⇒ ⇒ ⭐ **「会报 `undefined reference to pthread_create`」在本机根本不成立** ——
+     **`pthread_create` 压根不是引用**（MinGW 的 libstdc++ 用 `_M_start_thread` 走自己的路）
+```
+
+## 三、⇒ 那 `Threads::Threads` 到底该不该加？**该加，但理由要换**
+
+```
+✅ **站得住的理由只有两条**：
+   ① `Threads::Threads` 是 **CMake 内建的 FindThreads**（**不是第三方库**）——
+      它自己知道各平台该给什么（Linux 给 `-pthread`，macOS 可能什么都不给）
+   ② **上界风险为零**：最坏情况是它给了个不需要的标志；
+      而不加的话，**万一**某个平台/老 glibc 真需要，就是**链接期**红
+⚠ **而这两条都不是"不加就编不过"**。
+
+⚠ **glibc 2.34（2021-08）起把 libpthread 合进了 libc**；macOS 一直在 libSystem 里
+  ⇒ **现代平台上它很可能本来就是多余的**
+  ⚠ ⚠ **但这一句我没在 Linux/macOS 上实测过** —— 本机没有那个环境：
+     `wsl --list` 空 · 无 docker/podman · 无 MSYS2/Cygwin（**四条都核过**）
+```
+
+## 四、⇒ 处置
+
+```
+✅ **没有回退** `Threads::Threads` —— 它是对的、是官方写法、没有害处
+✅ **改了它上面的注释**：把"流传的说法"换成"实测的 + 标注没实测的"
+   ⚠ 而**队友那份 `native/hblight/CMakeLists.txt:151` 的同一句话我没改**
+     —— 那是它的文件、它已提交、且**它的结论（加 Threads）是对的**；
+     我只在自己的文件里把理由修正，**并把这份记录留在公共文档里**
+⭐ **一句话**：**加它是因为"官方写法 + 零上界风险"，不是因为"不加就编不过"。**
+```
+
+## 五、⚠ 这一条的教训（本会话第 N 次同族）
+
+```
+我一直在查别人的"流传的说法"（`git archive | tar` · 中文路径 · Windows tar · 短窗口计时），
+⚠ **而这次我自己的注释里就有一句"流传的说法"，而且我抄了队友的同一句。**
+⇒ ⭐ 判据：**"两个人写的一样"不是证据 —— 那可能只说明"传的是同一个说法"。**
+⇒ ⭐ 而发现它的方法很便宜：**去量**（这一支探针不到 20 行，一次编译就出答案）。
+```
