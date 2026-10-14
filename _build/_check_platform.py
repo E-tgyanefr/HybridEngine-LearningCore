@@ -348,6 +348,36 @@ else:
         "同上：Windows 分支。文档字符串里的提及也计在内",
     ("hybridengine_light/learn_gui.py", "os.startfile"):
         "**已经是按平台分流的**（win=startfile / mac=open / linux=xdg-open→gio）",
+    #: ⚠⚠⚠ 2026-10-14：队友的 **C++ 内核移植**（task-10）新加的文件 ——
+    #:   自检**当场抓到 4 条**，而这是**它该做的**（登记制 = 回归闸）。
+    #:   ⇒ 我逐条核过，它们**全都是"平台差异"本身，不是 Windows 假设**：
+    #:
+    #:   ① `.dll` / `.exe` 字面量 —— **动态库/自检程序的候选名列表**：
+    #:        POSIX 是 `libhblight.so` / `libhblight.dylib`，
+    #:        Windows 是 `libhblight.dll` / `hblight.dll`（**MinGW 会加 `lib` 前缀**，
+    #:        所以两个都要认 —— 队友为此踩过一次"构建返回 0 但找不到产物"）。
+    #:      ⚠ 跨平台要的**正是这份列表**：写死一个名字才是 Windows 假设。
+    #:   ② `盘符路径` —— 构建工作区 `C:\hblight`（Windows）/ `/tmp/hblight`（POSIX）。
+    #:      ⚠ 理由是 **MinGW 的 `ld` 处理不了仓库路径里的中文（`引擎\`）**，
+    #:        所以要换到 ASCII 路径去编译。
+    #:      ⚠⚠ 而这一行**原来就是写死的 `C:\hblight`** ——
+    #:        在 POSIX 上会变成相对路径（反斜杠不是分隔符）⇒ **已经把 CI 弄红过一次**。
+    #:        修法就是这份 `if sys.platform` 分支 ⇒ **它就是平台差异，要留着**。
+    ("_build/build_hblight.py", ".dll 字面量"):
+        "动态库**候选名列表**（MinGW 产出 `libhblight.dll`、MSVC 产出 `hblight.dll`）"
+        "—— 跨平台要的正是它，写死一个才是 Windows 假设",
+    ("_build/build_hblight.py", ".exe 字面量"):
+        "自检程序名：Windows 是 `hblight_selftest.exe`，POSIX 不带后缀 —— 已用 "
+        "`sys.platform` 分支守卫",
+    ("_build/build_hblight.py", "盘符路径"):
+        "**构建工作区**：Windows `C:\\hblight` / POSIX `/tmp/hblight` —— "
+        "换 ASCII 路径是为了绕开「MinGW 的 ld 处理不了中文路径」，"
+        "⚠ 原来写死过 `C:\\hblight`，在 POSIX 上变成相对路径、把三平台 CI 弄红过一次",
+    ("hybridengine_light/pyengine_c/__init__.py", ".dll 字面量"):
+        "ctypes 加载**候选名列表**（与上面同一份规则）—— 已用 `sys.platform` 分支守卫；"
+        "⚠ 而「加载失败 ⇒ 静默退回 Python」这个设计**差点造成一次假绿**"
+        "（判据全绿，但绿的是 Python 版）⇒ CI 里加了一条显式的「走的是哪条路」断言",
+
     ("hybridengine_light/learnmodel.py", ".exe 字面量"):
         "工具链**候选名列表**（`dotnet` 与 `dotnet.exe` 都试）—— 跨平台要的正是它",
     ("tests/test_gui_model.py", ".exe 字面量"):
