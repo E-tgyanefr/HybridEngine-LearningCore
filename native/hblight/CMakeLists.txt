@@ -144,3 +144,21 @@ endif()
 if(MINGW)
   target_link_options(hblight_embed PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
+
+# ══════════════════════════════════════════════════════════════════════════
+# ⚠⚠ task-17 追加：**线程库**（`raster.cpp` 现在用 `std::thread` 做按行并行）
+#
+#   为什么必须显式加：POSIX 上 `std::thread` 要链 pthread（GCC 用 `-pthread`），
+#   不链的话是**链接期**报 `undefined reference to pthread_create` ——
+#   而 Windows（MinGW）上什么都不需要。
+#   ⇒ 用 CMake 的 `Threads::Threads`（它自己知道各平台该加什么），
+#     这样三平台都对，而不是只在 Windows 上"看起来没事"。
+#
+#   ⚠ 只影响**含 raster.cpp 的两个目标**：`hblight_render`（静态，给 bench 用）
+#     与 `hblight_embed`（共享，Python ctypes 用）。**已有目标一个都没动**。
+#   ⚠ 静态链 MinGW 运行时的策略不变（上面那两行），
+#     所以 `libhblight_embed.dll` 的依赖里**不会**多出 libwinpthread-1.dll。
+# ══════════════════════════════════════════════════════════════════════════
+find_package(Threads REQUIRED)
+target_link_libraries(hblight_render PUBLIC Threads::Threads)
+target_link_libraries(hblight_embed  PUBLIC Threads::Threads)
