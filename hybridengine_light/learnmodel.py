@@ -707,14 +707,36 @@ def _问答题路径(k: 课) -> Path:
     #:   ⇒ **Java 没有自己的课程库文件**（`HybridEngineLight/` 下只有
     #:     `CCourse / CppCourse / CsCourse` 三个）—— 它大概复用 `CsCourse`。
     #:     ⚠ **没查证**，先按 `CsCourse` 处理（后缀仍是 `.cs`）。
-    主体 = _定义名(k.标题) if k.轨道 == "cpp" else _清理文件名(k.标题)
+    #: ⚠⚠⚠ 2026-10-14 第二次修：**`java` 和 `cpp` 一样，也走 `定义名` + `.java`**。
+    #:
+    #:   我第一版按 `CsCourse` 处理 java（因为 `HybridEngineLight/` 下
+    #:   只有 `CCourse / CppCourse / CsCourse` 三个课程库文件，**没找到 JavaCourse**）。
+    #:   ⇒ 实测 `java-answers/` 里**两种命名并存**：
+    #:
+    #:      00_第00课跑通第一个程序把JDK装好.cs     ← Python 写的（错的）
+    #:      00_跑通第一个程序.java                ← **Java 侧真正读的**
+    #:
+    #:   ⇒ 判据结果：`java` 线 41 课里 **40 课参考答案过不了自己的检查**。
+    #:   ⚠ 这跟 `cpp` 是**同一个根因**（文件名两侧不一致），不是两个毛病。
+    #:
+    #:   ⇒ 规则汇总（实测确认的三条）：
+    #:       cpp   → `定义名` + `.cpp`
+    #:       java  → `定义名` + `.java`
+    #:       c     → 整个标题 + `.c`
+    #:       csharp→ 整个标题 + `.cs`
+    #:   ⚠ `java` 的答题目录名也是**从盘上确认**的（`java-answers/`），
+    #:     不是从 `答案名` 猜的 —— 见下面那条注释。
+    走定义名 = k.轨道 in ("cpp", "java")
+    主体 = _定义名(k.标题) if 走定义名 else _清理文件名(k.标题)
     _答题路径缓存[键] = root / 答案名 / (k.编号 + "_" + 主体 + _后缀(k.轨道))
     return _答题路径缓存[键]
 
 
 def _后缀(轨道: str) -> str:
     """答题文件的扩展名。⚠ 与各课课程库里的 `答案路径` 一致。"""
-    return {"cpp": ".cpp", "csharp": ".cs", "java": ".cs", "c": ".c"}[轨道]
+    #: ⚠ `java` 是 **`.java`**（我第一版给的是 `.cs` —— 那是 `CsCourse` 的后缀，
+    #:   而 java 线并不复用 `CsCourse`；实测盘上 Java 侧读的是 `.java` 文件）。
+    return {"cpp": ".cpp", "csharp": ".cs", "java": ".java", "c": ".c"}[轨道]
 
 
 def _定义名(标题: str) -> str:
