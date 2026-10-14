@@ -12,6 +12,11 @@ libhblight.dll
 hblight.dll
 libhblight.so
 libhblight.dylib
+# ⚠ 嵌入探针那个 SHARED 目标（架构实验用）也是构建产物 —— 别把 577 KB 带进提交
+libhblight_embed.dll
+hblight_embed.dll
+libhblight_embed.so
+libhblight_embed.dylib
 hblight_selftest
 hblight_selftest.exe
 # ⚠ 渲染后端的靶子实测程序（task-12）也是构建产物 —— `build_hblight.py --go` 会搬进来

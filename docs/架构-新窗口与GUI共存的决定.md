@@ -99,3 +99,66 @@
 
 ⚠ 而**在第一步实验通过之前，不许有人写"接进 pyengine"的代码** ——
   那是把地基没验的房子往上盖。
+
+---
+
+# 六、✅ 实验结果（2026-10-14，第一步已做完）
+
+> 探针：`native/hblight/tests/embed_probe.py`（Tk 建主窗 + `ctypes` 驱动
+> `libhblight_embed.dll` 建 `WS_CHILD` 子窗口 + 每帧 `StretchDIBits`）。
+> 接口：`native/hblight/window_embed.cpp`（**新文件**，已有窗口代码一个字节没改）。
+
+## 6.1 结论：**前提成立** —— 但成立的形态和原来设想的不一样
+
+```
+CHILD_BACKEND=win32     DISTINCT_FRAME_HASHES=60/60
+TK_WINFO_ID=30935250    TK_ROOT_HWND=27592966    WININFO_IS_ROOT=0
+CHILD_HWND=…            CHILD_VISIBLE=1          VISIBLE=1
+FRAMES=60   PRESENTS_OK=60   PRESENTED_FIELD=60   PIXEL_COLORREF=0x1380EC
+```
+
+| 判据 | NORMAL | `--eat`（只移除不派发） | `--no-pump`（完全不泵） |
+|---|---|---|---|
+| ① 子窗口可见 + 读回像素 | ✅ | ✅ | ✅ |
+| ② 帧真的在变（校验和互不相同） | ✅ 60/60 | ✅ 60/60 | ✅ 60/60 |
+| ③ **Tk 控件仍正常**（真点击） | ✅ **BUTTON_CLICKS=1** | 🔴 **BUTTON_CLICKS=0** | ✅ BUTTON_CLICKS=1 |
+| | `VERDICT=PASS` | `NEGATIVE_CONTROL_RED_AS_EXPECTED` | `NEGATIVE_CONTROL_GREEN_UNEXPECTED` |
+
+⇒ ③ 在反面**确实变红**（`PUMP_AFTER_CLICK=3 dispatched=0`，抽到 3 条消息被丢掉，
+按钮再也不响应）⇒ **这条判据不是恒真的**，它能测出"消息被吃"。
+
+## 6.2 ⚠⚠ 三条**改变了设计**的实测发现
+
+### ① `--no-pump` 也过 ⇒ **我们根本不需要自己的消息泵**
+子窗口的画面是 `StretchDIBits` **直接画进它的 DC** 的，不依赖任何消息。
+⇒ 接入时**最省事也最安全**的做法是：**根本不泵消息**，让 Tk 独占那个队列。
+
+### ② 但"泵了却不派发"会**把 Tk 弄坏**（`--eat` 实测）
+同线程所有窗口**共用一个消息队列** ⇒ 我们的 `PeekMessage(..., PM_REMOVE)` 会把
+**Tk 自己的消息一起捞走**。只移除不派发 ⇒ Tk 的按钮再也不响应。
+⚠ 这正是 ③ 那条判据存在的理由，也是**接进 `pyengine.后端` 时必须写死的约定**：
+**要么不泵，要么 `TranslateMessage`+`DispatchMessage` 派发掉。**
+
+### ③ ⚠ **一个差点导致错结论的仪器故障**（记下来，别再犯）
+第一版用 `PostMessage(WM_LBUTTONDOWN)` 投点击 —— 按钮**不响应**，
+而且 `--no-pump` 下**同样不响应**。
+⇒ 差一点得出"**前提不成立、整个方案要退**"的结论。
+**实际是投递手段坏了**，不是消息被吃：
+- 窗口**没被激活**时，点击只会把它激活，到不了控件上
+⇒ 修法：`root.focus_force()` + `SetForegroundWindow(顶层)` + **真实输入注入**
+（`SetCursorPos` + `mouse_event`，用完把鼠标位置还回去）。
+⚠ **教训**：判据红了，先问"**是它测的东西红，还是仪器坏了**"。
+本仓上一次是"假绿"（静默退回），这一次是"**假红**" —— 两种都贵。
+
+## 6.3 还没验的（别当成已验）
+
+1. **只在 Windows 上验过**（`hb_child_backend()=="win32"`）。
+   `window_embed.cpp` 有 `"null"` 兜底，但**没在真 Linux/macOS 上编过跑过**。
+2. 探针是**独立脚本**，**没有**接进 `pyengine.后端`（按决定：第一步通过前不接）。
+3. 只验了"**一个**子窗口 + 一个按钮"。多子窗口 / 与 Tk 控件重叠时的 z 序 / 缩放 /
+   高 DPI **都没验**。
+4. 帧率只跑到 **60 帧 @ 16 ms 的 `after()` 节拍**，**没有**验长时间稳定性
+   （比如 10 分钟会不会漏消息、会不会卡）。
+5. 输入**仍是没接**的：`WS_CHILD` 窗口自己不处理键鼠（`window_embed.cpp` 里
+   `WM_LBUTTONDOWN` 等直接落到 `DefWindowProcW`）。
+   ⇒ 学员的按键要接，是**下一步**。

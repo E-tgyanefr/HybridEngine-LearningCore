@@ -270,6 +270,38 @@ def main() -> int:
     else:
         _说("  ⚠ 没找到实测程序 %s（1000 圆那个靶子要用它）" % 实测名)
 
+    # ── 嵌入探针那个 SHARED 目标（架构实验）────────────────────────────────
+    #: ⚠⚠ 之前它是**手工** `Copy-Item` 进来的 —— **手工步骤不算交付**：
+    #:   别人 checkout 之后 `build_hblight.py --go` 跑完，探针仍然 exit 2（找不到 DLL）。
+    #:
+    #: ⚠ 三样缺一不可（都栽过）：
+    #:   ① **递归找**（CMake 按源码目录镜像布局）
+    #:   ② **补可执行位**（`shutil.copyfile` 不拷权限位 ⇒ POSIX 上跑不起来）
+    #:   ③ **名字认全**（MinGW 加 `lib` 前缀、MSVC 不加；`.so`/`.dylib` 又不同）
+    def 搬回(候选: tuple, 说明: str) -> bool:
+        for 子根, 子目录们, 子文件们 in os.walk(工作构建):
+            子目录们[:] = [d for d in 子目录们 if d != "CMakeFiles"]
+            for 名 in 候选:
+                if 名 in 子文件们:
+                    源 = os.path.join(子根, 名)
+                    if os.path.isfile(源):
+                        目标 = os.path.join(绑定目录, 名)
+                        shutil.copyfile(源, 目标)
+                        if os.name != "nt":
+                            try:
+                                os.chmod(目标, os.stat(源).st_mode | 0o755)
+                            except OSError as e:
+                                _说("  ⚠ 补可执行位失败（%s）：%s" % (说明, e))
+                        _说("  ✓ %s  (%d 字节)"
+                            % (os.path.relpath(目标, 根), os.path.getsize(目标)))
+                        return True
+        _说("  ⚠ 没找到 %s（%s）" % (" / ".join(候选), 说明))
+        return False
+
+    搬回(("libhblight_embed.dll", "hblight_embed.dll",
+          "libhblight_embed.so", "libhblight_embed.dylib"),
+         "架构实验的嵌入探针要用它")
+
     _说()
     _说("完成。跑对账：python native/hblight/tests/diff_python.py")
     return 0

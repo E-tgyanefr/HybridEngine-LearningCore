@@ -526,6 +526,16 @@ def 安装() -> bool:
 
     返回是否真的换了。**换不了就原样返回 False**，绝不让调用方炸。
     """
+    # ⚠⚠ **先看开关，再探库** —— 顺序不能反（2026-10-14 实测踩到）。
+    #   原因：`可用()` 会真的 `ctypes.CDLL(...)` 把 dll **加载进当前进程**。
+    #   写成"先探后判"时，**每个 `import pyengine` 的进程都会白加载一次**，
+    #   后果两个，都很难查：
+    #     ① 明明"默认关"，却人人都在加载原生库 —— 与默认关的意图相悖
+    #     ② **dll 被进程占住** ⇒ 构建脚本 `shutil.copyfile` 报
+    #        `PermissionError: [Errno 13] Permission denied: ...libhblight.dll`
+    #        （本轮就是这么红的；症状看着像"文件权限坏了"，其实是有进程没退）
+    if os.environ.get("HBLIGHT_ENABLE") != "1":
+        return False
     if not 可用():
         return False
     # ⚠⚠ **默认关**：实测在"逐操作 ctypes"这个粒度下，开着它比 Python 版

@@ -116,3 +116,31 @@ if(MINGW)
   target_link_options(hblight_render PRIVATE -static -static-libgcc -static-libstdc++)
   target_link_options(bench_backend PRIVATE -static -static-libgcc -static-libstdc++)
 endif()
+
+# ══════════════════════════════════════════════════════════════════════════
+# 子窗口嵌入探针（架构实验）—— `tests/embed_probe.py` 用 ctypes 驱动它
+#
+# ⚠ **必须是 SHARED**：驱动方是 **Python/Tk**（Tk 占着主线程和它自己的事件循环），
+#   所以只能由 Python `ctypes` 加载。`hblight_render` 是 STATIC（消费者是
+#   同一个构建里的 exe），这里**另起一个 SHARED 目标**，
+#   ⇒ 不是把已有目标改掉，而是**纯追加**（已有两个目标一个字没动）。
+#
+# ⚠ 只用 `raster.cpp` + `window_embed.cpp`：**不把 window_win32.cpp 拉进来**，
+#   免得和已有那个顶层窗口类重名/抢注册表项。
+# ══════════════════════════════════════════════════════════════════════════
+add_library(hblight_embed SHARED
+  ${CMAKE_CURRENT_SOURCE_DIR}/raster.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/window_embed.cpp
+)
+target_include_directories(hblight_embed PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+if(WIN32)
+  target_link_libraries(hblight_embed PUBLIC user32 gdi32)
+endif()
+if(MSVC)
+  target_compile_options(hblight_embed PRIVATE /W4)
+else()
+  target_compile_options(hblight_embed PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+if(MINGW)
+  target_link_options(hblight_embed PRIVATE -static -static-libgcc -static-libstdc++)
+endif()
