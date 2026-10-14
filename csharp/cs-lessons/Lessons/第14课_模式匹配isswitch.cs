@@ -203,7 +203,7 @@ static string 描述对象(object 东西) => 东西 switch
     Console.WriteLine(描述(100));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "无效",
@@ -250,7 +250,7 @@ static string 描述对象(object 东西) => 东西 switch
     Console.WriteLine(至少一门不及格(new 成绩记录("丙", 101)));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "False",
@@ -291,7 +291,7 @@ static string 描述对象(object 东西) => 东西 switch
     Console.WriteLine(描述对象((object)""));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "正数 7",

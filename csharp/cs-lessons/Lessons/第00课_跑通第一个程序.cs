@@ -219,6 +219,8 @@ static void 跑通()
     //   也就不会和库追加的 `入口` 类撞车（那会报 CS0017 两个入口点）。
     private static CppRun 调用(string 代码, string 调用点)
     {
-        return CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        //: ⚠ 恢复成原样（`限定`）—— 用来验证**根因只有一处**（库的第 142 行）。
+        //:   如果这一行不用改也能过，就说明问题不在课程侧。
+        return CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
     }
 }

@@ -663,7 +663,7 @@ def _问答题路径(k: 课) -> Path:
     if 键 in _答题路径缓存:
         return _答题路径缓存[键]
     root = 项目根()
-    答案名 = {"csharp": "csharp-answers", "cpp": "cpp-answers",
+    答案名 = {"csharp": "cs-answers", "cpp": "cpp-answers",
               "java": "java-answers", "c": "c-answers"}[k.轨道]
     #: ⚠⚠⚠ 2026-10-14 修：这里**原来真的只是"猜"** ——
     #:   函数名叫「问答题路径」、注释写着「**问代码，别猜**」，

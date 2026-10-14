@@ -190,7 +190,7 @@ static void 演示延迟()
     Console.WriteLine(string.Join(",", 挑偶数(new int[]{2,4,6})));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "2,4",
@@ -227,7 +227,7 @@ static void 演示延迟()
     Console.WriteLine(加一分(new List<成绩记录>{ new 学生代码.成绩记录("甲", 59) })[0].名字);
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "60",
@@ -264,7 +264,7 @@ static void 演示延迟()
     Console.WriteLine();
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "2",

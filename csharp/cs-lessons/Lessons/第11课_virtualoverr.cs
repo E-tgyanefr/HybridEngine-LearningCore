@@ -221,7 +221,7 @@ class 跑车 : 汽车
     Console.WriteLine(__t.叫声());
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "玩具叫"
@@ -267,7 +267,7 @@ class 跑车 : 汽车
     Console.WriteLine(__b.叫声());
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "汪汪",
@@ -304,7 +304,7 @@ class 跑车 : 汽车
     Console.WriteLine(__t.叫声());
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "玩具叫"
@@ -337,7 +337,7 @@ class 跑车 : 汽车
     Console.WriteLine(new 学生代码.跑车("乙", 200, 8).简介());
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "甲 300 4",

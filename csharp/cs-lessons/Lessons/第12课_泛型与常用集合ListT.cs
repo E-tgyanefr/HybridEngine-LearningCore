@@ -186,7 +186,7 @@ static string 名次表(Dictionary<string, int> 表)
     Console.WriteLine(数满足(new List<string>{"甲","乙丙"}, s => s.Length == 1));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "2",
@@ -223,7 +223,7 @@ static string 名次表(Dictionary<string, int> 表)
     Console.WriteLine(查到了(new Dictionary<string,int>{["甲"]=90}, "乙", out v2));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "True:90",
@@ -257,7 +257,7 @@ static string 名次表(Dictionary<string, int> 表)
     Console.WriteLine(名次表(new Dictionary<string,int>{["甲"]=70,["乙"]=90,["丙"]=80}).Replace("\n", " / "));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "乙 90 / 丙 80 / 甲 70"

@@ -240,7 +240,7 @@ class 计数器
     Console.WriteLine(__s.报告());
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "甲 70",
@@ -281,7 +281,7 @@ class 计数器
     Console.WriteLine(__c.值);
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "0",

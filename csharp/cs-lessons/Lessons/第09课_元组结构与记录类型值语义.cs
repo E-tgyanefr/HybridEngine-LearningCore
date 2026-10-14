@@ -219,7 +219,7 @@ static (int 最低, int 最高) 取最高最低(int[] 数们)
     Console.WriteLine(数值改不掉(new 分数 { 得分 = 80 }).得分);
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "90"
@@ -252,7 +252,7 @@ static (int 最低, int 最高) 取最高最低(int[] 数们)
     Console.WriteLine($"({取名字(new 成绩记录("乙", 59)).Item1}, {取名字(new 成绩记录("乙", 59)).Item2})");
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "(甲, True)",
@@ -289,7 +289,7 @@ static (int 最低, int 最高) 取最高最低(int[] 数们)
     Console.WriteLine($"({取最高最低(new int[]{0,0}).Item1}, {取最高最低(new int[]{0,0}).Item2})");
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "(1, 5)",

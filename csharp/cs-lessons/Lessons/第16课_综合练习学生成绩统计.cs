@@ -220,7 +220,7 @@ static List<string> 名字们(List<成绩记录> 们)
     Console.WriteLine(报警(new 学生代码.成绩记录("甲", 60)));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "名字是空的",
@@ -258,7 +258,7 @@ static List<string> 名字们(List<成绩记录> 们)
     Console.WriteLine($"({统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item1}, {统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item2}, {统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item3}, {统计(new List<成绩记录>{ new 成绩记录("甲", 90), new 成绩记录("乙", 80), new 成绩记录("丙", 90) }, 85).Item4})");
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "(3, 2, 86.67, 丙)"
@@ -290,7 +290,7 @@ static List<string> 名字们(List<成绩记录> 们)
     Console.WriteLine($"({统计(new List<成绩记录>(), 60).Item1}, {统计(new List<成绩记录>(), 60).Item2}, {统计(new List<成绩记录>(), 60).Item3}, {统计(new List<成绩记录>(), 60).Item4})");
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "(0, 0, 0, )"
@@ -325,7 +325,7 @@ static List<string> 名字们(List<成绩记录> 们)
     Console.WriteLine(报警(new 学生代码.成绩记录("甲", 60)));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "名字是空的",
@@ -363,7 +363,7 @@ static List<string> 名字们(List<成绩记录> 们)
     Console.WriteLine(string.Join(",", 名字们(new List<成绩记录>{ new 学生代码.成绩记录("甲", 70), new 学生代码.成绩记录("", 99), new 学生代码.成绩记录("乙", 88) })));
 
 """;
-        var run = CppCheck.编译并运行(代码, null, CppLesson.限定(代码, 调用点));
+        var run = CppCheck.编译并运行(代码, null, 调用点)   //: ⚠ 传**裸调用点** —— `跑()` 内部会包成 `new Action(() => { … })`，别包两次;
         if (!run.编译通过) return CppCheck.编译失败说明(run);
         string[] 期望 = {
             "乙,甲"
